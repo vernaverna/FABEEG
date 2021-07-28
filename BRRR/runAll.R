@@ -4,18 +4,17 @@
 K <- 6 # number of components (reduced rank) to use (max number of classes - 1)
 model <- 'brrr' # model type ('penlda'=penalized LDA, 'brrr'=BRRR)
 CVfolds <- 10 # how many cross-validation folds to use
-omitMag <- TRUE  # logical indicating whether to omit magnetometers or not
 omitFreq <- c(0, 90) # the lowest and highest frequency value to take into account
-plotname <- "siblings_allfreq_nomag"
+plotname <- "groups"
 network <- TRUE # logical value for producing network figures. NOTE: this only works with R version 3.5 or higher 
 n.iter <- 500
 
 
-load("data/ecspectrum.RData")
+load("data/N2spectrum.RData")
 source("var.R")
 
 ## Cross-validation for class prediction
-D <- acc(CVfolds=CVfolds,model=model,discTop=K, omitMag = omitMag, omitFreq = omitFreq, network=network, n.iter=n.iter, ex='ec')
+D <- acc(CVfolds=CVfolds,model=model,discTop=K, omitMag=F, omitFreq = omitFreq, network=network, n.iter=n.iter, ex='N2')
 
 if(!network){
   M <- length(classes)
