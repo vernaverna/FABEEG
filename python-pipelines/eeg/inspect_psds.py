@@ -47,24 +47,29 @@ data_n2 = np.array(group['key_sleep N2'])
 #info = np.array(group['key_info']
 f.close()
 
-# Calculate the average relative band power 
+# Calculate the average relative band power (RBP):
+# RBP = 100*ABP/sum(ABP)
+# i.e. sum of spectral power over all bands is 100 for each channel and subject
 # TODO: make sure that this is the desired approach!
 n1_bandpower = []
 n2_bandpower = []
-
-total_power_n1 = np.trapz(np.sum(data_n1, axis=0)) #for normalization; combine all channels for total power
-total_power_n2 = np.trapz(np.sum(data_n2, axis=0))
 
 for band in f_bands:
     fmin, fmax = band[0], band[1]
     bandpwr1 = bandpower(psd=data_n1, f=freqs, fmin=fmin, fmax=fmax)
     bandpwr2 = bandpower(psd=data_n2, f=freqs, fmin=fmin, fmax=fmax)
 
-    n1_bandpower.append(bandpwr1/total_power_n1)
-    n2_bandpower.append(bandpwr2/total_power_n2)
-    
-n1_bandpower = np.array(n1_bandpower) #do I need to transpose?
-n2_bandpower = np.array(n2_bandpower) 
+    n1_bandpower.append(bandpwr1)
+    n2_bandpower.append(bandpwr2)
+
+
+#sums over the absolute power of all freq. bands; channel-wise info
+abs_power_n1 = np.sum(n1_bandpower, axis=0) 
+abs_power_n2 = np.sum(n2_bandpower, axis=0)
+
+#normalizes data
+n1_bandpower = np.array(n1_bandpower)/abs_power_n1 #did not scale with 100 yet
+n2_bandpower = np.array(n2_bandpower)/abs_power_n2 
     
 
 #Create a directory to save the .csv?? files
