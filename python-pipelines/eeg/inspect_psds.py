@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jun  9 12:33:10 2021
+
+@author: heikkiv
+"""
+
+import numpy as np
+import argparse
+import h5py 
+from mne import open_report, find_layout, pick_info, pick_types
+import matplotlib.pyplot as plt
+from pathlib import Path
+from config_eeg import get_all_fnames, fname, bads, age_df
+
+
+# Define the frequency bands (heuristic approach as in BRRR)
+f_bands = [(0,1), (1,3), (3,5.2), (5.2,7.6), (7.6,10.2), (10.2, 13), (13,16),
+           (16,19.2), (19.2,22.6), (22.6,26.2), (26.2,30), (30,34), (34,38.2), (38.2,42.6)]
+
+# Helper function to calculate bandpower for each sensor
+def bandpower(psd, f, fmin, fmax): 
+    min_index = np.argmax(f > fmin) - 1
+    max_index = np.argmax(f > fmax) -1
+    
+    return np.trapz(psd[:,min_index: max_index], f[min_index: max_index], axis=1)
+
+
+
+# Deal with command line arguments
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('subject', help='The subject to process')
+args = parser.parse_args()
+
+
+# Open psds
+# TODO: Write try except for missing filenames
+subj_psds = fname.psds(subject=args.subject)
+
+f = h5py.File(subj_psds, "r") 
+list(f.keys()) #name of the dataset 
+group = f['h5io']
+freqs = np.array(group['key_freqs'])
+data_n1 = np.array(group['key_sleep N1'])
+data_n2 = np.array(group['key_sleep N2'])
+#info = np.array(group['key_info']
+f.close()
+
+# Calculate the average relative band power 
+# TODO: make sure that this is the desired approach!
+n1_bandpower = []
+n2_bandpower = []
+
+total_power_n1 = np.trapz(np.sum(data_n1, axis=0)) #for normalization; combine all channels for total power
+total_power_n2 = np.trapz(np.sum(data_n2, axis=0))
+
+for band in f_bands:
+    fmin, fmax = band[0], band[1]
+    bandpwr1 = bandpower(psd=data_n1, f=freqs, fmin=fmin, fmax=fmax)
+    bandpwr2 = bandpower(psd=data_n2, f=freqs, fmin=fmin, fmax=fmax)
+
+    n1_bandpower.append(bandpwr1/total_power_n1)
+    n2_bandpower.append(bandpwr2/total_power_n2)
+    
+n1_bandpower = np.array(n1_bandpower) #do I need to transpose?
+n2_bandpower = np.array(n2_bandpower) 
+    
+
+#Create a directory to save the .csv?? files
+parent_dir = "/projects/FABEEG/Data2R/"
+subj_dir = parent_dir + args.subject
+Path(subj_dir).mkdir(parents=True, exist_ok=True)
+
+np.savetxt(subj_dir+'/n1.csv', n1_bandpower, delimiter=',') #save N1 & N2 sleep in separate files
+np.savetxt(subj_dir+'/n2.csv', n2_bandpower, delimiter=',')
+
+

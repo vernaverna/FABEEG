@@ -1,0 +1,75 @@
+"""
+Perform bandpass filtering and notch filtering to get rid of cHPI and powerline
+frequencies.
+"""
+import argparse
+from collections import defaultdict
+
+from mne.io import read_raw_edf
+from mne import open_report
+
+from config_eeg import get_all_fnames, fname, bads, fmin, fmax, fnotch
+
+# Deal with command line arguments
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('subject', help='The subject to process')
+args = parser.parse_args()
+
+# Along the way, we collect figures for quality control
+figures = defaultdict(list)
+
+# Not all subjects have files for all conditions. These functions grab the
+# files that do exist for the subject.
+raw_fnames = get_all_fnames(args.subject, kind=None)
+filt_fnames = get_all_fnames(args.subject, kind='filt')
+
+for raw_fname, filt_fname in zip(raw_fnames, filt_fnames):
+    raw = read_raw_edf(raw_fname, preload=True)
+    #raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names, FIXME
+
+    # Remove MEG channels. This is the EEG pipeline after all.
+    raw.pick_types(meg=False, eeg=True, eog=True, stim=True) ################################!!!!!!!
+
+    # Mark bad channels that were manually annotated earlier.
+    
+    if args.subject in bads.keys(): ### ISSUE; bads is empty!!
+        raw.info['bads'] = bads[args.subject]  
+    else:
+        raw.info['bads'] = []
+
+    # Add a plot of the power spectrum to the list of figures to be placed in
+    # the HTML report.
+    #TODO: Change the fig. y axis scaling! current one is very uninformative 
+    #      is prob. due to the dead 'Photic' channel, so take it out! (Non-fatal tho)   
+    figures['before_filt'].append(raw.plot_psd(show=False))
+
+    # Remove 50Hz power line noise (and the first harmonic: 100Hz)
+    filt = raw.notch_filter(fnotch, picks=['eeg', 'eog'])
+
+    # Apply bandpass filter ##read
+    filt = raw.filter(fmin, fmax, picks=['eeg', 'eog'])
+
+    # Save the filtered data
+    filt_fname.parent.mkdir(parents=True, exist_ok=True)
+    filt.save(filt_fname, overwrite=True)
+
+    # Add a plot of the power spectrum of the filtered data to the list of
+    # figures to be placed in the HTML report.
+    figures['after_filt'].append(filt.plot_psd(show=False))
+
+# Write HTML report with the quality control figures
+with open_report(fname.report(subject=args.subject)) as report: #CHANGED
+    report.add_figs_to_section( #slider to figs
+        figures['before_filt'],
+        section='freq filter',
+        captions='Before frequency filtering', #title -> captions
+        replace=True,
+    )
+    report.add_figs_to_section(
+        figures['after_filt'],
+        section='freq filter',
+        captions='After frequency filtering',
+        replace=True,
+    )
+    report.save(fname.report_html(subject=args.subject),
+                overwrite=True, open_browser=False)

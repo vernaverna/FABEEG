@@ -8,6 +8,8 @@ import sys
 sys.path.append('../')
 
 from fnames import FileNames
+import os
+import pandas as pd
 
 from config_common import (raw_data_dir, processed_data_dir, figures_dir,
                            reports_dir)
@@ -19,43 +21,47 @@ from config_common import (raw_data_dir, processed_data_dir, figures_dir,
 # later on. Lowpass filter below 100Hz to get rid of the signal produced by
 # the cHPI coils. Notch filters at 50Hz and 100Hz to get rid of powerline.
 fmin = 1
-fmax = 70
-fnotch = [50]
+fmax = 90
+fnotch = [50, 100]
 
 # Computation of the PSDs
 n_fft = 1024  # Higher number means more resolution at the lower frequencies
 
 # Subjects
+all_subjects = os.listdir(raw_data_dir)
+for s in all_subjects:
+    s_path = os.path.join(raw_data_dir, s)
+    if not os.path.isdir(s_path):
+        all_subjects.remove(s)
+#all_subjects.remove('participants.tsv')
+#all_subjects.remove('README')
+#all_subjects.remove('dataset_description.json')
+#all_subjects = ['S001','S002','S003','S004','S005']
 
-all_subjects = ['S001','S002','S003','S004','S005']
+#Ages of subjects
+age_df = pd.read_csv('FAB_BioMag_010621.csv')
+#age_df = age_df[['File', 'Sex', 'Age']]
+#age_files = [x.replace('-', '') for x in list(age_df['File'])]
+#age_df['File'].replace(dict( zip(list(age_df['File']), age_files) ), inplace=True)
+#age_df.to_csv('FAB_BioMag_010621.csv', index=False)
 
-
-
-# Subjects removed from the MEG analysis because of some problem
-bad_subjects = [
-    24, 29,  # No EEG data present
-]
+# Subjects removed from the EEG analysis because of some problem
+bad_subjects = []
 
 # Analysis is performed on these subjects
 subjects = [subject for subject in all_subjects if subject not in bad_subjects]
 
 # Tasks 
-tasks = ['restEO', 'restEC']
+#tasks = ['restEO', 'restEC']
 
-runs = [1, 2]
+#runs = [1, 2]
 
 # Bad EEG channels for each subject.
 # Made-up list: this is work in progress
 # TODO: save bad channels in files, BIDS compliant or MNE python compliant?
-bads = {
-    'S001': ['Fc5.','Fc1.'],
-    'S002': ['Fcz.', 'Fc1.'],
-    'S003': [],
-    'S004': [],
-    'S005': [],
-}
+bads = {}
 
-eog_channel = 'Fp1.' #Change!
+eog_channel = 'PIETSO' #Change?
 
 ###############################################################################
 # Templates for filenames
@@ -69,18 +75,24 @@ fname = FileNames()
 fname.add('raw_data_dir', raw_data_dir)
 fname.add('processed_data_dir', processed_data_dir)
 
+
+### TO DO: Change these (tasks and runs out, bids)
+
 # Continuous data
-fname.add('raw', '{raw_data_dir}/sub-{subject}/ses-01/eeg/sub-{subject}_ses-01_task-{task}_run-{run:02d}_proc-raw_eeg.edf')
-fname.add('filt', '{processed_data_dir}/sub-{subject}/ses-01/eeg/sub-{subject}_ses-01_task-{task}_run-{run:02d}_proc-filt_eeg.fif')
-fname.add('clean', '{processed_data_dir}/sub-{subject}/ses-01/eeg/sub-{subject}_ses-01_task-{task}_run-{run:02d}_proc-clean_eeg.fif')
+fname.add('raw', '{raw_data_dir}/sub-{subject}/eeg/sub-{subject}_eeg.edf')
+fname.add('filt', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_filt_eeg.fif')
+fname.add('clean', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_clean_eeg.fif')
 
 # Files used during EOG and ECG artifact suppression
-fname.add('bads', '{processed_data_dir}/sub-{subject}/ses-01/eeg/sub-{subject}_ses-01_task-{task}_run-{run:02d}_channels.csv')
-fname.add('annotations', '{processed_data_dir}/sub-{subject}/ses-01/eeg/sub-{subject}_ses-01_task-{task}_run-{run:02d}_annotations.csv')
-fname.add('ica', '{processed_data_dir}/sub-{subject}/ses-01/eeg/sub-{subject}_ses-01_task-{task}_run-{run:02d}_ica.h5')
+fname.add('bads', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_channels.csv')
+fname.add('annotations', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_annotations.csv')
+fname.add('ica', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_ica.h5')
 
 # PSD files
-fname.add('psds', '{processed_data_dir}/sub-{subject}/ses-01/eeg/sub-{subject}_psds.h5')
+fname.add('psds', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_psds.h5')
+fname.add('psds', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_psds.fif')
+fname.add('evoked', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_evoked.fif')
+
 
 # Filenames for MNE reports
 fname.add('reports_dir', f'{reports_dir}/eeg')
@@ -92,7 +104,7 @@ fname.add('figures_dir', f'{figures_dir}/eeg')
 fname.add('figure_psds', '{figures_dir}/psds.pdf')
 
 
-def get_all_fnames(subject, kind, tasks, runs, exclude=None):
+def get_all_fnames(subject, kind, tasks=None, runs=None, exclude=None): #CHANGED
     """Get all filenames for a given subject of a given kind.
 
     Not all subjects have exactly the same files. For example, subject 1 does
@@ -130,13 +142,20 @@ def get_all_fnames(subject, kind, tasks, runs, exclude=None):
         raise TypeError('The `exclude` parameter should be None, str or list')
 
     all_fnames = list()
-    for task in tasks:
-        if task in exclude:
-            continue
-        for run in runs:
-            print('Looking for: ' + str(fname.raw(subject=subject, task=task, run=run)))
-            if op.exists(fname.raw(subject=subject, task=task, run=run)):
-                all_fnames.append(fname.files()[f'{kind}'](subject=subject, task=task, run=run))
+    print('Looking for: ' + str(fname.raw(subject=subject))) #ADDED
+    if op.exists(fname.raw(subject=subject)) and kind == None:
+        all_fnames.append(fname.raw(subject=subject)) #raw file
+        
+    elif op.exists(fname.raw(subject=subject)):
+        all_fnames.append(fname.files()[f'{kind}'](subject=subject))
+        
+   # for task in tasks:
+   #     if task in exclude:
+   #         continue
+   #     for run in runs:
+   #         print('Looking for: ' + str(fname.raw(subject=subject))) #CHANGED
+   #         if op.exists(fname.raw(subject=subject)):
+   #             all_fnames.append(fname.files()[f'{kind}'](subject=subject))
     return all_fnames
 
 
