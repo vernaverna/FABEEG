@@ -9,80 +9,93 @@ Created on Mon Dec  9 15:45:44 2019
 import os
 import os.path as op
 import mne
+import pandas as pd
 from mne_bids import (write_raw_bids, BIDSPath, print_dir_tree)
 
-from config_eeg import tasks
+#from config_eeg import tasks
 
 # Set paths
-data_path = '/m/nbe/scratch/rubberboot/test/'
-raw_path = op.join(data_path, 'data', 'MNE-eegbci-data/files/eegmmidb/1.0.0/')
+#data_path = '/m/nbe/scratch/rubberboot/test/'
+data_path = '/net/theta/fishpool/projects/FABEEG/childEEG_data/'
+raw_path = '/net/theta/fishpool/projects/FABEEG/FABEEG/'
+#raw_path = op.join(data_path, 'data', 'MNE-eegbci-data/files/eegmmidb/1.0.0/')
 output_path = op.join(data_path, 'bids')
 
 # Subject name
-subjects_in = ['S001','S002','S003','S004','S005']
+subj_file = op.join(data_path, 'subj_table.txt')
+#subjects_in = ['S001','S002','S003','S004','S005'] #all from .txt file
+subjects_in = pd.read_csv(subj_file, header=None)
+subjects_in = list(subjects_in.iloc[:,0])
+
+
+
+subjects_in = [x.strip('.edf') for x in subjects_in] #remove file ending
+
+corrupted = [] #list for corrupted .edf files
+channels = [] #list for channels per subject
+bids_subjs = [] #list for subjects that have BIDS created
 
 # Tasks should match filenames
-#tasks = ['restEO', 'restEC']
+#tasks = ['restEC']
 
 # Only one run
-run = '01'
+#run = '01'
 
 # Session 1
-session = '01'
+#session = '01'
 
 #Maxfiltered or not
-proc = 'raw' # proc = 'tsss'
+#proc = 'raw' # proc = 'tsss'
 
 # Define events, CHECK TRIGGER CODES
 rest_events = {}
 
-def get_filenames(subject_in):
+def get_filenames(subject_in): #Write new
     
     #TODO: add functionality for selecting a subset of tasks
     
     # For this dataset
-    file_endswith = ['R01.edf',  # eyes closed
-                     'R02.edf']  # eyes open
+    file_endswith = '.edf'
     
     # Works for this dataset, make a function for each dataset
-    filenames = ['{}{}'.format(subject_in, file_endswith[0]),
-                 '{}{}'.format(subject_in, file_endswith[1])]
+    filenames = ['{}{}'.format(subject_in, file_endswith)]
+
     
     return filenames
 
 def get_subject_out(subject_in):
     
-    #For this dataset subject_out is the same as subject_in
-    subject_out=subject_in
+    #For this dataset subject_out is NOT the same as subject_in
+    subject_out=subject_in.replace('-', '')
     
     return subject_out
 
-def create_BIDS(filename, subject_in, subject_out, session, run, proc, task, event_id):
+def create_BIDS(filename, subject_in, subject_out, event_id):
 
     # Read in data
-    raw_fname = op.join(raw_path, subject_in, filename)
-    raw = mne.io.read_raw_edf(raw_fname, preload=False)
+    raw_fname = op.join(raw_path, filename)
     
-    # Specific for test eeg dataset
-    raw.info['line_freq'] = 50  # specify power line frequency as required by BIDS
-    raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names, FIXME
+    try:
+        raw = mne.io.read_raw_edf(raw_fname, preload=False)
+        raw.info['line_freq'] = 50  # specify power line frequency as required by BIDS
+        #raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names, FIXME
 
-    #events_data = mne.find_events(raw, min_duration=2/1000.)
+        #events_data = mne.find_events(raw, min_duration=2/1000.)
 
-    bids_path = BIDSPath(subject=subject_out, 
-                         session=session, 
-                         task=task, 
-                         run=run, 
-                         processing=proc, 
+        bids_path = BIDSPath(subject=subject_out,  
                          root=output_path)
     
-    write_raw_bids(raw, 
-                   bids_path, 
-                   #events_data=events_data,
-                   #event_id=event_id, 
-                   overwrite=True)
+        write_raw_bids(raw, 
+                       bids_path, 
+                       #events_data=events_data,
+                       #event_id=event_id, 
+                       overwrite=True)
 
-    print_dir_tree(output_path)
+        print_dir_tree(output_path)
+        bids_subjs.append(filename)
+    except:
+        print("Could not read {}".format(filename))
+        corrupted.append(filename)
     
     #change file permissions     
     #os.system('chmod -R ug+rwx ' + output_path + '/sub-' + subject_out )
@@ -90,12 +103,54 @@ def create_BIDS(filename, subject_in, subject_out, session, run, proc, task, eve
 
 # #######################################################################
 
+"""
+## TO DO: combine these two loops
+for subject_in in subjects_in:   #Determines the chered channels by set intersection
+
+    filenames = get_filenames(subject_in)
+    subject_out = get_subject_out(subject_in)
+    print(subject_in)
+    
+    for filename in filenames:
+        try:
+            raw_fname = op.join(raw_path, filename)
+            raw = mne.io.read_raw_edf(raw_fname, preload=False)
+            chs = [CH_NAME.upper() for CH_NAME in raw.info['ch_names']]
+            channels.append(chs)
+        except:
+            continue
+
+
+shared_chs = list(set.intersection(*[set(x) for x in channels])) #save results in a lookup table
+with open('shared_channels.txt', 'w') as f:
+    for ch in shared_chs:
+        f.write(ch)
+        f.write('\n')
+        
+        
+#(pd.DataFrame.from_dict(data=channels, orient='index').to_csv('channels_perSub.csv', header=False))
+"""
+
+
+
 for subject_in in subjects_in:    
 
     filenames = get_filenames(subject_in)
     subject_out = get_subject_out(subject_in)
+    print("BIDSifying file")
+    print(subject_in)
     
-    for filename, task in zip(filenames,tasks):
+    for filename in filenames:
 
-        print('Processing run: ' + run)
-        create_BIDS(filename, subject_in, subject_out, session, run, proc, task, rest_events)
+        #print('Processing run: ' + run)
+        create_BIDS(filename, subject_in, subject_out, rest_events)
+
+with open('eeg_subjects.txt', 'w') as f:
+    for good_fname in bids_subjs:
+        f.write(get_subject_out(good_fname.strip('.edf')))
+        f.write('\n')
+
+with open('corrupted_EEGs.txt', 'w') as f:
+    for bad_fname in corrupted:
+        f.write(bad_fname)
+        f.write('\n')
