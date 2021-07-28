@@ -28,7 +28,6 @@ subjects_in = pd.read_csv(subj_file, header=None)
 subjects_in = list(subjects_in.iloc[:,0])
 
 
-
 subjects_in = [x.strip('.edf') for x in subjects_in] #remove file ending
 
 corrupted = [] #list for corrupted .edf files
