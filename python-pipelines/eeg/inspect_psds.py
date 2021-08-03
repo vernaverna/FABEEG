@@ -34,50 +34,63 @@ parser.add_argument('subject', help='The subject to process')
 args = parser.parse_args()
 
 
-# Open psds
-# TODO: Write try except for missing filenames
-subj_psds = fname.psds(subject=args.subject)
+# Try to open psds; if not successful, write the missing psd into a txt file
+no_psds = []
 
-f = h5py.File(subj_psds, "r") 
-list(f.keys()) #name of the dataset 
-group = f['h5io']
-freqs = np.array(group['key_freqs'])
-data_n1 = np.array(group['key_sleep N1'])
-data_n2 = np.array(group['key_sleep N2'])
-#info = np.array(group['key_info']
-f.close()
+try:
+    subj_psds = fname.psds(subject=args.subject)
 
-# Calculate the average relative band power (RBP):
-# RBP = 100*ABP/sum(ABP)
-# i.e. sum of spectral power over all bands is 100 for each channel and subject
-# TODO: make sure that this is the desired approach!
-n1_bandpower = []
-n2_bandpower = []
-
-for band in f_bands:
-    fmin, fmax = band[0], band[1]
-    bandpwr1 = bandpower(psd=data_n1, f=freqs, fmin=fmin, fmax=fmax)
-    bandpwr2 = bandpower(psd=data_n2, f=freqs, fmin=fmin, fmax=fmax)
-
-    n1_bandpower.append(bandpwr1)
-    n2_bandpower.append(bandpwr2)
-
-
-#sums over the absolute power of all freq. bands; channel-wise info
-abs_power_n1 = np.sum(n1_bandpower, axis=0) 
-abs_power_n2 = np.sum(n2_bandpower, axis=0)
-
-#normalizes data
-n1_bandpower = np.array(n1_bandpower)/abs_power_n1 #did not scale with 100 yet
-n2_bandpower = np.array(n2_bandpower)/abs_power_n2 
+    f = h5py.File(subj_psds, "r") 
+    list(f.keys()) #name of the dataset 
+    group = f['h5io']
+    freqs = np.array(group['key_freqs'])
+    data_n1 = np.array(group['key_sleep N1'])
+    data_n2 = np.array(group['key_sleep N2'])
+    #info = np.array(group['key_info']
+    f.close()
     
+    # Calculate the average relative band power (RBP):
+    # RBP = 100*ABP/sum(ABP)
+    # i.e. sum of spectral power over all bands is 100 for each channel and subject
+    # TODO: make sure that this is the desired approach!
+    n1_bandpower = []
+    n2_bandpower = []
+    
+    for band in f_bands:
+        fmin, fmax = band[0], band[1]
+        bandpwr1 = bandpower(psd=data_n1, f=freqs, fmin=fmin, fmax=fmax)
+        bandpwr2 = bandpower(psd=data_n2, f=freqs, fmin=fmin, fmax=fmax)
+    
+        n1_bandpower.append(bandpwr1)
+        n2_bandpower.append(bandpwr2)
+    
+    
+    #sums over the absolute power of all freq. bands; channel-wise info
+    abs_power_n1 = np.sum(n1_bandpower, axis=0) 
+    abs_power_n2 = np.sum(n2_bandpower, axis=0)
+    
+    
+    #TODO: handle possible divisions by zero! BETTER
+    #normalizes data
+    
+    if abs_power_n1 > 0e-5:
+        n1_bandpower = np.array(n1_bandpower)/abs_power_n1 #did not scale with 100 yet
+        n2_bandpower = np.array(n2_bandpower)/abs_power_n2 
+        
+    
+    #Create a directory to save the .csv?? files
+    parent_dir = "/projects/FABEEG/Data2R/"
+    subj_dir = parent_dir + args.subject
+    Path(subj_dir).mkdir(parents=True, exist_ok=True)
+    
+    np.savetxt(subj_dir+'/n1.csv', n1_bandpower, delimiter=',') #save N1 & N2 sleep in separate files
+    np.savetxt(subj_dir+'/n2.csv', n2_bandpower, delimiter=',')
 
-#Create a directory to save the .csv?? files
-parent_dir = "/projects/FABEEG/Data2R/"
-subj_dir = parent_dir + args.subject
-Path(subj_dir).mkdir(parents=True, exist_ok=True)
+except:
+    print("Did not find psds -file!")
+    no_psds.append(args.subject)
 
-np.savetxt(subj_dir+'/n1.csv', n1_bandpower, delimiter=',') #save N1 & N2 sleep in separate files
-np.savetxt(subj_dir+'/n2.csv', n2_bandpower, delimiter=',')
-
-
+with open('corrupted_PSDs.txt', 'w') as f:
+    for bad_fname in no_psds:
+        f.write(bad_fname)
+        f.write('\n')

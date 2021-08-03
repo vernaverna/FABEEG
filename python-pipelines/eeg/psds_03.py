@@ -2,7 +2,7 @@
 Compute the Power Spectral Density (PSD) for each channel.
 Is processed in python cell writing
 import subprocess
-subprocess.run('/net/theta/fishpool/projects/FABEEG/aimind-pipelines/eeg/runAll.sh', shell=True)
+subprocess.run('/net/theta/fishpool/projects/FABEEG/python-pipelines/eeg/runAll.sh', shell=True)
 """
 import argparse
 

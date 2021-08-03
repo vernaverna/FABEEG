@@ -46,7 +46,7 @@ for subj in subjects:
 
     try:
         age_group = int(age_df.loc[age_df['File'] == subj]['Age group'])
-        evoked_spectra = mne.read_evokeds(fname.psds(subject=subj)) #accidentallly in psds: moved to evoked later
+        evoked_spectra = mne.read_evokeds(fname.evoked(subject=subj)) #accidentallly in psds: moved to evoked later
 
         evoked_N1, evoked_N2 = evoked_spectra[0], evoked_spectra[1]
 
@@ -61,8 +61,8 @@ for subj in subjects:
 cm = plt.get_cmap('viridis')
 colors = [cm(x) for x in np.linspace(0, 1, 8)] 
 
-cm = plt.get_cmap('jet')
-colors = [cm(x) for x in np.linspace(0, 1, 19)] 
+#cm = plt.get_cmap('jet')
+#colors = [cm(x) for x in np.linspace(0, 1, 19)] 
 
 
 figs = []
@@ -70,65 +70,103 @@ captions = []
 
 
 for i in range(1, len(group_spectra_n1)+1):
+    
+    group_evoked_avg_n1 = mne.grand_average(group_spectra_n1[i]) #averaged spectra per channels over "evoked" responses
+    group_evoked_avg_n2 = mne.grand_average(group_spectra_n2[i]) 
+    freqs = group_evoked_avg_n2.times
+    
+    
+    fig, ax = plt.subplots(figsize=(9, 7))
+    psd_avg_n1 = np.log10(group_evoked_avg_n1.data).mean(axis=0) #global average
+    psd_avg_n2 = np.log10(group_evoked_avg_n2.data).mean(axis=0)
 
-    group_evoked_avg = mne.grand_average(group_spectra_n2[i]) #averaged spectra per channels
-    freqs = group_evoked_avg.times
+    ax.plot(freqs, psd_avg_n1, color=colors[i], linestyle=':', label='N1 Sleep')
+    ax.plot(freqs, psd_avg_n2, color=colors[i], label='N2 Sleep') 
+
+    agebin = 'Age: ' + str(bins[i-1]) + '-' + str(bins[i]) + ' years'
     
-    for j in range(len(group_evoked_avg.ch_names)):
-        fig = plt.figure(figsize=(10, 7))
-        #psds, freqs = psd_multitaper(group_evoked_avg, fmin=1, fmax=40, n_jobs=1)
-        #psds = 10. * np.log10(psds)
-        psd_avg = np.log10(group_evoked_avg.data[j])
-        psds_mean = psd_avg.mean(0) #mean over all channels 
-        psds_std = psd_avg.std(0)
+    #plot confidence intervals
+    c1_low, c1_up = bootstrap_confidence_interval(np.log10(group_evoked_avg_n1.data), random_state=0)
+    ax.fill_between(freqs, c1_low, c1_up, color=colors[i], alpha=.3)
+    c2_low, c2_up = bootstrap_confidence_interval(np.log10(group_evoked_avg_n2.data), random_state=0)
+    ax.fill_between(freqs, c2_low, c2_up, color=colors[i], alpha=.5)
     
-        plt.plot(freqs, psds_mean, color=colors[i],
-                 label='PSD - Channel average')
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Log Power Spectral Density (dB)')
+    ax.legend()
+    plt.title('Global average PSDs '+agebin)
     
-        ci_low, ci_up = bootstrap_confidence_interval(psd_avg, random_state=0)
-        plt.fill_between(freqs, ci_low, ci_up,
-                         color=colors[i], alpha=.5)
     
-        plt.xlabel('Frequency (Hz)')
-        plt.ylabel('Power Spectral Density (dB)')
+    figs.append(fig)
+    # for j in range(len(group_evoked_avg.ch_names)):
+    #     fig = plt.figure(figsize=(10, 7))
+    #     #psds, freqs = psd_multitaper(group_evoked_avg, fmin=1, fmax=40, n_jobs=1)
+    #     #psds = 10. * np.log10(psds)
+    #     psd_avg = np.log10(group_evoked_avg.data)
+    #     #psds_mean = psd_avg.mean(0) #mean over all channels 
+    #     psds_std = psd_avg.std(0)
     
-        agebin = 'Ch: ' + group_evoked_avg.ch_names[j] + 'Age: ' + str(bins[i-1]) + '-' + str(bins[i]) + ' years'
+    #     plt.plot(freqs, psd_avg, color=colors[i],
+    #              label='PSD - Channel average')
     
-        captions.append(agebin)
-        figs.append(fig)
+    #     ci_low, ci_up = bootstrap_confidence_interval(psd_avg, random_state=0)
+    #     plt.fill_between(freqs, ci_low, ci_up,
+    #                      color=colors[i], alpha=.5)
+    
+
+    
+    #     agebin = 'Ch: ' + group_evoked_avg.ch_names[j] + 'Age: ' + str(bins[i-1]) + '-' + str(bins[i]) + ' years'
+    
+    #     captions.append(agebin)
+    #     figs.append(fig)
 
 
 # Define regions of interest (ROIs)
 # TODO: Confirm these!!! 
 roi_viz = ['P3', 'P4', 'O1', 'O2', 'PZ']
-roi_temp_R = ['T4', 'T6', 'C4']
-roi_temp_L = ['T3', 'T5', 'C3']
+roi_temp = ['T3', 'T5', 'C3', 'T4', 'T6', 'C4']
 roi_front = ['FP1', 'FP2', 'FZ', 'F3', 'F4', 'F7', 'F8']
 
-picks_list = [roi_viz, roi_temp_R, roi_temp_L, roi_front]
+picks_list = [roi_viz, roi_temp, roi_front]
+caps = ['ROI Visual', 'ROI Temporal', 'ROI Frontal']
 
 roi_figs=[]
-captions=[]
 
 for roi in picks_list:
     evokeds = []
-    for i in range(1, len(group_spectra_n1)):
-        evokeds.append(mne.grand_average(group_spectra_n2[i])) #change comment!
+    captions=[]
+   
+    for i in range(1, len(group_spectra_n1)+1):
+        if i < 8:
+            spectra_n1 = [evk.copy().pick_channels(roi) for evk in group_spectra_n2[i]]
+            inf = spectra_n1[1].info
+            log_group_spectra = [np.log10(evk.data) for evk in spectra_n1]
+            log_evkds = [mne.EvokedArray(data, info=inf) for data in log_group_spectra]
+            
+            evkd_group = mne.grand_average(log_evkds)
+            freqs = evkd_group.times
+            comment= 'Age: '+str(bins[i-1]) + '-' + str(bins[i]) + ' y'
+            captions.append(comment)
+            evokeds.append(evkd_group.data.mean(0)) 
+            
+    evk_df = pd.DataFrame(evokeds).T
+    evk_df.columns = captions
+    evk_df.index = freqs
     
-    fig = mne.viz.plot_compare_evokeds(evokeds, combine='mean', picks=roi, 
-                                       colors=[1,2,3,4,5,6,7,8], cmap='viridis',
-                                       show_sensors=True, legend=True, 
-                                       title='N2 sleep spectra of age groups')
-    roi_figs.append(fig)
+    g = sns.relplot(data=evk_df, kind="line", palette=colors[1:8])
+    g.fig.suptitle("N2 " + caps[0])
+    
+    # fig = mne.viz.plot_compare_evokeds(evokeds, combine='mean', picks=roi, 
+    #                                    colors=[1,2,3,4,5,6,7,8], cmap='viridis',
+    #                                    show_sensors=True, legend=True,
+    #                                    title='N1 sleep spectra of age groups')
+    roi_figs.append(g)
 
 roi_figs = sum(roi_figs, []) #hacky
 
 
-#TODO: make a channel-wise slider!
+#TODO: make a channel-wise slider!roi=
 
-
-
-caps = ['ROI 1', 'ROI 2', 'ROI 3', 'ROI 4']
 
 with open_report('Average_spectra.h5') as report:
     report.add_slider_to_section(figs, captions=captions, title='Averaged N2 PSDs estimates',
