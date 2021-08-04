@@ -19,8 +19,8 @@ library(abind)
 #' @param saving if TRUE, saves D into RData
 #' @param CVfolds Number of cross-validation folds
 #' 
-acc <- function(network=F,discTop=3,model="penlda",lambda=0,l1d=200,omitN=2000,n.iter = 100,
-                omitMag=FALSE, omitFreq = c(0,100), ex="N2",saving=T,CVfolds=10,seed=NA, prop=1, network_vis=F) {
+acc <- function(network=F,discTop=3,model="brrr",lambda=0,l1d=200,omitN=2000, n.iter = 100,
+                omitFreq = c(0,100), ex="N2",saving=T,CVfolds=10,seed=NA, prop=1, network_vis=F) {
   
   if(network){if(model == 'penlda'){stop('Choose brrr as model if you want to plot network figures')}}
   
@@ -43,6 +43,7 @@ acc <- function(network=F,discTop=3,model="penlda",lambda=0,l1d=200,omitN=2000,n
   print(fname)
   dir.create(dirname(fname),showWarnings=F,recursive=T)
   dir.create(dirname(fnameD),showWarnings=F,recursive=T)
+  dir.create(dirname(fnameP),showWarnings=F,recursive=T)
   
   # Choosing the channels and frequencies
   chs <- 1:19
@@ -190,14 +191,13 @@ acc <- function(network=F,discTop=3,model="penlda",lambda=0,l1d=200,omitN=2000,n
     } else if(model=="brrr") {
       pred <- X*NA
       if(CVfolds == 1){
-        res <- brrr(Y=X,X=Y, K=discTop,n.iter=n.iter,thin=5,init="LDA", fam = x)
-        
+        res <- brrr(X=X,Y=Y, K=discTop,n.iter=n.iter,thin=5,init="LDA", fam = x)
       } else {
         res <- brrr(Y=X[obs[!obs%in%testsubj],,drop=FALSE],X=Y[obs[!obs%in%testsubj],],
                     K=discTop,n.iter=n.iter,thin=5,init="LDA", fam=x[obs[!obs%in%testsubj]])
       }
       res$scaling <- ginv(averageGamma(res))
-      PROJ <- res$model$brr$context$Gamma
+      #PROJ <- res$model$brr$context$Gamma
     }
     
     W <- res$scaling
@@ -211,7 +211,7 @@ acc <- function(network=F,discTop=3,model="penlda",lambda=0,l1d=200,omitN=2000,n
     if(length(testsubj)>0) {
       for(k in 1:discTop) {
         for(s1 in testsubj) {
-          for(s2 in subjects[!subjects%in%testsubj]) {
+          for(s2 in x[!subjects%in%testsubj]) {
             Dk[s1,s2,k] <- mean(abs(res$xteproj[which(obs==s1),1:k]-res$xteproj[which(obs==s2),1:k]))
           }
         }
@@ -243,7 +243,7 @@ acc <- function(network=F,discTop=3,model="penlda",lambda=0,l1d=200,omitN=2000,n
         for(s1 in subjects) { #testsubj
           y <- Dk[s1,,k]
           for(m in 1:M) {
-            D[s1,m,k] <- mean(Dk[s1,individuals[[m]],k], na.rm=T)
+            D[s1,m,k] <- mean(Dk[s1,m,k], na.rm=T)
           }
         }
       }
