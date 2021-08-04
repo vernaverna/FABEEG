@@ -1,0 +1,152 @@
+setwd("/projects/FABEEG/BRRR")
+
+#every value of the variance parameter of Ω can
+#be immediately interpreted as the percentage of variance explained by the noise model as compared to the covariates
+
+# Choosing the channels and frequencies
+chs <- 1:19
+ex="N2"
+omitFreq = c(0,60)
+
+# Reading data into workspace
+loadfile <- paste0("data/",ex,"spectrum.RData")
+
+#extract the age groups
+ages = read.csv('data/age_df.csv')
+ages <- ages[,-1]
+
+
+# Check if the file exists
+if(file.exists(loadfile)) {
+  load(loadfile)
+  ages = subset(ages, ages$File %in% names(Y)) #remove subjects not in the dataset
+  
+  # Omits frequencies
+  frequencies <- which(freq[,2] >= omitFreq[1] & freq[,2] <= omitFreq[2])
+  freq <- freq[frequencies, ]
+  
+  # Searching the names/identifiers of the subjects
+  subjects <- unlist(individuals)
+  S <- length(subjects)
+  A <- vector("list",length=S)
+  names(A) <- subjects
+  
+  # Saving the data into matrix A
+  for(s in names(Y)) {
+    
+    if(s %in% ages$File){ #temporal solution to get over the filename hassle
+      tmp <- t(Y[[s]]) #transposed
+      tmp <- log10(tmp) #TODO: is this necessary???
+      if(any(is.na(tmp))) browser()
+      A[[s]] <- tmp[frequencies,chs]
+      
+      corrupted=NULL
+      
+    } else {
+      corrupted = s
+    } 
+  }
+  
+  corrupted = c("FLE13539", "FLE141089") #this is bubblegum solution to remove singular groups
+  
+  if(!is.null(corrupted)){
+    obs <- subjects[subjects %in% corrupted == FALSE]
+    A = A[names(A) %in% corrupted == FALSE] 
+    ages = ages[ages$File %in% corrupted == FALSE,]
+  } else { 
+    obs <- subjects
+  }
+  
+} else {
+  print(paste0("File '",loadfile,"' does not exist, returning!"))
+  return(0)
+}
+
+
+
+# The number of classes and storing the subjects
+M <- length(unique(ages$Age.group)) 
+S <- length(obs)
+
+print("Data dimension per subject:")
+print(dim(A[[1]]))
+keepFeat <- NA
+
+# Making MEG matrix X and response vec y and filling them
+Y <- matrix(NA,length(A),prod(dim(A[[1]])),dimnames=list(names(A),c()))
+x = matrix(NA, length(A), dimnames=list(names(A)))
+colnames(Y) <- c(outer(paste0("s",1:nrow(A[[1]]),"."),1:ncol(A[[1]]),paste0))
+
+
+for(i in obs) { 
+  tmp <- A[[i]]
+  if(nrow(tmp)==ncol(tmp)) tmp[lower.tri(tmp)] <- 0
+  Y[i,] <- c(tmp)
+}
+
+keepFeat <- which(apply(Y,2,var,na.rm=T)>0)
+Y <- Y[,keepFeat]
+
+print("LDA matrix dimension:")
+print(dim(Y))
+
+# Scaling the Y for BRRR 
+tmp <- scale(Y[!is.na(Y[,1]),],center=T,scale=T)
+Y <- scale(Y, attr(tmp,"scaled:center"), attr(tmp,"scaled:scale"))
+
+
+# Saving classes to x
+x <- rep(NA,S); names(x) <- obs
+
+for(s in 1:S){
+  x[obs[s]] <- ages[ages$File==obs[s],"Age.group"]
+}
+
+# When choosing BRRR x is modified into X. If there are just 2 classes, N x 1 matrix containing 
+# identifier values +-1 is created
+source("brrr.R")
+X <- matrix(0,S,M,dimnames=list(obs,paste0("class",3:(M+2)))) #NOTE! shifted because 2 first age groups removed
+for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]-2] <- 1
+if(M==2) {
+  print("Condensing two classes into one +-1 covariate.")
+  X <- X[,1,drop=FALSE] 
+  X[X==0] <- -1
+}
+
+
+pred <- X*NA
+res <- brrr(X=X,Y=Y, K=discTop,n.iter=n.iter,thin=5,init="LDA", fam = x) #fit the model
+res$scaling <- ginv(averageGamma(res))
+W <- res$scaling
+
+pred <- X%*%res$model$brr$context$Psi%*%res$model$brr$context$Gamma #X%*%Psi%*%Gamma
+
+#examine matrices with heatmaps
+heatmap(Y)
+heatmap(pred)
+heatmap(Y%*%W)
+
+
+# Create LOO-CV for the small data set
+# TODO: change pred to Yhat?
+looCV <- function(X, Y){
+  pred <- Y*NA
+  #D <- matrix() #distance matrix to save the L1 distances in latent space Y%*%inv(Gamma)
+  
+  for(testidx in 1:nrow(X)){
+    print("-------------")
+    print(paste0("CV ",testidx,"/",nrow(X)))
+    res <- brrr(X=X[-testidx,], Y=Y[-testidx,], K=3, n.iter=100, thin=5, fam=x[-testidx]) #res==mcmc.output
+    
+    pred[testidx,] <- X[testidx,,drop=F]%*%res$model$brr$context$Psi%*%res$model$brr$context$Gamma
+    } 
+  
+  return(pred)
+  #lat_space=Y%*%ginv(averageGamma(res))
+  
+}
+
+
+Yhat <- looCV(X=X, Y=Y)
+heatmap(Y)
+heatmap(Yhat)
