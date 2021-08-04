@@ -45,11 +45,9 @@ acc <- function(network=F,discTop=3,model="brrr",lambda=0,l1d=200,omitN=2000, n.
   dir.create(dirname(fnameD),showWarnings=F,recursive=T)
   dir.create(dirname(fnameP),showWarnings=F,recursive=T)
   
-  # Choosing the channels and frequencies
+  # Choosing the channels 
   chs <- 1:19
-  #´if(omitMag) chs <- sort(c(seq(1,306,by=3),seq(2,306,by=3)))
-  
-  
+
   # Reading data into workspace
   loadfile <- paste0("data/",ex,"spectrum.RData")
   

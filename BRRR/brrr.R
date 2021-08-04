@@ -218,7 +218,7 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, n.iter=500, burnin=0.5, thin=1, init="L
   #'Psi.local.shrinkage'))
   
   test.scores <- compute.prediction.error(data, mcmc.output, burnin = burnin)
-  print(test.scores)
+  print(test.scores) #current performance metrics are MSE and PTVE
   
   # to use the independent-noise BRRR model
   #
