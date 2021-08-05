@@ -1,4 +1,5 @@
 setwd("/projects/FABEEG/BRRR")
+library("penalizedLDA")
 
 #every value of the variance parameter of Ω can
 #be immediately interpreted as the percentage of variance explained by the noise model as compared to the covariates
@@ -114,6 +115,54 @@ if(M==2) {
 }
 
 
+# Create LOO-CV for the small data set
+# TODO: change pred to Yhat?
+looCV <- function(X, Y, model){
+  pred <- Y*NA
+  #D <- matrix() #distance matrix to save the L1 distances in latent space Y%*%inv(Gamma)
+  
+  for(testidx in 1:nrow(X)){
+    print("-------------")
+    print(paste0("CV ",testidx,"/",nrow(X)))
+    
+    if(model=="brrr"){
+      res <- brrr(X=X[-testidx,], Y=Y[-testidx,], K=3, n.iter=100, thin=5, fam=x[-testidx]) #res==mcmc.output
+      pred[testidx,] <- X[testidx,,drop=F]%*%res$model$brr$context$Psi%*%res$model$brr$context$Gamma
+      
+      lat_space=Y%*%ginv(averageGamma(res))
+      
+    } else if(model=="penlda"){
+      class <- x[-testidx] #Class required to run from 1 to max
+      class <- match(class,unique(class))
+      xte <- Y[obs,]
+      res2 <- PenalizedLDA(Y[-testidx,],class,xte=xte,
+                          lambda=0,K=3,standardized=TRUE) #changed standardized to TRUE
+      res2$scaling <- res2$discrim
+      
+      pred[testidx,] <- xte
+      lat_space = res2$xteproj
+    }
+    
+    
+    
+  } 
+  
+  return(pred)
+  
+  
+  #TODO: distance matrix filling; something like
+  # for s in subjects
+  #   subj = obs[s]
+  #     for m in 1:M
+  #       D[s,m] <- mean(abs(lat_space[s,]-PSI))
+  
+}
+
+
+
+
+######## BRRRR #########
+
 pred <- X*NA
 res <- brrr(X=X,Y=Y, K=discTop,n.iter=n.iter,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
@@ -127,26 +176,22 @@ heatmap(pred)
 heatmap(Y%*%W)
 
 
-# Create LOO-CV for the small data set
-# TODO: change pred to Yhat?
-looCV <- function(X, Y){
-  pred <- Y*NA
-  #D <- matrix() #distance matrix to save the L1 distances in latent space Y%*%inv(Gamma)
-  
-  for(testidx in 1:nrow(X)){
-    print("-------------")
-    print(paste0("CV ",testidx,"/",nrow(X)))
-    res <- brrr(X=X[-testidx,], Y=Y[-testidx,], K=3, n.iter=100, thin=5, fam=x[-testidx]) #res==mcmc.output
-    
-    pred[testidx,] <- X[testidx,,drop=F]%*%res$model$brr$context$Psi%*%res$model$brr$context$Gamma
-    } 
-  
-  return(pred)
-  #lat_space=Y%*%ginv(averageGamma(res))
-  
-}
 
 
-Yhat <- looCV(X=X, Y=Y)
+Yhat <- looCV(X=X, Y=Y, model="brrr")
 heatmap(Y)
 heatmap(Yhat)
+
+
+
+
+######### LDA ###########
+
+
+
+Ydot <- looCV(X=X, Y=Y, model="penlda")
+
+
+
+
+
