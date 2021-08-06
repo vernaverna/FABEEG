@@ -105,6 +105,7 @@ for(s in 1:S){
 
 # When choosing BRRR x is modified into X. If there are just 2 classes, N x 1 matrix containing 
 # identifier values +-1 is created
+# TODO: write warnings for case with singular groups!
 source("brrr.R")
 X <- matrix(0,S,M,dimnames=list(obs,paste0("class",3:(M+2)))) #NOTE! shifted because 2 first age groups removed
 for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]-2] <- 1
@@ -119,7 +120,8 @@ if(M==2) {
 # TODO: change pred to Yhat?
 looCV <- function(X, Y, model){
   pred <- Y*NA
-  #D <- matrix() #distance matrix to save the L1 distances in latent space Y%*%inv(Gamma)
+  #distance matrix to save the L1 distances in latent space Y%*%inv(Gamma)
+  D <- matrix(NA, nrow(X), ncol(X), dimnames=list(names(x), c()))
   
   for(testidx in 1:nrow(X)){
     print("-------------")
@@ -131,30 +133,27 @@ looCV <- function(X, Y, model){
       
       lat_space=Y%*%ginv(averageGamma(res))
       
+      for(m in 1:M){
+        D[testidx,m] <- mean(abs(lat_space[testidx,]-res$model$brr$context$Psi[m,]))
+      }
+    
+      
+      #TODO: distances for penLDA  
     } else if(model=="penlda"){
       class <- x[-testidx] #Class required to run from 1 to max
       class <- match(class,unique(class))
-      xte <- Y[obs,]
+      xte <- Y[obs,] #should data and xte be passed vice versa?
       res2 <- PenalizedLDA(Y[-testidx,],class,xte=xte,
                           lambda=0,K=3,standardized=TRUE) #changed standardized to TRUE
       res2$scaling <- res2$discrim
       
-      pred[testidx,] <- xte
-      lat_space = res2$xteproj
+      pred[testidx,] <- res2$xteproj%*%t(res2$discrim)
+      lat_space = res2$xteproj #scaling is different!
     }
-    
-    
     
   } 
   
-  return(pred)
-  
-  
-  #TODO: distance matrix filling; something like
-  # for s in subjects
-  #   subj = obs[s]
-  #     for m in 1:M
-  #       D[s,m] <- mean(abs(lat_space[s,]-PSI))
+  return(list(pred, D))
   
 }
 
@@ -164,25 +163,30 @@ looCV <- function(X, Y, model){
 ######## BRRRR #########
 
 pred <- X*NA
-res <- brrr(X=X,Y=Y, K=discTop,n.iter=n.iter,thin=5,init="LDA", fam = x) #fit the model
+res <- brrr(X=X,Y=Y, K=3,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
 pred <- X%*%res$model$brr$context$Psi%*%res$model$brr$context$Gamma #X%*%Psi%*%Gamma
 
-#examine matrices with heatmaps
-heatmap(Y)
-heatmap(pred)
-heatmap(Y%*%W)
 
+results <- looCV(X=X, Y=Y, model="brrr") #perform LOO-CV
+distmat <- results[[2]]
+PROJ <- distmat*0
 
+for(r in 1:nrow(distmat)){ #assign age groups based on lat. space distances
+  index <- which.min(distmat[r,])
+  PROJ[r,index] <- 1
+}
+colnames(PROJ) <- c(paste0("class",3:(M+2)))
 
+#TODO: construct a confusion matrix
+#results are somewhat catastrophic
 
-Yhat <- looCV(X=X, Y=Y, model="brrr")
 heatmap(Y)
 heatmap(Yhat)
-
-
+heatmap(Y%*%W) #ONLY WHEN TRAINED WITH FULL DATA
+heatmap(Yhat%*%W)
 
 
 ######### LDA ###########
