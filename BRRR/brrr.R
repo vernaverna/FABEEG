@@ -89,7 +89,7 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, n.iter=500, burnin=0.5, thin=1, init="L
   # we are dealing with weak effects, this parameterization seems 
   # convenient
   # So here most of the data is explained by the covariates, not the noise?
-  Omega.coef <- 0.1 #1e-6 #0.1 #7.5
+  Omega.coef <- 1e-6 #1e-6 #0.1 #7.5
   
   
   

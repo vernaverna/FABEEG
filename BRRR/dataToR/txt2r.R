@@ -4,7 +4,7 @@ savepath <- paste0(getwd(), "/data/n2_sleep/") #folder that contains spectra
 types <- list.files(savepath) #gives the number of groups/families/individuals
 
 #for testing purposes, let us work only with a subset of individuals
-types <- sample(types, 30)
+types <- sample(types, 90)
 
 # Generate empty lists for classes and Y
 individuals <- list()
@@ -16,9 +16,7 @@ for(t in 1:length(types)) {
   individuals[[type]] <- c()
   datapath <- savepath
   files <- type #pick individual file
-  
-  #s <- sub("_.*","",files)
-  #s <- sub("s","",sapply(s,function(x) x[[1]]))
+
   Reps <- matrix(NA,0,2)
   samples <- rep(NA,length(files))
   
