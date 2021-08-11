@@ -21,7 +21,7 @@ from config_common import (raw_data_dir, processed_data_dir, figures_dir,
 # later on. Lowpass filter below 100Hz to get rid of the signal produced by
 # the cHPI coils. Notch filters at 50Hz and 100Hz to get rid of powerline.
 fmin = 1
-fmax = 90
+fmax = 40
 fnotch = [50, 100]
 
 # Computation of the PSDs
@@ -33,10 +33,6 @@ for s in all_subjects:
     s_path = os.path.join(raw_data_dir, s)
     if not os.path.isdir(s_path):
         all_subjects.remove(s)
-#all_subjects.remove('participants.tsv')
-#all_subjects.remove('README')
-#all_subjects.remove('dataset_description.json')
-#all_subjects = ['S001','S002','S003','S004','S005']
 
 #Ages of subjects
 age_df = pd.read_csv('FAB_BioMag_010621.csv')

@@ -19,8 +19,6 @@ from mne.baseline import rescale
 from mne import open_report
 
 x = age_df['Age']
-
-# logbins = np.logspace(np.log10(x.min()), np.log10(x.max()), 10) #pretty meh
 bins = np.array([0.05, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 18.7])
 # determine to which bin/age group subject belongs to
 age_groups = np.digitize(x, bins)

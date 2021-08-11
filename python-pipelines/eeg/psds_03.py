@@ -16,7 +16,7 @@ from mne.viz import iter_topography
 from mne import open_report, find_layout, pick_info, pick_types
 import matplotlib.pyplot as plt
 
-from config_eeg import fname, n_fft, age_df
+from config_eeg import fname, n_fft, age_df, fmax
 
 # Deal with command line arguments
 parser = argparse.ArgumentParser(description=__doc__)
@@ -24,9 +24,6 @@ parser.add_argument('subject', help='The subject to process')
 args = parser.parse_args()
 
 
-
-# Maximum frequency at which to compute PSD
-fmax = 40
 
 def change_metadata(raw): #Use this in all preprocessing steps?? MOVE?
 

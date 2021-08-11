@@ -9,8 +9,7 @@ Created on Wed Jun  9 12:33:10 2021
 import numpy as np
 import argparse
 import h5py 
-from mne import open_report, find_layout, pick_info, pick_types
-import matplotlib.pyplot as plt
+from mne import find_layout, pick_info, pick_types
 from pathlib import Path
 from config_eeg import get_all_fnames, fname, bads, age_df
 

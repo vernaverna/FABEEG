@@ -15,15 +15,12 @@ from mne_bids import (write_raw_bids, BIDSPath, print_dir_tree)
 #from config_eeg import tasks
 
 # Set paths
-#data_path = '/m/nbe/scratch/rubberboot/test/'
 data_path = '/net/theta/fishpool/projects/FABEEG/childEEG_data/'
 raw_path = '/net/theta/fishpool/projects/FABEEG/FABEEG/'
-#raw_path = op.join(data_path, 'data', 'MNE-eegbci-data/files/eegmmidb/1.0.0/')
 output_path = op.join(data_path, 'bids')
 
 # Subject name
 subj_file = op.join(data_path, 'subj_table.txt')
-#subjects_in = ['S001','S002','S003','S004','S005'] #all from .txt file
 subjects_in = pd.read_csv(subj_file, header=None)
 subjects_in = list(subjects_in.iloc[:,0])
 
@@ -33,18 +30,6 @@ subjects_in = [x.strip('.edf') for x in subjects_in] #remove file ending
 corrupted = [] #list for corrupted .edf files
 channels = [] #list for channels per subject
 bids_subjs = [] #list for subjects that have BIDS created
-
-# Tasks should match filenames
-#tasks = ['restEC']
-
-# Only one run
-#run = '01'
-
-# Session 1
-#session = '01'
-
-#Maxfiltered or not
-#proc = 'raw' # proc = 'tsss'
 
 # Define events, CHECK TRIGGER CODES
 rest_events = {}
@@ -101,36 +86,6 @@ def create_BIDS(filename, subject_in, subject_out, event_id):
 
 
 # #######################################################################
-
-"""
-## TO DO: combine these two loops
-for subject_in in subjects_in:   #Determines the chered channels by set intersection
-
-    filenames = get_filenames(subject_in)
-    subject_out = get_subject_out(subject_in)
-    print(subject_in)
-    
-    for filename in filenames:
-        try:
-            raw_fname = op.join(raw_path, filename)
-            raw = mne.io.read_raw_edf(raw_fname, preload=False)
-            chs = [CH_NAME.upper() for CH_NAME in raw.info['ch_names']]
-            channels.append(chs)
-        except:
-            continue
-
-
-shared_chs = list(set.intersection(*[set(x) for x in channels])) #save results in a lookup table
-with open('shared_channels.txt', 'w') as f:
-    for ch in shared_chs:
-        f.write(ch)
-        f.write('\n')
-        
-        
-#(pd.DataFrame.from_dict(data=channels, orient='index').to_csv('channels_perSub.csv', header=False))
-"""
-
-
 
 for subject_in in subjects_in:    
 
