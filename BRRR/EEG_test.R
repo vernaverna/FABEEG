@@ -213,7 +213,7 @@ if(use_all==TRUE){
   #however, they are absolutely NOT
   
 } else if(use_all=FALSE){
-  results <- looCV(X=X, Y=Y, model="penlda") #perform LOO-CV
+  results <- looCV(X=X, Y=Y, model="brr") #perform LOO-CV
   distmat <- results[[2]]
   PROJ <- distmat*0
   
@@ -247,8 +247,10 @@ heatmap(Yhat%*%W)
 
 ######### LDA ###########
 
-
-
-
+#using PenalizedLDA.cv instead of own LOO-function to tune model params
+class=match(x, unique(x)) #this is for full data
+xte=Y[obs,]
+cv_results <- PenalizedLDA.cv(Y, class, nfold=6) 
+res2 <- PenalizedLDA(Y, class, lambda=cv_results$bestlambda, K=cv_results$bestK)
 
 
