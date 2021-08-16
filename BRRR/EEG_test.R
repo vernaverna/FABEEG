@@ -20,6 +20,7 @@ ages <- ages[,-1]
 
 use_all=TRUE #perform LOO-CV or use all data in training?
 
+# TODO: sample even age groups!
 
 # Check if the file exists
 if(file.exists(loadfile)) {
@@ -148,7 +149,7 @@ looCV <- function(X, Y, model){
       class <- match(class,unique(class))
       xte <- Y[obs,] #should data and xte be passed vice versa?
       res2 <- PenalizedLDA(Y[-testidx,],class,xte=xte,
-                          lambda=0,K=3,standardized=TRUE) #changed standardized to TRUE
+                          lambda=0,K=6,standardized=TRUE) #changed standardized to TRUE
       res2$scaling <- res2$discrim
       
       pred[testidx,] <- res2$xteproj%*%t(res2$discrim)
@@ -157,7 +158,7 @@ looCV <- function(X, Y, model){
     
   } 
   
-  return(list(pred, D))
+  return(list(pred, lat_space))
   
 }
 
@@ -168,7 +169,7 @@ looCV <- function(X, Y, model){
 
 if(use_all==TRUE){
   pred <- X*NA
-  res <- brrr(X=X,Y=Y, K=3,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
+  res <- brrr(X=X,Y=Y, K=6,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
   res$scaling <- ginv(averageGamma(res))
   W <- res$scaling
   lat_space=Y%*%W
@@ -198,18 +199,21 @@ if(use_all==TRUE){
   
   
   #results are somewhat catastrophic
-  png("figures/full_LOO_confmat_89.png")
+  png("figures/K6full_confmat_316.png")
   cmat = confusion_matrix(X_factor, P_factor)
   plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
   dev.off()  
   
-  
-  heatmap(lat_space) # lat_space; these two should be the same
+  png("figures/K6full_Yinv(G)_316.png")
+  heatmap(lat_space) # lat_space; these two should be the 
+  dev.off()
+  png("figures/K6full_XPsi_316.png")
   heatmap(X%*%res$model$brr$context$Psi)
+  dev.off()
   #however, they are absolutely NOT
   
 } else if(use_all=FALSE){
-  results <- looCV(X=X, Y=Y, model="brrr") #perform LOO-CV
+  results <- looCV(X=X, Y=Y, model="penlda") #perform LOO-CV
   distmat <- results[[2]]
   PROJ <- distmat*0
   
@@ -225,7 +229,7 @@ if(use_all==TRUE){
   
   
   #results are somewhat catastrophic
-  png("figures/LOO_confmat_89.png")
+  png("figures/LOO_confmat_316.png")
   cmat = confusion_matrix(X_factor, P_factor)
   plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
   dev.off()
