@@ -20,8 +20,6 @@ ages <- ages[,-1]
 
 use_all=TRUE #perform LOO-CV or use all data in training?
 
-# TODO: sample even age groups!
-
 # Check if the file exists
 if(file.exists(loadfile)) {
   load(loadfile)
@@ -70,9 +68,24 @@ if(file.exists(loadfile)) {
 }
 
 
+#Sampling even age groups
+min_groupsize = nrow(ages[ages$Age.group==1,])
 
 # The number of classes and storing the subjects
 M <- length(unique(ages$Age.group)) 
+
+for(m in 1:M){
+  age_group = ages[ages$Age.group==m,] #choose age group
+  n_subj = nrow(age_group) #how many subjects are there
+  
+  if(n_subj-min_groupsize > 0){ #to skip the minimum group
+    extras = age_group$File[1:(n_subj-min_groupsize)] #excess subjects to remove
+    obs <- obs[obs %in% extras == FALSE]
+    A = A[names(A) %in% extras == FALSE] 
+    ages = ages[ages$File %in% extras == FALSE,]
+  }
+}
+
 S <- length(obs)
 
 print("Data dimension per subject:")
@@ -158,7 +171,7 @@ looCV <- function(X, Y, model){
     
   } 
   
-  return(list(pred, lat_space))
+  return(list(pred, D, lat_space))
   
 }
 
@@ -199,21 +212,21 @@ if(use_all==TRUE){
   
   
   #results are somewhat catastrophic
-  png("figures/K6full_confmat_316.png")
+  png("figures/K6full_confmat_77.png")
   cmat = confusion_matrix(X_factor, P_factor)
   plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
   dev.off()  
   
-  png("figures/K6full_Yinv(G)_316.png")
+  png("figures/K6full_Yinv(G)_77.png")
   heatmap(lat_space) # lat_space; these two should be the 
   dev.off()
-  png("figures/K6full_XPsi_316.png")
+  png("figures/K6full_XPsi_77.png")
   heatmap(X%*%res$model$brr$context$Psi)
   dev.off()
   #however, they are absolutely NOT
   
 } else if(use_all=FALSE){
-  results <- looCV(X=X, Y=Y, model="brr") #perform LOO-CV
+  results <- looCV(X=X, Y=Y, model="brrr") #perform LOO-CV
   distmat <- results[[2]]
   PROJ <- distmat*0
   
@@ -250,7 +263,8 @@ heatmap(Yhat%*%W)
 #using PenalizedLDA.cv instead of own LOO-function to tune model params
 class=match(x, unique(x)) #this is for full data
 xte=Y[obs,]
-cv_results <- PenalizedLDA.cv(Y, class, nfold=6) 
-res2 <- PenalizedLDA(Y, class, lambda=cv_results$bestlambda, K=cv_results$bestK)
+#cv_results <- PenalizedLDA.cv(Y, class, nfold=6) 
+res2 <- PenalizedLDA(Y, class, xte=xte, lambda=0, K=6)
+
 
 
