@@ -16,6 +16,7 @@ cond2 = 'restEC'
 # Load the PSDs for each subject
 psds = [read_hdf5(fname.psds(subject=subject))
         for subject in tqdm(subjects)]
+#psds = [read_hdf5(fname.psds(subject='S001'))]
 
 # Create the grand-average (GA) PSD
 ga_psds = {
@@ -23,7 +24,7 @@ ga_psds = {
     cond2: np.mean([psd_subj[cond2] for psd_subj in psds], axis=0),
     'freqs': psds[0]['freqs']
 }
-    data = np.mean([stc.data for stc in stcs], axis=0)
+#data = np.mean([stc.data for stc in stcs], axis=0)
 # Function that creates the tiny PSD plots used to create the big topo figure.
 def show_func(ax, ch_idx, tmin, tmax, vmin, vmax, ylim):
     ax.plot(ga_psds['freqs'], ga_psds[cond1][ch_idx], color='C0')
@@ -40,7 +41,7 @@ def click_func(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, x_label, y_label):
 
 # Load the channel locations in order to position the tiny PSD plots in the big
 # topo figure.
-info = read_info(fname.raw(subject=1, task='eyesclosed', run=1))
+info = read_info(fname.raw(subject="S001", task='restEC', run=1)) #ERROR no fif but edf file instead?
 info = mne.pick_info(info, mne.pick_types(info, meg=False, eeg=True, eog=False))
 times = [1, 2]
 layout = mne.find_layout(info)

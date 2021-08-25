@@ -11,10 +11,11 @@ from mne.io import concatenate_raws, read_raw_edf
 
 
 # download data and plot ####################################################
-subject = 1  # use data from subject 1. Can be in the range of 1-109 (inclusive).
+subject = 5  # use data from subject 1. Can be in the range of 1-109 (inclusive).
 runs = [1,2]  # use only eynes open and eyes closed data
 
-fnames = eegbci.load_data(subject, runs, path = '/m/nbe/scratch/rubberboot/test/data/')
+path = '/home/heikkiv/childEEG_data/bids/'
+fnames = eegbci.load_data(subject, runs, path=path)
 raws = [read_raw_edf(f, preload=True) for f in fnames]
 raw = concatenate_raws(raws)
 

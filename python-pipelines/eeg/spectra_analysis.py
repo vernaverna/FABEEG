@@ -19,13 +19,18 @@ from mne.baseline import rescale
 from mne import open_report
 
 x = age_df['Age']
-bins = np.array([0.05, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 18.7])
+#bins = np.array([0.05, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 18.7])
+
+#create even-sized bins
+bin_labels = ['1','2','3','4','5','6','7','8','9','10']
+bins = pd.qcut(age_df['Age'], q=10, labels=bin_labels)
+age_df['Age group'] = bins
 # determine to which bin/age group subject belongs to
-age_groups = np.digitize(x, bins)
-fig = plt.figure()
-plt.hist(x, bins=bins)
-fig.show()
-age_df['Age group'] = age_groups
+#age_groups = np.digitize(x, bins)
+#fig = plt.figure()
+#plt.hist(x, bins=bins)
+#fig.show()
+#age_df['Age group'] = age_groups
 
 figures = defaultdict(list)
 
@@ -36,8 +41,8 @@ figures = defaultdict(list)
 # the average is then calculated. OVER ALL CHANNELS OR PER CHANNEL?
 subjects = [x.strip('.edf') for x in subjects]
 subjects = [x.strip('sub-') for x in subjects]
-group_spectra_n1 = {1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: []}
-group_spectra_n2 = {1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: []}
+group_spectra_n1 = {1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9:[], 10: []}
+group_spectra_n2 = {1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9:[], 10: []}
 
 
 for subj in subjects:
@@ -57,7 +62,7 @@ for subj in subjects:
 
 
 cm = plt.get_cmap('viridis')
-colors = [cm(x) for x in np.linspace(0, 1, 8)] 
+colors = [cm(x) for x in np.linspace(0, 1, 10)] 
 
 #cm = plt.get_cmap('jet')
 #colors = [cm(x) for x in np.linspace(0, 1, 19)] 

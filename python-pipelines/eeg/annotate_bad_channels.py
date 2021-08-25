@@ -16,7 +16,7 @@ from mne.preprocessing import annotate_muscle_zscore
 import matplotlib.pyplot as plt
 import numpy as np
 
-from config_eeg import fname, tasks
+from config_eeg import fname
 from utils import write_bad_channels, read_channels
 
 # Deal with command line arguments
@@ -25,8 +25,8 @@ parser.add_argument('subject', type=str, help='The subject to process')
 #parser.add_argument('task', type=str, help='The task to process')
 args = parser.parse_args()
 
-task = tasks[1] #FIXME
-run = 1
+#task = '' #FIXME
+#run = ''
 
 read_known_bad_channels = False # Not implemented
 set_known_annotations = False
@@ -38,14 +38,14 @@ save_annotations = False
 
 #%%
 # Read raw data
-fname_raw = fname.raw(subject=args.subject, task=task, run=run)
+fname_raw = fname.raw(subject=args.subject) #run=run
 raw = mne.io.read_raw_edf(fname_raw, preload=True)
 
 # File for bad channels
-fname_channels = fname.bads(subject=args.subject, task=task, run=run)
+fname_channels = fname.bads(subject=args.subject)
 
 # File for annotations
-fname_annotations = str(fname.annotations(subject=args.subject, task=task, run=run))
+fname_annotations = str(fname.annotations(subject=args.subject))
 
 
 # Open up raw data, mark new bad channels if necessary
@@ -54,6 +54,7 @@ raw.pick_types(meg=False, eeg=True, eog=True)
 # Filter data, note that example data has sampling frequency 80Hz
 raw.filter(1, 70)
 raw.notch_filter([50])
+    
 
 # Any existing annotations in the data?
 #existing_annotations = raw.annotations
