@@ -26,6 +26,9 @@ def bandpower(psd, f, fmin, fmax):
     return np.trapz(psd[:,min_index: max_index], f[min_index: max_index], axis=1)
 
 
+# Relative or absolute band power?
+relative = False
+
 
 # Deal with command line arguments
 parser = argparse.ArgumentParser(description=__doc__)
@@ -71,14 +74,16 @@ try:
     
     #TODO: handle possible divisions by zero! BETTER
     #normalizes data
-    
-    if abs_power_n1 > 0e-5:
-        n1_bandpower = np.array(n1_bandpower)/abs_power_n1 #did not scale with 100 yet
-        n2_bandpower = np.array(n2_bandpower)/abs_power_n2 
-        
+    if relative:
+        if abs_power_n1 > 0e-5:
+            n1_bandpower = np.array(n1_bandpower)/abs_power_n1 #did not scale with 100 yet
+            n2_bandpower = np.array(n2_bandpower)/abs_power_n2 
+    else:
+        n1_bandpower = np.array(n1_bandpower)
+        n2_bandpower = np.array(n2_bandpower)        
     
     #Create a directory to save the .csv?? files
-    parent_dir = "/projects/FABEEG/Data2R/"
+    parent_dir = "/projects/FABEEG/Data2R/absolute_spectra/"
     subj_dir = parent_dir + args.subject
     Path(subj_dir).mkdir(parents=True, exist_ok=True)
     
