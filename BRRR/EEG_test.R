@@ -15,7 +15,7 @@ omitFreq = c(0,60)
 loadfile <- paste0("data/",ex,"spectrum.RData")
 
 #extract the age groups
-ages = read.csv('data/age_df.csv')
+ages = read.csv('data/new_age_df.csv')
 ages <- ages[,-1]
 
 use_all=TRUE #perform LOO-CV or use all data in training?
@@ -42,7 +42,7 @@ if(file.exists(loadfile)) {
     
     if(s %in% ages$File){ #temporal solution to get over the filename hassle
       tmp <- t(Y[[s]]) #transposed
-      tmp <- log10(tmp) #TODO: is this necessary???
+      #tmp <- log10(tmp) #TODO: is this necessary???
       if(any(is.na(tmp))) browser()
       A[[s]] <- tmp[frequencies,chs]
       
