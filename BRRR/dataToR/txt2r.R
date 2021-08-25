@@ -1,10 +1,12 @@
 # This script reads in the data from csv files
 
+
+set.seed(121)
 savepath <- paste0(getwd(), "/data/n2_sleep/") #folder that contains spectra
 types <- list.files(savepath) #gives the number of groups/families/individuals
 
 #for testing purposes, let us work only with a subset of individuals
-types <- sample(types, 90)
+types <- sample(types, 320)
 
 # Generate empty lists for classes and Y
 individuals <- list()

@@ -209,7 +209,7 @@ if(use_all==TRUE){
   #convert model matrices to factors and plot confusion matrix
   P_factor <- as.factor(colnames(PROJ))[PROJ %*% 1:ncol(PROJ)]
   X_factor <- as.factor(colnames(X))[X %*% 1:ncol(X)]
-  
+
   
   #results are somewhat catastrophic
   png("figures/K6full_confmat_77.png")
@@ -224,6 +224,20 @@ if(use_all==TRUE){
   heatmap(X%*%res$model$brr$context$Psi)
   dev.off()
   #however, they are absolutely NOT
+  
+  #check the correlation:
+  library("ggcorrplot")
+  corrmat <- cor(as.vector(lat_space), as.vector(X%*%res$model$brr$context$Psi))
+  print("Correlation matrix:")
+  print(corrmat)
+  ggcorrplot(corrmat)
+  
+  
+  print("Overall correlation:")
+  print(cor(c(lat_space), c(X%*%res$model$brr$context$Psi)))
+  heatmap(corrmat)
+  
+  
   
 } else if(use_all=FALSE){
   results <- looCV(X=X, Y=Y, model="brrr") #perform LOO-CV
@@ -265,6 +279,9 @@ class=match(x, unique(x)) #this is for full data
 xte=Y[obs,]
 #cv_results <- PenalizedLDA.cv(Y, class, nfold=6) 
 res2 <- PenalizedLDA(Y, class, xte=xte, lambda=0, K=6)
-
+png("figures/K6full_penLDA_confmat_77.png")
+cmat = confusion_matrix(res2$y, res2$ypred[,6]) #results with 6 discriminant vectors used
+plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
+dev.off()
 
 
