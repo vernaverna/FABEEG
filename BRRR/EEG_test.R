@@ -178,7 +178,7 @@ looCV <- function(X, Y, model){
 
 
 
-######## BRRRR #########
+######## BRRR #########
 
 if(use_all==TRUE){
   pred <- X*NA
@@ -190,9 +190,14 @@ if(use_all==TRUE){
   pred <- X%*%res$model$brr$context$Psi%*%res$model$brr$context$Gamma #X%*%Psi%*%Gamma
   D <- matrix(NA, nrow(X), ncol(X), dimnames=list(names(x), c())) #distance matrix
   
-  for(testidx in 1:nrow(lat_space)){
+  #TODO: average between K components?
+   
+  for(testidx in 1:nrow(lat_space)){ #calculates the distances between individual and group mean in lat.space
     for(m in 1:M){
-      D[testidx,m] <- mean(abs(lat_space[testidx,]-res$model$brr$context$Psi[m,])) 
+      group_members <- ages[ages$Age.group==m,]$File
+      idxs = which(row.names(lat_space) %in% group_members)
+      group_mean <- colMeans(lat_space[idxs,])
+      D[testidx,m] <- mean(abs(lat_space[testidx,]-group_mean)) 
     }
   }
   
