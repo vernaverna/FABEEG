@@ -15,8 +15,13 @@ prepare_data <- function(ex){
   loadfile <- paste0("data/",ex,"spectrum.RData")
   
   #extract the age groups
-  ages = read.csv('data/age_df.csv')
+  ages = read.csv('data/new_age_df.csv')
   ages <- ages[,-1]
+  ages$Age.group <- round(ages$Age, 0)
+  
+  # Group +15 year-olds together in group 15
+  old_idx = which(ages$Age.group >= 15)
+  ages$Age.group[old_idx] <- 15
   
   use_all=TRUE #perform LOO-CV or use all data in training?
   
@@ -68,16 +73,22 @@ prepare_data <- function(ex){
   
   
   #Sampling even age groups
-  min_groupsize = nrow(ages[ages$Age.group==1,])
+  group_counts = table(ages$Age.group)
+  min_groupsize = group_counts[which.min(group_counts)] #find minimal age group
   
-  # The number of classes and storing the subjects
-  M <- length(unique(ages$Age.group)) 
   
-  for(m in 1:M){
-    age_group = ages[ages$Age.group==m,] #choose age group
-    n_subj = nrow(age_group) #how many subjects are there
+  # The number of classes and storing the subjects; skip too small groups
+  group_counts = group_counts[c(which(group_counts >= min_groupsize))]
+  
+  groups = names(group_counts)
+  M = length(groups)
+  
+  
+  for(m in groups){
+    n_subj = as.numeric(group_counts[m]) #how many subjects are there
+    age_group = ages[ages$Age.group==as.numeric(m),]
     
-    if(n_subj-min_groupsize > 0){ #to skip the minimum group
+    if(n_subj-min_groupsize > 0){ #to skip the minimum group(s)
       extras = age_group$File[1:(n_subj-min_groupsize)] #excess subjects to remove
       obs <- obs[obs %in% extras == FALSE]
       A = A[names(A) %in% extras == FALSE] 
@@ -121,17 +132,20 @@ prepare_data <- function(ex){
   }
   
   # Making design matrix out of classes
-  X <- matrix(0,S,M,dimnames=list(obs,paste0("class",1:M))) 
-  for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]] <- 1
+  X <- matrix(0,S,M,dimnames=list(obs,paste0("class",0:(M-1)))) 
+  for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]+1] <- 1 #classes go from 0 to 15, shift by one
   if(M==2) {
     print("Condensing two classes into one +-1 covariate.")
     X <- X[,1,drop=FALSE] 
     X[X==0] <- -1
   }
   
-  return(list(Y, x, X, M))
+  return(list(Y, x, X, M, groups, ages))
 }
 
+
+
+### READING IN THE DATA ###
 
 n1_data <- prepare_data(ex="N1")
 n2_data <- prepare_data(ex="N2")
@@ -143,6 +157,8 @@ x = n2_data[[2]]
 X = n2_data[[3]]
 M = n2_data[[4]]
 subj = dimnames(Y1)[[1]]
+groups = n2_data[[5]]
+ages = n2_data[[6]]
 
 
 ### TRAINING ###
@@ -151,32 +167,40 @@ subj = dimnames(Y1)[[1]]
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y1, K=6,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
+res <- brrr(X=X,Y=Y2, K=10,n.iter=1000,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
-lat_space=Y2%*%W #validate the results using N1 data
+lat_space=Y1%*%W
 
 pred <- X%*%res$model$brr$context$Psi%*%res$model$brr$context$Gamma #X%*%Psi%*%Gamma
 D <- matrix(NA, nrow(X), ncol(X), dimnames=list(names(x), c())) #distance matrix
 
-for(testidx in 1:nrow(lat_space)){ #fills the distance matrix
-  for(m in 1:M){ #D[i,j] = avg. L1 dist between subject i and group j 
-    D[testidx,m] <- mean(abs(lat_space[testidx,]-res$model$brr$context$Psi[m,])) 
+
+for(testidx in 1:nrow(lat_space)){ #calculates the distances between individual and group mean in lat.space
+  for(m in groups){
+    group_members <- ages[ages$Age.group==m,]$File
+    idxs = which(row.names(lat_space) %in% group_members)
+    group_mean <- colMeans(lat_space[idxs,]) #mean over all individuals, vector of length K
+    
+    ix <- as.integer(m) + 1
+    D[testidx,ix] <- sum(abs(lat_space[testidx,]-group_mean)) #L1 distance
   }
 }
 
 
-PROJ <- D*0 #initialize 'projection' matrix
+
+PROJ <- D*0
 
 for(r in 1:nrow(D)){ #assign age groups based on lat. space distances
   index <- which.min(D[r,])
   PROJ[r,index] <- 1
 }
-colnames(PROJ) <- c(paste0("class",1:M))
+colnames(PROJ) <- c(paste0("class",0:(M-1)))
 
 #convert model matrices to factors and plot confusion matrix
 P_factor <- as.factor(colnames(PROJ))[PROJ %*% 1:ncol(PROJ)]
 X_factor <- as.factor(colnames(X))[X %*% 1:ncol(X)]
+
 
 
 #results are somewhat catastrophic
