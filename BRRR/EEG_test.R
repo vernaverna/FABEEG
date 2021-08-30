@@ -190,6 +190,19 @@ looCV <- function(X, Y, model){
 }
 
 
+#' Function for visualizing a matrix
+#' 
+#' @param x The matrix to visualize
+#' @param ... Further arguments passed to levelplot
+visMatrix <- function(x, ...) {
+  M <- max(abs(x))
+  cols <- colorRampPalette(c("red","white","blue"))
+  print(levelplot(x, col.regions=cols, at=seq(-M, M, length=50), aspect=1, ...))
+}
+
+
+
+
 
 
 ######## BRRR #########
