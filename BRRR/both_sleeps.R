@@ -170,20 +170,20 @@ pred <- X*NA
 res <- brrr(X=X,Y=Y2, K=10,n.iter=1000,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
-lat_space=Y1%*%W
+lat_map <- Y2%*%W #mapping to latent space with N1 sleep
+lat_comp <- X%*%res$model$brr$context$Psi + res$model$brr$context$Omega #latent space à la BRRR
 
-pred <- X%*%res$model$brr$context$Psi%*%res$model$brr$context$Gamma #X%*%Psi%*%Gamma
 D <- matrix(NA, nrow(X), ncol(X), dimnames=list(names(x), c())) #distance matrix
 
 
-for(testidx in 1:nrow(lat_space)){ #calculates the distances between individual and group mean in lat.space
+for(testidx in 1:nrow(lat_map)){ #calculates the distances between individual and group mean in lat.space
   for(m in groups){
     group_members <- ages[ages$Age.group==m,]$File
-    idxs = which(row.names(lat_space) %in% group_members)
-    group_mean <- colMeans(lat_space[idxs,]) #mean over all individuals, vector of length K
+    idxs = which(row.names(lat_map) %in% group_members)
+    group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
     
     ix <- as.integer(m) + 1
-    D[testidx,ix] <- sum(abs(lat_space[testidx,]-group_mean)) #L1 distance
+    D[testidx,ix] <- sum(abs(lat_map[testidx,]-group_mean)) #L1 distance
   }
 }
 
@@ -227,15 +227,30 @@ visMatrix <- function(x, ...) {
 }
 
 
+visMatrix(res$model$brr$context$Psi, xlab="Feature #", ylab="Component #", main="Inferred matrix Psi")
+
+visMatrix(res$model$brr$context$Gamma, xlab="Component #", ylab="Output #", main="Inferred matrix Gamma")
+visMatrix(t(W), xlab="Component #", ylab="Output #", main="Averaged matrix inv-Gamma")
+
+visMatrix(Y2%*%W, xlab="Component #", ylab="Output #", main="Projection to latent space")
 
 
 
+#### SANITY CHECKS ####
+visMatrix(lat_comp) #these are a-ok
+visMatrix(lat_map)
+
+model_diff <- abs(lat_map - lat_comp) #scaling is different, why?
+print(paste0("this should be about 0: ", sum(model_diff))) #L1 distance again; scaling causes some error??
 
 
+#visualizing latent space (first 2 components)
+ggplot(data=as.data.frame(lat_map), aes(lat_map[,2], lat_map[,3], col=factor(x))) + 
+  geom_point(size=1) + ggtitle("Subjects in latent mapping ") + 
+  xlab("Component #2") + ylab("Component #3")
 
 
-
-
+#TODO: try SNE/ Sammons' mapping for the same data!
 
 
 
