@@ -250,12 +250,15 @@ ggplot(data=as.data.frame(lat_map), aes(lat_map[,2], lat_map[,3], col=factor(x))
   xlab("Component #2") + ylab("Component #3")
 
 
-#TODO: try SNE/ Sammons' mapping for the same data!
+#TODO: try t-SNE/ Sammons' mapping for the same data!
 
+library("Rtsne")
+colors = rainbow(length(unique(x)))
+names(colors) = unique(x)
 
-
-
-
+tsne <- Rtsne(lat_map, dims=2, perplexity=30, verbose=TRUE, max_iter = 500, check_duplicates = F)
+plot(tsne$Y, t='n', main="tsne")
+text(tsne$Y, labels=x, col=colors[x])
 
 
 
