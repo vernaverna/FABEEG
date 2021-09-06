@@ -243,11 +243,14 @@ visMatrix(lat_map)
 model_diff <- abs(lat_map - lat_comp) #scaling is different, why?
 print(paste0("this should be about 0: ", sum(model_diff))) #L1 distance again; scaling causes some error??
 
+# adding together ec & eo mappings
+lat_map = as.data.frame(rbind(lat_map_ec[1:nsubj,], lat_map_eo))
+lat_map['condition'] = c(rep('ec', nsubj), rep('eo', nsubj))
 
-#visualizing latent space (first 2 components)
-ggplot(data=as.data.frame(lat_map), aes(lat_map[,2], lat_map[,3], col=factor(x))) + 
-  geom_point(size=1) + ggtitle("Subjects in latent mapping ") + 
-  xlab("Component #2") + ylab("Component #3")
+
+ggplot(data=as.data.frame(lat_map), aes(lat_map[,1], lat_map[,2], shape=condition, col=factor(x))) + 
+  geom_point(size=3) + ggtitle("Subjects in latent mapping ") + 
+  xlab("Component #1") + ylab("Component #2")
 
 
 #TODO: try t-SNE/ Sammons' mapping for the same data!
