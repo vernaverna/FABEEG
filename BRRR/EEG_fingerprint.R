@@ -5,7 +5,7 @@ library("ggplot2")
 library("cvms")
 
 
-## TODO: train the model with 2 obs. per individual!
+## TODO: use less individuals! try with old and young kids as well
 
 # Function for preparing the data for analysis
 # ex = N1 or N2, depending which data is read in
@@ -132,30 +132,35 @@ n2_data <- prepare_data(ex="N2")
 Y1 = n1_data[[1]]
 Y2 = n2_data[[1]]
 
-x = n2_data[[2]]
-X = n2_data[[3]]
+Y = rbind(Y1, Y2)
+
+x = rbind(n1_data[[2]], n2_data[[2]])
+X = rbind(n1_data[[3]], n2_data[[3]])
 M = n2_data[[4]]
-subj = dimnames(Y1)[[1]]
+subj = dimnames(Y)[[1]]
 
 
 ### TRAINING ###
 
-# The model is trained using N2 data, but the performance is evaluated with N1 data
+# The model is trained using both N1 & N2 data, but the performance is evaluated with N2 data
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y1, K=6,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
+res <- brrr(X=X,Y=Y, K=6,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
-lat_space=Y2%*%W #validate the results using N1 data
+lat_map <- Y%*%W
+lat_map_n2 <- Y2%*%W #mapping to latent space with N2 data!# 
 
-pred <- X%*%res$model$brr$context$Psi%*%res$model$brr$context$Gamma #X%*%Psi%*%Gamma
-D <- matrix(NA, nrow(X), ncol(X), dimnames=list(names(x), c())) #distance matrix
+D <- matrix(NA, nrow(lat_map_n2), ncol(X), dimnames=list(unique(names(x)), c())) #distance matrix# # # 
 
-for(testidx in 1:nrow(lat_space)){ #fills the distance matrix
-  for(m in 1:M){ #D[i,j] = avg. L1 dist between subject i and group j 
-    D[testidx,m] <- mean(abs(lat_space[testidx,]-res$model$brr$context$Psi[m,])) 
-  }
+for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individual and group mean in lat.space   
+  for(m in 1:M){     
+    group_members <- rownames(lat_map)[m]   
+    idxs = which(row.names(lat_map) %in% group_members)#     
+    group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
+    D[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_mean)) #L1 distance#   
+  } 
 }
 
 
@@ -169,6 +174,9 @@ for(r in 1:nrow(D)){ #assign age groups based on lat. space distances
   PROJ[r,index] <- 1
 }
 colnames(PROJ) <- c(paste0("class",1:M))
+
+accuracy = sum(diag(PROJ))/M
+print(paste("Model accuracy:", accuracy))
 
 #convert model matrices to factors and plot confusion matrix
 P_factor <- as.factor(colnames(PROJ))[PROJ %*% 1:ncol(PROJ)]
