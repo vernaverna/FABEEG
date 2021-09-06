@@ -35,7 +35,7 @@ for s in all_subjects:
         all_subjects.remove(s)
 
 #Ages of subjects
-age_df = pd.read_csv('FAB_BioMag_010621.csv')
+age_df = pd.read_csv('ages.csv')
 #age_df = age_df[['File', 'Sex', 'Age']]
 #age_files = [x.replace('-', '') for x in list(age_df['File'])]
 #age_df['File'].replace(dict( zip(list(age_df['File']), age_files) ), inplace=True)

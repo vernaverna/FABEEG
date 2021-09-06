@@ -78,20 +78,19 @@ def change_metadata(raw): #Use this in all preprocessing steps?? MOVE?
 # interpolation of the surrounding channels. This ensures that each PSD object
 # has a signal designed for all channels, hence they are all compatible.
 
-# Compute the PSD for each task
+# Initialize PSDS
 psds = dict()
-#for task in tasks
 raw = read_raw_fif(fname.filt(subject=args.subject), preload=True)
 #Add metadata to testdata
 raw = change_metadata(raw)
 raw.interpolate_bads() # Only works if location is known
+
 
 # Add a PSD plot to the report.
 times = [1, 2]
 info = pick_info(raw.info, pick_types(raw.info, eeg=True))
 layout = find_layout(info)
 subj_info = age_df.loc[age_df['File']==args.subject]
-
 
 
 #make evoked array

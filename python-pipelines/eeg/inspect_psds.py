@@ -9,6 +9,7 @@ Created on Wed Jun  9 12:33:10 2021
 import numpy as np
 import argparse
 import h5py 
+import mne
 from mne import find_layout, pick_info, pick_types
 from pathlib import Path
 from config_eeg import get_all_fnames, fname, bads, age_df

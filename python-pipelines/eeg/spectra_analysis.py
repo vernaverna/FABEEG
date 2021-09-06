@@ -61,6 +61,17 @@ for subj in subjects:
 
 
 
+#Take 1 example subject for sensor locations
+evk_file =  group_spectra_n1[2][1]
+
+# Get sensor locations from layout
+layout_from_evk = mne.channels.make_eeg_layout(evk_file.info)
+locations = layout_from_evk.pos #4 columns; x, y, width, height
+locations = locations[:,0:2] #take only x & y coords
+np.savetxt('coords.csv', locations, delimiter=',') 
+
+
+
 cm = plt.get_cmap('viridis')
 colors = [cm(x) for x in np.linspace(0, 1, 10)] 
 
@@ -168,7 +179,7 @@ for roi in picks_list:
 roi_figs = sum(roi_figs, []) #hacky
 
 
-#TODO: make a channel-wise slider!roi=
+#TODO: make a channel-wise slider!
 
 
 with open_report('Average_spectra.h5') as report:
