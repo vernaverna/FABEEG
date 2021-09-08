@@ -83,18 +83,16 @@ psds = dict()
 raw = read_raw_fif(fname.filt(subject=args.subject), preload=True)
 #Add metadata to testdata
 raw = change_metadata(raw)
-raw.interpolate_bads() # Only works if location is known
+#raw.interpolate_bads() # Only works if location is known
 
 
 # Add a PSD plot to the report.
-times = [1, 2]
 info = pick_info(raw.info, pick_types(raw.info, eeg=True))
 layout = find_layout(info)
 subj_info = age_df.loc[age_df['File']==args.subject]
 
 
 #make evoked array
-#TODO: save as .fif AND .csv for BRRR
 
 comment1 = 'Subj: {}, Age: {}, Sex: {}, Sleep: N1'.format(str(subj_info.iloc[0,0]), float(subj_info['Age']),
                                                         str(subj_info.iloc[0,1]))
@@ -104,7 +102,7 @@ comment2 = 'Subj: {}, Age: {}, Sex: {}, Sleep: N2'.format(str(subj_info.iloc[0,0
 
 
 # Create events of 30 s  
-events_n1 = mne.make_fixed_length_events(raw, id=1, start=0, stop=300.0, duration=30, overlap=10) #TODO: define overlap?
+events_n1 = mne.make_fixed_length_events(raw, id=1, start=0, stop=300.0, duration=30, overlap=10) 
 events_n2 = mne.make_fixed_length_events(raw, id=2, start=300.0, stop=900.0, duration=30, overlap=10)
 events = np.append(events_n1, events_n2, axis=0) #this is clumsy, but did not come up with anything else
 event_dict = {'sleep N1':1, 'sleep N2':2}
@@ -116,27 +114,41 @@ epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=0.0, tmax=30, baselin
 
 # Create evoked responses, but as spectra
 evokeds = dict()
-evokeds['N1'] = epochs['sleep N1'].average() #averages over each epoch
-evokeds['N2'] = epochs['sleep N2'].average()
+#evokeds['N1'] = epochs['sleep N1'].average() #averages over each epoch
+#evokeds['N2'] = epochs['sleep N2'].average()
 
-n1_spectra, freqs = psd_welch(epochs['sleep N1'].average(), fmax=fmax, n_fft=n_fft)
+
+
+# TODO: make this neater!
 info1 = info
+n1_spectra, freqs = psd_welch(epochs['sleep N1'][7:12].average(), fmax=fmax, n_fft=n_fft)
 info1['sfreq'] = 1/(freqs[1]-freqs[0]) #change sampling freq so the 'time' axis shows frequencies
 evokeds['PSD N1'] = mne.EvokedArray(n1_spectra, info=info1, comment=comment1)
-n2_spectra, freqs = psd_welch(epochs['sleep N2'].average(), fmax=fmax, n_fft=n_fft)
-evokeds['PSD N2'] = mne.EvokedArray(n2_spectra, info=info1, comment=comment2)
+
+# leaving 240 s between n1 & n2
+# do the same with n2 spectra; create three 120 s spectras (no overlap between these)
+n2_spectra1, freqs = psd_welch(epochs['sleep N2'][7:12].average(), fmax=fmax, n_fft=n_fft)
+evokeds['PSD N2 (1)'] = mne.EvokedArray(n2_spectra1, info=info1, comment=comment2)
+n2_spectra2, _ = psd_welch(epochs['sleep N2'][14:19].average(), fmax=fmax, n_fft=n_fft)
+evokeds['PSD N2 (2)'] = mne.EvokedArray(n2_spectra1, info=info1, comment=comment2)
+n2_spectra3, _ = psd_welch(epochs['sleep N2'][21:26].average(), fmax=fmax, n_fft=n_fft)
+evokeds['PSD N2 (3)'] = mne.EvokedArray(n2_spectra1, info=info1, comment=comment2)
+
 
 fmin, fmax = freqs[0], freqs[-1]
 psds['sleep N1'] = n1_spectra
-psds['sleep N2'] = n2_spectra
-
+psds['sleep N2'] = n2_spectra1
+psds['sleep N2 (2)'] = n2_spectra2
+psds['sleep N2 (3)'] = n2_spectra3
 
 # Add some metadata to the file we are writing
 psds['info'] = raw.info
 psds['freqs'] = freqs
-write_hdf5(fname.psds(subject=args.subject), psds, overwrite=True) 
+del raw #to free some memory
 
-mne.write_evokeds(fname.evoked(subject=args.subject), [evokeds['PSD N1'], evokeds['PSD N2']] ) 
+write_hdf5(fname.psds(subject=args.subject), psds, overwrite=True) 
+mne.write_evokeds(fname.evoked(subject=args.subject), 
+                  [evokeds['PSD N1'], evokeds['PSD N2 (1)'], evokeds['PSD N2 (2)'], evokeds['PSD N2 (3)']] ) 
 
 
 
