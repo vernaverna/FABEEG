@@ -23,7 +23,7 @@ prepare_data <- function(ex){
   old_idx = which(ages$Age.group >= 15)
   ages$Age.group[old_idx] <- 15
   
-  use_all=TRUE #perform LOO-CV or use all data in training?
+  use_all=FALSE #perform LOO-CV or use all data in training?
   
   # Check if the file exists
   if(file.exists(loadfile)) {
@@ -146,12 +146,13 @@ prepare_data <- function(ex){
 
 
 ### READING IN THE DATA ###
-
-n1_data <- prepare_data(ex="N1")
 n2_data <- prepare_data(ex="N2")
+n2b_data <- prepare_data(ex="N2B") #validation set
 
-Y1 = n1_data[[1]]
-Y2 = n2_data[[1]]
+Y1 = n2_data[[1]]
+Y2 = n2b_data[[1]]
+
+#Y = rbind(Y1, Y2)
 
 x = n2_data[[2]]
 X = n2_data[[3]]
@@ -163,13 +164,15 @@ ages = n2_data[[6]]
 
 ### TRAINING ###
 
-# The model is trained using N2 data, but the performance is evaluated with N1 data
+# The model is trained using N2 data, the performance is evaluated with another data
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y2, K=10,n.iter=1000,thin=5,init="LDA", fam = x) #fit the model
+res <- brrr(X=X,Y=Y1, K=6, n.iter=1000,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
+save(res, file="results/full/N2_BRRR_K6.RData")
+
 lat_map <- Y2%*%W #mapping to latent space with N1 sleep
 lat_comp <- X%*%res$model$brr$context$Psi + res$model$brr$context$Omega #latent space à la BRRR
 

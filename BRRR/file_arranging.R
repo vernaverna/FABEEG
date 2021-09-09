@@ -1,5 +1,5 @@
 ## For re-arranging the spectra files
-data_path <- paste0(getwd(), "/data/subjects/")
+data_path <- paste0(getwd(), "/data/absolute_spectra/")
 
 subjects <- list.files(data_path)
 #ages = read.csv('data/ages.csv')
@@ -9,15 +9,19 @@ subjects <- list.files(data_path)
 for(i in 1:length(subjects)){
   subj_dir = paste0(data_path, subjects[i], sep="/")
   files = list.files(subj_dir)
-  # Rename files to unique per subject
-  file.rename(paste0(subj_dir, files[1]), 
-              paste0(subj_dir, paste0(subjects[i], "_n1.csv")))
-  file.rename(paste0(subj_dir, files[2]), 
-              paste0(subj_dir, paste0(subjects[i], "_n2.csv")))
-  files2 = list.files(subj_dir)
   
-  file.copy(paste0(subj_dir, files2[1]), "data/n1_sleep/")
-  file.copy(paste0(subj_dir, files2[2]), "data/n2_sleep/")
+  for(file in files){
+    # Rename files to be unique per subject
+    file.rename(paste0(subj_dir, file),
+                paste0(subj_dir, paste0(subjects[i], file)))
+  }
+  files2 = list.files(subj_dir)
+  dirs = c("n1_sleep/", "n2_sleep/", "n2b_sleep/", "n2c_sleep/")
+  for(f in 1:length(files2)){
+    newdir=dirs[f]
+    file2=files2[f]
+    file.copy(paste0(subj_dir, file2), paste0("data/",newdir))
+  }
 }
 
 

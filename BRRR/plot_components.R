@@ -5,8 +5,23 @@
 
 data <- "EEG_age" # datatype
 
-if(data == "EEG_ind") {
-  #will fix later
+if(data == "EEG_ind") { #TODO: fix repetition
+  fname <- paste0("results/full/indN2_BRRR_K6.RData")
+  load(fname)
+  datafile <- paste0("data/N2spectrum.RData") #only to get frequencies
+  load(datafile)
+  
+  keepFeat <- which(apply(res$data$phenotypes,2,var,na.rm=T)>0)
+  
+  net <- list(omitMag=F,Y=res$scaling,keepFeat=keepFeat, #create the net object only now
+              penLDA=4,omitN=2000,l1d=200)
+  net$lambda <- 0
+  
+  
+  net$freq <- freq
+  
+  coords <- read.table("var/coords.csv",sep=",")
+  ch_names <- read.table("var/ch_names.csv", sep=",")
 } else {
   fname <- paste0("results/full/N2_BRRR_K6.RData")
   load(fname)

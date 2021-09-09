@@ -22,12 +22,18 @@ prepare_data <- function(ex){
   ages = read.csv('data/age_df.csv')
   ages <- ages[,-1]
   
-  use_all=TRUE #perform LOO-CV or use all data in training?
+  use_all=FALSE #should we use all subjects in training?
   
   # Check if the file exists
   if(file.exists(loadfile)) {
     load(loadfile)
-    ages = subset(ages, ages$File %in% names(Y)) #remove subjects not in the dataset
+    
+    if(use_all==F){
+      set.seed(121)
+      individuals = sample(individuals, 40)
+      Y = Y[names(Y) %in% individuals]
+      
+    }
     
     # Omits frequencies
     frequencies <- which(freq[,2] >= omitFreq[1] & freq[,2] <= omitFreq[2])
@@ -72,13 +78,8 @@ prepare_data <- function(ex){
   
   
   # The number of classes and storing the subjects
-  M <- length(obs) 
-  
-  for(m in 1:M){
-
-  }
-  
-  S <- length(obs)
+  M <- length(obs) #nclasses
+  S <- length(obs) #nsubj
   
   print("Data dimension per subject:")
   print(dim(A[[1]]))
@@ -126,31 +127,36 @@ prepare_data <- function(ex){
 }
 
 
-n1_data <- prepare_data(ex="N1")
 n2_data <- prepare_data(ex="N2")
+n2b_data <- prepare_data(ex="N2B")
 
-Y1 = n1_data[[1]]
-Y2 = n2_data[[1]]
+validation_data <- prepare_data(ex='N2C')
+Y3 <- validation_data[[1]]
+
+Y1 = n2_data[[1]]
+Y2 = n2b_data[[1]]
 
 Y = rbind(Y1, Y2)
 
-x = rbind(n1_data[[2]], n2_data[[2]])
-X = rbind(n1_data[[3]], n2_data[[3]])
+x = c(n2_data[[2]], n2b_data[[2]])
+X = rbind(n2_data[[3]], n2b_data[[3]])
 M = n2_data[[4]]
 subj = dimnames(Y)[[1]]
 
 
 ### TRAINING ###
 
-# The model is trained using both N1 & N2 data, but the performance is evaluated with N2 data
+# The model is trained using two sets of N2 data, and the performance is evaluated using third set
 
 source("brrr.R")
 pred <- X*NA
 res <- brrr(X=X,Y=Y, K=6,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
+
+save(res, file = "results/full/indN2_BRRR_K6.RData")
 lat_map <- Y%*%W
-lat_map_n2 <- Y2%*%W #mapping to latent space with N2 data!# 
+lat_map_n2 <- Y3%*%W #mapping to latent space with N2_C data!# 
 
 D <- matrix(NA, nrow(lat_map_n2), ncol(X), dimnames=list(unique(names(x)), c())) #distance matrix# # # 
 
