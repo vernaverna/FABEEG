@@ -269,6 +269,10 @@ text(tsne$Y, labels=x, col=colors[x])
 
 
 
+### PCA REGRESSION ###
+
+
+
 
 
 
