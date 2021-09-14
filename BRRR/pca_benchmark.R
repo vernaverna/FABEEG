@@ -3,6 +3,7 @@
 #       by Verna Heikkinen       #
 ##################################
 library(corrplot)
+library(pls)
 
 pca_regress <- function(X=Y, response){
   pca_data <- prcomp(X) #data matrix is already centered by data preparation function
@@ -27,4 +28,24 @@ pca_regress <- function(X=Y, response){
   
   pred <- X%*%coeff
 }
+
+pls_regress <-function(X, y){
+  scaled_resposnse <- scale(y,center=T,scale=T) #the response vector has to be normalized as well
+  
+  #split data to test & training sets
+  df = as.data.frame(cbind(scaled_response, X))
+  train <- df[1:150,]
+  test <- df[151:nrow(df),2:ncol(df)]
+  y_test <-df[151:nrow(df),1]
+  
+  #fit the model
+  model <- pcr(V1 ~., data=train, scale=TRUE, validation="CV")
+  pred <- predict(model, test, ncomp=20)
+  
+  #RMSE
+  sqrt(mean((pred - y_test)^2))
+  #TODO: move these too
+  #validationplot(model, val.type = "MSEP")
+}
+
 
