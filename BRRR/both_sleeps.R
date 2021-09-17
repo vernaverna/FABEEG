@@ -22,7 +22,7 @@ prepare_data <- function(ex){
   # Group +15 year-olds together in group 15
   old_idx = which(ages$Age.group >= 15)
   ages$Age.group[old_idx] <- 15
-  
+  to_exclude=c(0,1,2,3) #which age groups to exclude
   use_all=FALSE #perform LOO-CV or use all data in training?
   
   # Check if the file exists
@@ -46,12 +46,17 @@ prepare_data <- function(ex){
     for(s in names(Y)) {
       
       if(s %in% ages$File){ #temporal solution to get over the filename hassle
-        tmp <- t(Y[[s]]) #transposed
-        tmp <- log10(tmp) #TODO: is this necessary???
-        if(any(is.na(tmp))) browser()
-        A[[s]] <- tmp[frequencies,chs]
+        group = ages[ages$File==s,]$Age.group
         
-        
+        if(!(group %in% to_exclude)){
+          tmp <- t(Y[[s]]) #transposed
+          tmp <- log10(tmp) #TODO: is this necessary???
+          if(any(is.na(tmp))) browser()
+          A[[s]] <- tmp[frequencies,chs]
+        } else {
+          corrupted = c(corrupted, s)
+        }
+
       } else {
         corrupted = c(corrupted, s)
       } 
@@ -132,8 +137,8 @@ prepare_data <- function(ex){
   }
   
   # Making design matrix out of classes
-  X <- matrix(0,S,M,dimnames=list(obs,paste0("class",0:(M-1)))) 
-  for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]+1] <- 1 #classes go from 0 to 15, shift by one
+  X <- matrix(0,S,M,dimnames=list(obs,paste0("class",4:(M+3)))) #TODO: I do not want to change these manually!
+  for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]-3] <- 1 #classes go from 0 to 15, shift by one
   if(M==2) {
     print("Condensing two classes into one +-1 covariate.")
     X <- X[,1,drop=FALSE] 
@@ -185,7 +190,7 @@ for(testidx in 1:nrow(lat_map)){ #calculates the distances between individual an
     idxs = which(row.names(lat_map) %in% group_members)
     group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
     
-    ix <- as.integer(m) + 1
+    ix <- as.integer(m) -3 #+1
     D[testidx,ix] <- sum(abs(lat_map[testidx,]-group_mean)) #L1 distance
   }
 }

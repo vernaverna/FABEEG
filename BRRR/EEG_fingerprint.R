@@ -23,6 +23,8 @@ prepare_data <- function(ex){
   ages <- ages[,-1]
   
   use_all=FALSE #should we use all subjects in training?
+  min_age=0 #exclude some of the younger children? 
+  #TODO: change to range?
   
   # Check if the file exists
   if(file.exists(loadfile)) {
@@ -51,12 +53,15 @@ prepare_data <- function(ex){
     for(s in names(Y)) {
       
       if(s %in% ages$File){ #temporal solution to get over the filename hassle
-        tmp <- t(Y[[s]]) #transposed
-        tmp <- log10(tmp) #TODO: is this necessary???
-        if(any(is.na(tmp))) browser()
-        A[[s]] <- tmp[frequencies,chs]
-        
-        
+        age_data = ages[ages$File==s,]
+        if(age_data$Age >= min_age){
+          tmp <- t(Y[[s]]) #transposed
+          tmp <- log10(tmp) #TODO: is this necessary???
+          if(any(is.na(tmp))) browser()
+          A[[s]] <- tmp[frequencies,chs] 
+        } else {
+          corrupted = c(corrupted, s)
+        }
       } else {
         corrupted = c(corrupted, s)
       } 
@@ -130,7 +135,7 @@ prepare_data <- function(ex){
 n2_data <- prepare_data(ex="N2")
 n2b_data <- prepare_data(ex="N2B")
 
-validation_data <- prepare_data(ex='N2C')
+validation_data <- prepare_data(ex="N1")
 Y3 <- validation_data[[1]]
 
 Y1 = n2_data[[1]]
@@ -154,7 +159,7 @@ res <- brrr(X=X,Y=Y, K=6,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
-save(res, file = "results/full/indN2_BRRR_K6.RData")
+save(res, file = "results/full/over7_indN2_BRRR_K6.RData")
 lat_map <- Y%*%W
 lat_map_n2 <- Y3%*%W #mapping to latent space with N2_C data!# 
 
