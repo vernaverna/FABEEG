@@ -1,4 +1,5 @@
 ## For re-arranging the spectra files
+setwd("/projects/FABEEG/BRRR")
 data_path <- paste0(getwd(), "/data/absolute_spectra/")
 
 subjects <- list.files(data_path)
@@ -16,7 +17,7 @@ for(i in 1:length(subjects)){
                 paste0(subj_dir, paste0(subjects[i], file)))
   }
   files2 = list.files(subj_dir)
-  dirs = c("n1_sleep/", "n2_sleep/", "n2b_sleep/", "n2c_sleep/")
+  dirs = c("n1_sleep/", "n2a_sleep/", "n2b_sleep/", "n2c_sleep/", "n2d_sleep/", "n2e_sleep/")
   for(f in 1:length(files2)){
     newdir=dirs[f]
     file2=files2[f]

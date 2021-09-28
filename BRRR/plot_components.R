@@ -47,7 +47,7 @@ coords = coords * 200
 ####
 ####
 
-filename <- paste0("fig_1", data, ".pdf") # pdf file for saving plots
+filename <- paste0("fig_olds", data, ".pdf") # pdf file for saving plots
 pdf(file=filename,width=20,height=30)
 
 plotLabels <- paste0("K",1:ncol(net$Y)) # plot lables
