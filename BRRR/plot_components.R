@@ -23,9 +23,9 @@ if(data == "EEG_ind") { #TODO: fix repetition
   coords <- read.table("var/coords.csv",sep=",")
   ch_names <- read.table("var/ch_names.csv", sep=",")
 } else {
-  fname <- paste0("results/full/N2_BRRR_K6.RData")
+  fname <- paste0("results/full/N2C_BRRR_K6.RData")
   load(fname)
-  datafile <- paste0("data/N2spectrum.RData")
+  datafile <- paste0("data/N2Cspectrum.RData")
   load(datafile)
   
   keepFeat <- which(apply(res$data$phenotypes,2,var,na.rm=T)>0)
@@ -47,7 +47,7 @@ coords = coords * 200
 ####
 ####
 
-filename <- paste0("fig_olds", data, ".pdf") # pdf file for saving plots
+filename <- paste0("fig_N2C", data, ".pdf") # pdf file for saving plots
 pdf(file=filename,width=20,height=30)
 
 plotLabels <- paste0("K",1:ncol(net$Y)) # plot lables

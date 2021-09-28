@@ -22,7 +22,7 @@ prepare_data <- function(ex){
   # Group +15 year-olds together in group 15
   old_idx = which(ages$Age.group >= 15)
   ages$Age.group[old_idx] <- 15
-  to_exclude=c(0,1,2,3) #which age groups to exclude
+  to_exclude=c() #c(0,1,2,3) #which age groups to exclude
   use_all=FALSE #perform LOO-CV or use all data in training?
   
   # Check if the file exists
@@ -50,8 +50,8 @@ prepare_data <- function(ex){
         
         if(!(group %in% to_exclude)){
           tmp <- t(Y[[s]]) #transposed
-          tmp <- log10(tmp) #TODO: is this necessary???
-          if(any(is.na(tmp))) browser()
+          tmp <- log10(tmp) 
+          if(any(is.na(tmp))) browser() #TODO: add to corrupted or something? in python??
           A[[s]] <- tmp[frequencies,chs]
         } else {
           corrupted = c(corrupted, s)
@@ -137,8 +137,8 @@ prepare_data <- function(ex){
   }
   
   # Making design matrix out of classes
-  X <- matrix(0,S,M,dimnames=list(obs,paste0("class",4:(M+3)))) #TODO: I do not want to change these manually!
-  for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]-3] <- 1 #classes go from 0 to 15, shift by one
+  X <- matrix(0,S,M,dimnames=list(obs,paste0("class",0:(M-1)))) #TODO: I do not want to change these manually!
+  for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]+1] <- 1 #classes go from 0 to 15, shift by one
   if(M==2) {
     print("Condensing two classes into one +-1 covariate.")
     X <- X[,1,drop=FALSE] 
@@ -151,7 +151,7 @@ prepare_data <- function(ex){
 
 
 ### READING IN THE DATA ###
-n2_data <- prepare_data(ex="N2")
+n2_data <- prepare_data(ex="N2A")
 n2b_data <- prepare_data(ex="N2B") #validation set
 
 Y1 = n2_data[[1]]
@@ -169,14 +169,21 @@ ages = n2_data[[6]]
 
 ### TRAINING ###
 
+L1=FALSE
+
+#cosine similarity
+cossim <- function(x, y){
+  sum(x*y) / (sqrt(sum(x**2))*sqrt(sum(y**2)) )
+}
+
 # The model is trained using N2 data, the performance is evaluated with another data
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y1, K=6, n.iter=1000,thin=5,init="LDA", fam = x) #fit the model
+res <- brrr(X=X,Y=Y1, K=15, n.iter=1000,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
-save(res, file="results/full/N2_BRRR_K6.RData")
+save(res, file="results/full/N1_BRRR_K6.RData")
 
 lat_map <- Y2%*%W #mapping to latent space with N1 sleep
 lat_comp <- X%*%res$model$brr$context$Psi + res$model$brr$context$Omega #latent space à la BRRR
@@ -190,8 +197,9 @@ for(testidx in 1:nrow(lat_map)){ #calculates the distances between individual an
     idxs = which(row.names(lat_map) %in% group_members)
     group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
     
-    ix <- as.integer(m) -3 #+1
-    D[testidx,ix] <- sum(abs(lat_map[testidx,]-group_mean)) #L1 distance
+    ix <- as.integer(m) +1 #+1
+    D[testidx,ix] <- cossim(lat_map[testidx,],group_mean) #cosine similarity
+    #D[testidx,ix] <- sum(abs(lat_map[testidx,]-group_mean)) #L1 distance
   }
 }
 
@@ -200,7 +208,11 @@ for(testidx in 1:nrow(lat_map)){ #calculates the distances between individual an
 PROJ <- D*0
 
 for(r in 1:nrow(D)){ #assign age groups based on lat. space distances
-  index <- which.min(D[r,])
+  if(L1){
+    index <- which.min(D[r,])
+  } else {
+    index <- which.max(D[r,])
+  }
   PROJ[r,index] <- 1
 }
 colnames(PROJ) <- c(paste0("class",0:(M-1)))
@@ -219,7 +231,7 @@ print("Specificity:")
 print(cmat$Sensitivity)
 
 
-png("figures/K6full_confmat_77.png")
+png("figures/K15full_confmat_208.png")
 plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
 dev.off()  
 

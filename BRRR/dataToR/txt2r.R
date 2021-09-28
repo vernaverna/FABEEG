@@ -2,7 +2,7 @@
 
 
 set.seed(121)
-savepath <- paste0(getwd(), "/data/n2C_sleep/") #folder that contains spectra
+savepath <- paste0(getwd(), "/data/n2e_sleep/") #folder that contains spectra
 types <- list.files(savepath) #gives the number of groups/families/individuals
 
 #for testing purposes, let us work only with a subset of individuals
@@ -27,7 +27,7 @@ for(t in 1:length(types)) {
     #takes MEG matrices per subject for temporary storage
     X <- t(read.table(paste0(datapath,files[j]),sep=",",header=F))
     subj <- file
-    subj <- sub("n2_3.csv", "", subj)
+    subj <- sub("n2.csv", "", subj)
     Y[[subj]] <- X #*1e11
     #Y[[length(Y)+1]] <- X*1e11
     individuals[[type]] <- c(individuals[[type]], subj) #Old naming
@@ -37,7 +37,7 @@ for(t in 1:length(types)) {
 subjects <- unlist(individuals)
 names(Y) <- subjects
 freq <- read.csv(paste0(getwd(),"/data/f.txt"),header=F)
-fname <- paste0(getwd(), "/data/N2Cspectrum.RData") #name whichever spectra you may use 
+fname <- paste0(getwd(), "/data/N2Aspectrum.RData") #name whichever spectra you may use 
 save(Y, subjects, individuals, freq, file=fname) #saving data
 
 
