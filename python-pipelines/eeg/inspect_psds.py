@@ -51,8 +51,8 @@ try:
     data_n2 = np.array(group['key_sleep N2'])
     data_n2_2 = np.array(group['key_sleep N2 (2)'])
     data_n2_3 = np.array(group['key_sleep N2 (3)'])
-
-    
+    data_n2_4 = np.array(group['key_sleep N2 (4)'])
+    data_n2_5 = np.array(group['key_sleep N2 (5)'])    
     
     #info = np.array(group['key_info']
     f.close()
@@ -67,7 +67,8 @@ try:
     # i.e. sum of spectral power over all bands is 100 for each channel and subject
     # TODO: make sure that this is the desired approach!
     
-    dataset = {'n1':data_n1, 'n2':data_n2, 'n2_2':data_n2_2, 'n2_3':data_n2_3}
+    dataset = {'n1':data_n1, 'n2':data_n2, 'n2_2':data_n2_2, 'n2_3':data_n2_3,
+               'n2_4':data_n2_4, 'n2_5':data_n2_5}
     
     for data_obj in list(dataset.keys()):
         data_bandpower = []
