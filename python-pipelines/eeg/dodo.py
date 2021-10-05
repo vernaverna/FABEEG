@@ -25,23 +25,23 @@ def task_filt():
     for subject in subjects:
         yield dict(
             name=f'sub-{subject:02d}',
-            file_dep=get_all_fnames(subject, 'raw') + ['01_freqfilt.py'],
+            file_dep=get_all_fnames(subject, 'raw') + ['freqfilt_01.py'],
             targets=get_all_fnames(subject, 'filt'),
             actions=[f'python 01_freqfilt.py {subject}'],
         )
 
-def task_ica():
-    """Step 02: Remove blink (EOG) artifacts using ICA"""
-    for subject in subjects:
-        yield dict(
-            name=f'sub-{subject:02d}',
-            file_dep=(get_all_fnames(subject, 'raw', exclude=['emptyroom', 'eyesclosed']) +
-                      get_all_fnames(subject, 'filt', exclude=['emptyroom', 'eyesclosed']) +
-                      ['02_ica.py']),
-            targets=(get_all_fnames(subject, 'ica', exclude=['emptyroom', 'eyesclosed']) +
-                     get_all_fnames(subject, 'clean', exclude=['emptyroom', 'eyesclosed'])),
-            actions=[f'python 02_ica.py {subject}'],
-        )
+#def task_ica():
+#    """Step 02: Remove blink (EOG) artifacts using ICA"""
+#    for subject in subjects:
+#        yield dict(
+#            name=f'sub-{subject:02d}',
+#            file_dep=(get_all_fnames(subject, 'raw', exclude=['emptyroom', 'eyesclosed']) +
+#                      get_all_fnames(subject, 'filt', exclude=['emptyroom', 'eyesclosed']) +
+#                      ['02_ica.py']),
+#            targets=(get_all_fnames(subject, 'ica', exclude=['emptyroom', 'eyesclosed']) +
+#                     get_all_fnames(subject, 'clean', exclude=['emptyroom', 'eyesclosed'])),
+#            actions=[f'python 02_ica.py {subject}'],
+#        )
 
 def task_psds():
     """Step 03: Compute the Power Spectral Density (PSD) for each recording."""
@@ -49,12 +49,20 @@ def task_psds():
         yield dict(
             name=f'sub-{subject:02d}',
             file_dep=[
-                fname.clean(subject=subject, task='eyesopen', run=1),
-                fname.filt(subject=subject, task='eyesclosed', run=1),
-                fname.clean(subject=subject, task='pasat', run=1),
-                fname.clean(subject=subject, task='pasat', run=2),
-                '03_psds.py',
+                fname.filt(subject=subject),
+                'psds_03.py',
             ],
             targets=[fname.psds(subject=subject)],
-            actions=[f'python 03_psds.py {subject}'],
+            actions=[f'python psds_03.py {subject}'],
         )
+        
+def task_bandpower():
+    """ Step 04: Compute the bandpower and save results as .csv"""
+    for subject in subjects:
+    	yield dict(
+    	    name=f'sub-{subject:02d}',
+    	    file_dep=[fname.psds(subject=subject), 'bandpower_04.py',]
+    	    actions=[f'python bandpower_04.py {subject}']
+    	)
+       
+       

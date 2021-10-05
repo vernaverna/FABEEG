@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jun  9 12:33:10 2021
-
+Calculate absolute / relative bandpower from PSDs.
 @author: heikkiv
 """
 
