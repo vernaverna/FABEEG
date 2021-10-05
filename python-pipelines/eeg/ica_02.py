@@ -21,7 +21,7 @@ args = parser.parse_args()
 # Along the way, we collect figures for quality control
 figures = defaultdict(list)
 
-eog_channel = "PIETSO"
+#eog_channel = "PIETSO"
 
 # Not all subjects have files for all conditions. These functions grab the
 # files that do exist for the subject.

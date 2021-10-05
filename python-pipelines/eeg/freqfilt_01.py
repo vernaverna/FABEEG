@@ -25,14 +25,13 @@ filt_fnames = get_all_fnames(args.subject, kind='filt')
 
 for raw_fname, filt_fname in zip(raw_fnames, filt_fnames):
     raw = read_raw_edf(raw_fname, preload=True)
-    #raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names, FIXME
-
+   
     # Remove MEG channels. This is the EEG pipeline after all.
-    raw.pick_types(meg=False, eeg=True, eog=True, stim=True) ################################!!!!!!!
+    raw.pick_types(meg=False, eeg=True, eog=True, stim=True)
 
     # Mark bad channels that were manually annotated earlier.
     
-    if args.subject in bads.keys(): ### ISSUE; bads is empty!!
+    if args.subject in bads.keys(): ### bads is empty!!
         raw.info['bads'] = bads[args.subject]  
     else:
         raw.info['bads'] = []

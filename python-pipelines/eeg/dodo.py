@@ -61,8 +61,8 @@ def task_bandpower():
     for subject in subjects:
     	yield dict(
     	    name=f'sub-{subject:02d}',
-    	    file_dep=[fname.psds(subject=subject), 'bandpower_04.py',]
-    	    actions=[f'python bandpower_04.py {subject}']
+    	    file_dep=[fname.psds(subject=subject), 'bandpower_04.py',],
+    	    actions=[f'python bandpower_04.py {subject}'],
     	)
        
        

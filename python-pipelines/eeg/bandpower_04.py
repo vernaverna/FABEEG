@@ -36,7 +36,8 @@ parser.add_argument('subject', help='The subject to process')
 args = parser.parse_args()
 
 
-# Try to open psds; if not successful, write the missing psd into a txt file
+# Try to open psds; 
+# TODO: if not successful, write the missing psd into a txt file
 #no_psds = []
 
 try:
@@ -56,7 +57,7 @@ try:
     #info = np.array(group['key_info']
     f.close()
     
-    #Create a directory to save the .csv?? files
+    #Create a directory to save the .csv files
     parent_dir = "/projects/FABEEG/Data2R/absolute_spectra/"
     subj_dir = parent_dir + args.subject
     Path(subj_dir).mkdir(parents=True, exist_ok=True)
@@ -69,7 +70,7 @@ try:
     dataset = {'n1':data_n1, 'n2':data_n2, 'n2_2':data_n2_2, 'n2_3':data_n2_3,
                'n2_4':data_n2_4, 'n2_5':data_n2_5}
     
-    for data_obj in list(dataset.keys()):
+    for data_obj in list(dataset.keys()): #calculate bandpower for all PSDs 
         data_bandpower = []
         
         for band in f_bands:

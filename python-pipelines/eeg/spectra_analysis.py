@@ -68,10 +68,10 @@ evk_file =  group_spectra_n1[2][1]
 layout_from_evk = mne.channels.make_eeg_layout(evk_file.info)
 locations = layout_from_evk.pos #4 columns; x, y, width, height
 locations = locations[:,0:2] #take only x & y coords
-np.savetxt('coords.csv', locations, delimiter=',') 
+np.savetxt('coords.csv', locations, delimiter=',') #these are needed for later analysis
 
 
-
+# Set colormap for visuals 
 cm = plt.get_cmap('viridis')
 colors = [cm(x) for x in np.linspace(0, 1, 10)] 
 
@@ -176,7 +176,7 @@ for roi in picks_list:
     #                                    title='N1 sleep spectra of age groups')
     roi_figs.append(g)
 
-roi_figs = sum(roi_figs, []) #hacky
+roi_figs = sum(roi_figs, []) #hacky way to get a 1D list of figures
 
 
 #TODO: make a channel-wise slider!

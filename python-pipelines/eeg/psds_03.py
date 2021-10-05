@@ -1,6 +1,6 @@
 """
 Compute the Power Spectral Density (PSD) for each channel.
-Is processed in python cell writing
+Can be processed in python cell writing
 import subprocess
 subprocess.run('/net/theta/fishpool/projects/FABEEG/python-pipelines/eeg/runAll.sh', shell=True)
 """
@@ -24,8 +24,8 @@ parser.add_argument('subject', help='The subject to process')
 args = parser.parse_args()
 
 
-
-def change_metadata(raw): #Use this in all preprocessing steps?? MOVE?
+#Function to change the metadata & pick common channels
+def change_metadata(raw): 
 
     #For testdata only, remove . in channel-names
     raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names, FIXME
@@ -36,7 +36,7 @@ def change_metadata(raw): #Use this in all preprocessing steps?? MOVE?
     cz_deviation = abs(ch_info_df.iloc[17, 6]-ch_info_df.iloc[17, 4]) #Q3-Q1
     pz_deviation = abs(ch_info_df.iloc[18, 6]-ch_info_df.iloc[18, 4])
     
-    if cz_deviation < pz_deviation:
+    if cz_deviation < pz_deviation: #which channel has lower deviation ~> zero signal
         reference = 'CZ'
     else:
         reference = 'PZ'
@@ -60,9 +60,9 @@ def change_metadata(raw): #Use this in all preprocessing steps?? MOVE?
     raw.drop_channels("PIETSO")
     raw.drop_channels("EKG")
     
-    # TO DO Reset sensor types
+    # TODO: Reset sensor types ?
     
-    # Sensor locations not provided with testdata - use standard layout
+    # Sensor locations not provided with data - use standard layout
     ten_twenty_montage = mne.channels.make_standard_montage('standard_1020')
     ten_twenty_montage.ch_names = [CH_NAME.upper() for CH_NAME in ten_twenty_montage.ch_names]
 
@@ -92,7 +92,7 @@ layout = find_layout(info)
 subj_info = age_df.loc[age_df['File']==args.subject]
 
 
-#make evoked array
+# Making evoked arrays: comments
 
 comment1 = 'Subj: {}, Age: {}, Sex: {}, Sleep: N1'.format(str(subj_info.iloc[0,0]), float(subj_info['Age']),
                                                         str(subj_info.iloc[0,1]))
@@ -124,6 +124,9 @@ info1 = info
 n1_spectra, freqs = psd_welch(epochs['sleep N1'][7:12].average(), fmax=fmax, n_fft=n_fft)
 info1['sfreq'] = 1/(freqs[1]-freqs[0]) #change sampling freq so the 'time' axis shows frequencies
 evokeds['PSD N1'] = mne.EvokedArray(n1_spectra, info=info1, comment=comment1)
+
+
+# TODO: do this inside of a loop!!
 
 # leaving 240 s between n1 & n2
 # do the same with n2 spectra; create three 120 s spectras (no overlap between these)
@@ -158,8 +161,9 @@ psds['sleep N2 (5)'] = n2_spectra5
 # Add some metadata to the file we are writing
 psds['info'] = raw.info
 psds['freqs'] = freqs
-del raw #to free some memory
+del raw #free up some memory
 
+# save psds and evokeds
 write_hdf5(fname.psds(subject=args.subject), psds, overwrite=True) 
 mne.write_evokeds(fname.evoked(subject=args.subject), 
                   [evokeds['PSD N1'], evokeds['PSD N2 (1)'], evokeds['PSD N2 (2)'], evokeds['PSD N2 (3)'],
