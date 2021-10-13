@@ -23,7 +23,7 @@ prepare_data <- function(ex){
   ages <- ages[,-1]
   
   use_all=FALSE #should we use all subjects in training?
-  min_age=0 #exclude some of the younger children? 
+  min_age=1 #exclude some of the younger children? 
   #TODO: change to range?
   
   # Check if the file exists
@@ -32,7 +32,7 @@ prepare_data <- function(ex){
     
     if(use_all==F){
       set.seed(121)
-      individuals = sample(individuals, 40)
+      individuals = sample(individuals, 90)
       Y = Y[names(Y) %in% individuals]
       
     }
@@ -70,7 +70,8 @@ prepare_data <- function(ex){
     
     if(length(corrupted)>0){
       obs <- subjects[subjects %in% corrupted == FALSE]
-      A = A[names(A) %in% corrupted == FALSE] 
+      A = A[names(A) %in% corrupted == FALSE]
+      ages = ages[ages$File %in% corrupted == FALSE,]
     } else { 
       obs <- subjects
     }
@@ -128,14 +129,14 @@ prepare_data <- function(ex){
     X[X==0] <- -1
   }
   
-  return(list(Y, x, X, M))
+  return(list(Y, x, X, M, ages))
 }
 
 
-n2_data <- prepare_data(ex="N2")
+n2_data <- prepare_data(ex="N2A")
 n2b_data <- prepare_data(ex="N2B")
 
-validation_data <- prepare_data(ex="N1")
+validation_data <- prepare_data(ex="N2C")
 Y3 <- validation_data[[1]]
 
 Y1 = n2_data[[1]]
@@ -144,9 +145,10 @@ Y2 = n2b_data[[1]]
 Y = rbind(Y1, Y2)
 
 x = c(n2_data[[2]], n2b_data[[2]])
-X = rbind(n2_data[[3]], n2b_data[[3]])
+X = rbind(n2_data[[3]], n2b_data[[3]]) #row binding
 M = n2_data[[4]]
 subj = dimnames(Y)[[1]]
+ages = n2_data[[5]]
 
 
 ### TRAINING ###
@@ -155,20 +157,20 @@ subj = dimnames(Y)[[1]]
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y, K=6,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
+res <- brrr(X=X,Y=Y, K=15,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
-save(res, file = "results/full/over7_indN2_BRRR_K6.RData")
+save(res, file = "results/full/over1_indN2_BRRR_K6.RData")
 lat_map <- Y%*%W
 lat_map_n2 <- Y3%*%W #mapping to latent space with N2_C data!# 
 
-D <- matrix(NA, nrow(lat_map_n2), ncol(X), dimnames=list(unique(names(x)), c())) #distance matrix# # # 
+D <- matrix(NA, nrow(lat_map_n2), ncol(X), dimnames=list(unique(names(x)), paste0("mean",unique(names(x))) ) ) #distance matrix# # # 
 
 for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individual and group mean in lat.space   
   for(m in 1:M){     
     group_members <- rownames(lat_map)[m]   
-    idxs = which(row.names(lat_map) %in% group_members)#     
+    idxs = which(row.names(lat_map) %in% group_members) #     
     group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
     D[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_mean)) #L1 distance#   
   } 
@@ -182,7 +184,7 @@ PROJ <- D*0 #initialize 'projection' matrix
 
 for(r in 1:nrow(D)){ #assign age groups based on lat. space distances
   index <- which.min(D[r,])
-  PROJ[r,index] <- 1
+  PROJ[r,index] <- 1+PROJ[r,index]
 }
 colnames(PROJ) <- c(paste0("class",1:M))
 
@@ -205,4 +207,39 @@ print(cmat$Sensitivity)
 png("figures/K6full_confmat_77.png")
 plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
 dev.off()  
+
+
+nsubj <- length(unique(subj))
+# adding together N2 mappings  plus some covariates
+lat_map = as.data.frame(rbind(lat_map_n2[1:nsubj,], lat_map))
+lat_map['condition'] = c(rep('test', nsubj), rep('train', 2*nsubj))
+lat_map['age'] = rep(ages[which(ages$File%in%subj),]$Age, 3) #get age data
+lat_map['group'] = rep(round(ages[which(ages$File%in%subj),]$Age, 0), 3) #get age data
+lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, 3)
+
+subj_number <- factor(c(x,seq(1,nsubj)))
+
+ggplot(data=as.data.frame(lat_map), aes(lat_map[,6], lat_map[,7], shape=condition, col=factor(sex))) + 
+  geom_point(aes(size=age)) + ggtitle("Subjects in latent mapping ") + 
+  xlab("Component #1") + ylab("Component #2")
+
+
+
+# trying 3D plots
+
+library("scatterplot3d")
+library("viridis")
+
+shapes <- c(16, 17)
+shapes <- shapes[factor(lat_map$condition)]
+colors <- viridis_pal(option = "D")(length(unique(lat_map$group)))
+colors <- colors[factor(lat_map$group)]
+
+scatterplot3d(lat_map[,3:5], pch=shapes, color=colors, angle=10)
+
+
+
+
+
+
 

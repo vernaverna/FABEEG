@@ -183,7 +183,7 @@ pred <- X*NA
 res <- brrr(X=X,Y=Y1, K=15, n.iter=1000,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
-save(res, file="results/full/N1_BRRR_K6.RData")
+save(res, file="results/full/ageN2_BRRR_K6.RData")
 
 lat_map <- Y2%*%W #mapping to latent space with N1 sleep
 lat_comp <- X%*%res$model$brr$context$Psi + res$model$brr$context$Omega #latent space à la BRRR
@@ -227,8 +227,29 @@ X_factor <- as.factor(colnames(X))[X %*% 1:ncol(X)]
 cmat = confusion_matrix(X_factor, P_factor)
 print("Accurcy:")
 print(cmat$`Overall Accuracy`)
-print("Specificity:")
-print(cmat$Sensitivity)
+
+#create more informative classification metric
+# IDEA: hard-code error rates and then MAE per class?
+Tab=cmat$Table[[1]]
+
+# ja nyt vähän pseudokoodia
+penalty_vec = rep(0, ncol(Tab))
+names(penalty_vec) <- colnames(Tab)
+for(i in 1:ncol(Tab)){
+  target = as.integer(sub("class","",colnames(Tab)[i]))
+  predlabs = unlist(lapply(names(Tab[,i]), function(x) {as.integer(sub("class","", x))} ))
+  
+  print(mean(predlabs))
+  predvec = Tab[,i]
+  penalties = -(0.1)*abs(predlabs-target)
+  classpred = t(rbind(predlabs, predvec, penalties))
+  
+  which(classpred$predlabs==classpred$target)
+  
+  total_penalty = predvec*penalties
+  penalty_vec[i] = sum(10^(penalties)*predvec)/13
+}
+penalty_vec
 
 
 png("figures/K15full_confmat_208.png")
@@ -286,7 +307,6 @@ text(tsne$Y, labels=x, col=colors[x])
 
 
 
-### PCA REGRESSION ###
 
 
 
