@@ -22,8 +22,8 @@ prepare_data <- function(ex){
   ages = read.csv('data/age_df.csv')
   ages <- ages[,-1]
   
-  use_all=FALSE #should we use all subjects in training?
-  min_age=1 #exclude some of the younger children? 
+  use_all=TRUE #should we use all subjects in training?
+  min_age=10 #exclude some of the younger children? 
   #TODO: change to range?
   
   # Check if the file exists
@@ -157,7 +157,7 @@ ages = n2_data[[5]]
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y, K=15,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
+res <- brrr(X=X,Y=Y, K=21,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
