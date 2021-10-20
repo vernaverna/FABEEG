@@ -28,7 +28,7 @@ freq_bins <- apply(freq, MARGIN=1, FUN=function(x){paste(x[1], x[2], sep="-")}) 
 df <- data.frame(cbind(cbind(avg, freq_bins), t(ind_data)))
 df2 <- melt(df, id.vars=c('freq_bins', 'avg')) #change to long format (ggplot likes dis)
 
-df2 %>%
+df2 %>% #seemed to only work with x-freq
   filter(variable == "avg") %>%
   ggplot(aes(freq_bins, value)) +
   labs(y = "log power", x="freq") +
@@ -38,7 +38,7 @@ df2 %>%
 # Trying bins 
 library("ggridges")
 df2 %>%
-  ggplot(aes(x=freq_bins, y=value, fill=variable)) +
+  ggplot(aes(x=freq_bins, y=value, fill=variable, group=variable, height=-1*value)) +
   geom_density_ridges(alpha=0.6, stat="identity") +
   theme_ridges() 
 

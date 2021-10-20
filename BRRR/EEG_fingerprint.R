@@ -22,8 +22,8 @@ prepare_data <- function(ex){
   ages = read.csv('data/age_df.csv')
   ages <- ages[,-1]
   
-  use_all=TRUE #should we use all subjects in training?
-  min_age=10 #exclude some of the younger children? 
+  use_all=FALSE #should we use all subjects in training?
+  min_age=1 #exclude some of the younger children? 
   #TODO: change to range?
   
   # Check if the file exists
@@ -157,7 +157,7 @@ ages = n2_data[[5]]
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y, K=21,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
+res <- brrr(X=X,Y=Y, K=10,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
@@ -172,7 +172,7 @@ for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individual
     group_members <- rownames(lat_map)[m]   
     idxs = which(row.names(lat_map) %in% group_members) #     
     group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
-    D[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_mean)) #L1 distance#   
+    D[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_mean)) #L1 distance#  was lat_map_n2  
   } 
 }
 
@@ -238,6 +238,58 @@ colors <- colors[factor(lat_map$group)]
 scatterplot3d(lat_map[,3:5], pch=shapes, color=colors, angle=10)
 
 
+#trying t-SNE
+
+library("Rtsne")
+age_col = round(ages[which(ages$File%in%subj),]$Age, 0)
+sex_col = ages[which(ages$File%in%subj),]$Sex
+
+colors = rainbow(length(unique(age_col)))
+names(colors) = unique(age_col)
+
+tsne <- Rtsne(D, dims=2, is_distance = T,
+              perplexity=4, verbose=TRUE, max_iter = 500, check_duplicates = F)
+#plot(tsne$Y, t='n', main="tsne")
+#text(tsne$Y, labels=x, col=colors[x])
+
+plot(tsne$Y,col=colors, asp=1)
+
+
+
+#trying distance matrix with GGplot
+# TODO: something is wrong
+data_df <- data.frame(tsne$Y)
+rownames(data_df) <- rownames(D)
+data_df$age <- ages[which(ages$File%in%subj),]$Age
+data_df$sex <- ages[which(ages$File%in%subj),]$Sex
+data_df$group <- round(ages[which(ages$File%in%subj),]$Age, 0)
+
+ggplot(data_df, aes(x=X1, y=X2, color=age, shape=sex)) +
+  geom_point(size=4) + theme_minimal()
+
+
+
+#how distance correlates with age?
+# -> make a matrix with shape identical to D, fill with age diffs and 
+#    find correlation between these matrices (or each row vector I guess?)
+
+
+G <- D*0
+D_ages <- ages[ages$File %in% rownames(D),]
+#match the ordering that is mixed due to random sampling
+reorder_indexes <- match(rownames(D), D_ages$File)
+D_ages <- D_ages[reorder_indexes,]
+
+for(r in rownames(D)){
+  age_diffs = abs(D_ages[D_ages$File==r,]$Age - D_ages$Age) #age difference
+  G[r,] <- age_diffs
+}
+C=cor(t(D), t(G)) # calculates correlation between rows of G and D
+heatmap(C)
+
+cors=c()
+for(r in 1:nrow(G)){cors=c(cors, cor(G[r,], D[r,]))}
+D_ages$cors <- cors
 
 
 

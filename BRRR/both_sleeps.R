@@ -300,9 +300,11 @@ library("Rtsne")
 colors = rainbow(length(unique(x)))
 names(colors) = unique(x)
 
-tsne <- Rtsne(lat_map, dims=2, perplexity=30, verbose=TRUE, max_iter = 500, check_duplicates = F)
+tsne <- Rtsne(lat_map[,1:10], dims=2, perplexity=5, verbose=TRUE, max_iter = 500, check_duplicates = F)
 plot(tsne$Y, t='n', main="tsne")
 text(tsne$Y, labels=x, col=colors[x])
+
+plot(tsne$Y,col=lat_map$group, asp=1)
 
 
 
