@@ -27,20 +27,25 @@ freq_bins <- apply(freq, MARGIN=1, FUN=function(x){paste(x[1], x[2], sep="-")}) 
 
 df <- data.frame(cbind(cbind(avg, freq_bins), t(ind_data)))
 df2 <- melt(df, id.vars=c('freq_bins', 'avg')) #change to long format (ggplot likes dis)
+df2$avg <- as.numeric(df2$avg)
+df2$value <- as.numeric(df2$value)
+df2$freq_bins <- factor(df2$freq_bins, levels=freq_bins) #reorder freq bins as factor
 
-df2 %>% #seemed to only work with x-freq
-  filter(variable == "avg") %>%
-  ggplot(aes(freq_bins, value)) +
-  labs(y = "log power", x="freq") +
-  geom_line(data = df2, aes(group = variable), color = "grey", size = 0.5, alpha = 0.5) +
-  geom_line(data=df2, aes(y = avg), color = "blue")
-
-# Trying bins 
-library("ggridges")
+#line plot
+#library("ggridges")
 df2 %>%
-  ggplot(aes(x=freq_bins, y=value, fill=variable, group=variable, height=-1*value)) +
-  geom_density_ridges(alpha=0.6, stat="identity") +
-  theme_ridges() 
+  ggplot(aes(x=freq_bins, y=value, color=variable, group=variable)) +
+  geom_line(alpha=0.6) + 
+  geom_line(aes(x=freq_bins, y=avg), color="black") + theme_minimal()
+
+
+# Trying small multiples
+
+df2 %>% 
+  ggplot(aes(x=freq_bins, y=value, group=variable, colour=variable)) +
+  geom_line() + ggtitle("Log-bandpowers of 1 subject") + 
+  facet_wrap(~variable, scale="free_y") + 
+  theme(axis.text.x = element_text(angle = 90, vjust=0.5, hjust=1))
 
 #ja sit taas vähän pseudukkaa
 

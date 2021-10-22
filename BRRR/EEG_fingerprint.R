@@ -23,7 +23,7 @@ prepare_data <- function(ex){
   ages <- ages[,-1]
   
   use_all=FALSE #should we use all subjects in training?
-  min_age=1 #exclude some of the younger children? 
+  min_age=10 #exclude some of the younger children? 
   #TODO: change to range?
   
   # Check if the file exists
@@ -32,7 +32,7 @@ prepare_data <- function(ex){
     
     if(use_all==F){
       set.seed(121)
-      individuals = sample(individuals, 90)
+      individuals = sample(individuals, 190)
       Y = Y[names(Y) %in% individuals]
       
     }
@@ -136,7 +136,7 @@ prepare_data <- function(ex){
 n2_data <- prepare_data(ex="N2A")
 n2b_data <- prepare_data(ex="N2B")
 
-validation_data <- prepare_data(ex="N2C")
+validation_data <- prepare_data(ex="N1")
 Y3 <- validation_data[[1]]
 
 Y1 = n2_data[[1]]
@@ -157,7 +157,7 @@ ages = n2_data[[5]]
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y, K=10,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
+res <- brrr(X=X,Y=Y, K=6,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
@@ -172,7 +172,19 @@ for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individual
     group_members <- rownames(lat_map)[m]   
     idxs = which(row.names(lat_map) %in% group_members) #     
     group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
-    D[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_mean)) #L1 distance#  was lat_map_n2  
+    D[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_mean)) #L1 distance#  
+  } 
+}
+
+#create another distance matrix from test data
+S <- D*0 #S is dissimilarity matrix
+colnames(S) <- rownames(S)
+for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individuals   
+  for(m in 1:M){     
+    group_members <- rownames(lat_map_n2)[m]   
+    idxs = which(row.names(lat_map_n2) %in% group_members) #     
+    group_data <- lat_map_n2[idxs,]
+    S[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_data)) #L1 distance#  
   } 
 }
 
@@ -290,6 +302,32 @@ heatmap(C)
 cors=c()
 for(r in 1:nrow(G)){cors=c(cors, cor(G[r,], D[r,]))}
 D_ages$cors <- cors
+
+
+#try hierarchical clustering with dissimilarity matrix
+library("dendextend")
+heatmap(S)
+
+colnames(S) <- D_ages$Age
+rownames(S) <- D_ages$Age
+
+hc <- hclust(as.dist(S), method="average")
+plot(hc)
+dend <- as.dendrogram(hc)
+dend %>% set("branches_k_color", k = 5) %>% plot(main = "Nice defaults")
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
