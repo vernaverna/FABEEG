@@ -22,8 +22,8 @@ prepare_data <- function(ex){
   ages = read.csv('data/age_df.csv')
   ages <- ages[,-1]
   
-  use_all=FALSE #should we use all subjects in training?
-  min_age=10 #exclude some of the younger children? 
+  use_all=F #should we use all subjects in training?
+  age_gap=c(4,19) #exclude some of the younger children? 
   #TODO: change to range?
   
   # Check if the file exists
@@ -32,7 +32,7 @@ prepare_data <- function(ex){
     
     if(use_all==F){
       set.seed(121)
-      individuals = sample(individuals, 190)
+      individuals = sample(individuals, 100)
       Y = Y[names(Y) %in% individuals]
       
     }
@@ -54,7 +54,7 @@ prepare_data <- function(ex){
       
       if(s %in% ages$File){ #temporal solution to get over the filename hassle
         age_data = ages[ages$File==s,]
-        if(age_data$Age >= min_age){
+        if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
           tmp <- t(Y[[s]]) #transposed
           tmp <- log10(tmp) #TODO: is this necessary???
           if(any(is.na(tmp))) browser()
@@ -66,7 +66,7 @@ prepare_data <- function(ex){
         corrupted = c(corrupted, s)
       } 
     }
-    
+    #TODO: even age groups!!!!!
     
     if(length(corrupted)>0){
       obs <- subjects[subjects %in% corrupted == FALSE]
@@ -136,7 +136,7 @@ prepare_data <- function(ex){
 n2_data <- prepare_data(ex="N2A")
 n2b_data <- prepare_data(ex="N2B")
 
-validation_data <- prepare_data(ex="N1")
+validation_data <- prepare_data(ex="N2C")
 Y3 <- validation_data[[1]]
 
 Y1 = n2_data[[1]]
@@ -157,11 +157,11 @@ ages = n2_data[[5]]
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y, K=6,n.iter=500,thin=5,init="LDA", fam = x) #fit the model
+res <- brrr(X=X,Y=Y,K=8,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
-save(res, file = "results/full/over1_indN2_BRRR_K6.RData")
+#save(res, file = "results/full/100_indN2_BRRR_K6.RData")
 lat_map <- Y%*%W
 lat_map_n2 <- Y3%*%W #mapping to latent space with N2_C data!# 
 
@@ -177,16 +177,16 @@ for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individual
 }
 
 #create another distance matrix from test data
-S <- D*0 #S is dissimilarity matrix
-colnames(S) <- rownames(S)
-for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individuals   
-  for(m in 1:M){     
-    group_members <- rownames(lat_map_n2)[m]   
-    idxs = which(row.names(lat_map_n2) %in% group_members) #     
-    group_data <- lat_map_n2[idxs,]
-    S[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_data)) #L1 distance#  
-  } 
-}
+# S <- D*0 #S is dissimilarity matrix
+# colnames(S) <- rownames(S)
+# for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individuals   
+#   for(m in 1:M){     
+#     group_members <- rownames(lat_map_n2)[m]   
+#     idxs = which(row.names(lat_map_n2) %in% group_members) #     
+#     group_data <- lat_map_n2[idxs,]
+#     S[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_data)) #L1 distance#  
+#   } 
+# }
 
 
 
@@ -247,7 +247,7 @@ shapes <- shapes[factor(lat_map$condition)]
 colors <- viridis_pal(option = "D")(length(unique(lat_map$group)))
 colors <- colors[factor(lat_map$group)]
 
-scatterplot3d(lat_map[,3:5], pch=shapes, color=colors, angle=10)
+scatterplot3d(lat_map[,3:5], pch=shapes, color=colors, angle=20)
 
 
 #trying t-SNE

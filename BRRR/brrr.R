@@ -231,8 +231,6 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, n.iter=500, burnin=0.5, thin=1, init="L
   
   
   
-  
-  
   print('model learnt')	
   
   
@@ -243,6 +241,20 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, n.iter=500, burnin=0.5, thin=1, init="L
   mcmc.output$init <- init.model
   mcmc.output$data <- data
   mcmc.output$runtime <- proc.time() - ptm
+  
+  #ADDED: PTVE per each component
+  
+  total.variation.in.data <- sum(apply(data$phenotypes, 2, var))
+  for(k in 1:K){ 
+    total.variation.explained <- compute.amount.total.variance.explained(genotypes=data$genotypes, 
+                                                                         Psi=mcmc.output$model$brr$context$Psi[,k], 
+                                                                         Gamma=mcmc.output$model$brr$context$Gamma[k,])
+    print(paste0('PTVE of K=',k))
+    print(total.variation.explained/total.variation.in.data)
+  }
+  
+  
+  
   return(mcmc.output)
   
 }

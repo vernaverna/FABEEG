@@ -7,7 +7,7 @@ library("viridis")
 library("reshape2")
 library("dplyr")
 
-ex="N2A"
+ex="N1"
 
 setwd("/projects/FABEEG/BRRR")
 load(paste0("data/",ex,"spectrum.RData"))
@@ -19,7 +19,7 @@ Y=Y[names(Y) %in% subj == TRUE] #TODO: there are some in ages that are not in Y
 subjects=subj
 
 #first try with one subject only 
-ind_data <- log10(Y[[1]])
+ind_data <- log10(Y[[4]])
 rownames(ind_data) <- read.csv("var/ch_names.csv", header = F)$V1
 avg <- apply(ind_data, 2, mean) #average over all channels
 
@@ -46,6 +46,8 @@ df2 %>%
   geom_line() + ggtitle("Log-bandpowers of 1 subject") + 
   facet_wrap(~variable, scale="free_y") + 
   theme(axis.text.x = element_text(angle = 90, vjust=0.5, hjust=1))
+
+
 
 #ja sit taas vähän pseudukkaa
 
