@@ -22,12 +22,20 @@ prepare_data <- function(ex){
   # Group +15 year-olds together in group 15
   old_idx = which(ages$Age.group >= 15)
   ages$Age.group[old_idx] <- 15
-  to_exclude=c() #c(0,1,2,3) #which age groups to exclude
-  use_all=FALSE #perform LOO-CV or use all data in training?
+  to_exclude=c(0,1,2,3) #c(0,1,2,3) #which age groups to exclude
+  use_all=F #use all individuals?
+  stabilize=F #get even age groups?
   
   # Check if the file exists
   if(file.exists(loadfile)) {
     load(loadfile)
+    
+    if(use_all==F){
+      set.seed(121)
+      individuals = sample(individuals, 100)
+      Y = Y[names(Y) %in% individuals]
+      
+    }
     ages = subset(ages, ages$File %in% names(Y)) #remove subjects not in the dataset
     
     # Omits frequencies
@@ -88,18 +96,20 @@ prepare_data <- function(ex){
   groups = names(group_counts)
   M = length(groups)
   
-  
-  for(m in groups){
-    n_subj = as.numeric(group_counts[m]) #how many subjects are there
-    age_group = ages[ages$Age.group==as.numeric(m),]
-    
-    if(n_subj-min_groupsize > 0){ #to skip the minimum group(s)
-      extras = age_group$File[1:(n_subj-min_groupsize)] #excess subjects to remove
-      obs <- obs[obs %in% extras == FALSE]
-      A = A[names(A) %in% extras == FALSE] 
-      ages = ages[ages$File %in% extras == FALSE,]
+  if(stabilize == T){
+    for(m in groups){
+      n_subj = as.numeric(group_counts[m]) #how many subjects are there
+      age_group = ages[ages$Age.group==as.numeric(m),]
+      
+      if(n_subj-min_groupsize > 0){ #to skip the minimum group(s)
+        extras = age_group$File[1:(n_subj-min_groupsize)] #excess subjects to remove
+        obs <- obs[obs %in% extras == FALSE]
+        A = A[names(A) %in% extras == FALSE] 
+        ages = ages[ages$File %in% extras == FALSE,]
+      }
     }
   }
+
   
   S <- length(obs)
   
@@ -137,8 +147,8 @@ prepare_data <- function(ex){
   }
   
   # Making design matrix out of classes
-  X <- matrix(0,S,M,dimnames=list(obs,paste0("class",0:(M-1)))) #TODO: I do not want to change these manually!
-  for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]+1] <- 1 #classes go from 0 to 15, shift by one
+  X <- matrix(0,S,M,dimnames=list(obs,paste0("class",4:max(x) )) ) #TODO: I do not want to change these manually!
+  for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]-3] <- 1 #classes go from 4 to 15, shift by one
   if(M==2) {
     print("Condensing two classes into one +-1 covariate.")
     X <- X[,1,drop=FALSE] 
@@ -180,12 +190,12 @@ cossim <- function(x, y){
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y1, K=15, n.iter=1000,thin=5,init="LDA", fam = x) #fit the model
+res <- brrr(X=X,Y=Y1, K=8, n.iter=1000,thin=5,init="LDA", fam = x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
-save(res, file="results/full/ageN2_BRRR_K6.RData")
+save(res, file="results/full/age_over4_N2_BRRR_K6.RData")
 
-lat_map <- Y2%*%W #mapping to latent space with N1 sleep
+lat_map <- Y2%*%W #mapping to latent space with N2 sleep
 lat_comp <- X%*%res$model$brr$context$Psi + res$model$brr$context$Omega #latent space à la BRRR
 
 D <- matrix(NA, nrow(X), ncol(X), dimnames=list(names(x), c())) #distance matrix
@@ -197,7 +207,7 @@ for(testidx in 1:nrow(lat_map)){ #calculates the distances between individual an
     idxs = which(row.names(lat_map) %in% group_members)
     group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
     
-    ix <- as.integer(m) +1 #+1
+    ix <- as.integer(m) -3 #+1
     D[testidx,ix] <- cossim(lat_map[testidx,],group_mean) #cosine similarity
     #D[testidx,ix] <- sum(abs(lat_map[testidx,]-group_mean)) #L1 distance
   }

@@ -19,7 +19,7 @@ prepare_data <- function(ex){
   loadfile <- paste0("data/",ex,"spectrum.RData")
   
   #extract the age groups
-  ages = read.csv('data/age_df.csv')
+  ages = read.csv('data/new_age_df.csv')
   ages <- ages[,-1]
   
   use_all=F #should we use all subjects in training?
@@ -32,7 +32,9 @@ prepare_data <- function(ex){
     
     if(use_all==F){
       set.seed(121)
-      individuals = sample(individuals, 100)
+      load("/projects/FABEEG/BRRR/ref_subjects.RData")
+      individuals=obs
+      #individuals = sample(individuals, 109)
       Y = Y[names(Y) %in% individuals]
       
     }
@@ -157,11 +159,11 @@ ages = n2_data[[5]]
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y,K=8,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
+res <- brrr(X=X,Y=Y,K=8,n.iter=1000,thin=5,init="LDA", fam =x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
-#save(res, file = "results/full/100_indN2_BRRR_K6.RData")
+save(res, file = "results/full/46_indN2_BRRR_K6.RData")
 lat_map <- Y%*%W
 lat_map_n2 <- Y3%*%W #mapping to latent space with N2_C data!# 
 
