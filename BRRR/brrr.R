@@ -28,10 +28,10 @@ averageGamma <- function(res) {
   return(G)
 }
 
-compute.factorwise.variance <- function(data, cross.geno, Psi, Gamma) {
+compute.factorwise.variance <- function(data, Psi, Gamma) {
   
   n.patients <- nrow(data$genotypes)
-  genotype.cov <- cross.geno / (n.patients-1)
+  genotype.cov <-  data$crossprod.genotypes / (n.patients-1)
   aux.Gamma <- tcrossprod(Gamma)  # same as Gamma %*% t(Gamma)
   aux.Psi <- t(Psi) %*% genotype.cov %*% Psi
   
