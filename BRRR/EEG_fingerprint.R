@@ -23,7 +23,7 @@ prepare_data <- function(ex){
   ages <- ages[,-1]
   
   use_all=F #should we use all subjects in training?
-  age_gap=c(4,19) #exclude some of the younger children? 
+  age_gap=c(1,19) #exclude some of the younger children? 
   #TODO: change to range?
   
   # Check if the file exists
@@ -31,10 +31,10 @@ prepare_data <- function(ex){
     load(loadfile)
     
     if(use_all==F){
-      set.seed(121)
-      load("/projects/FABEEG/BRRR/ref_subjects.RData")
-      individuals=obs
-      #individuals = sample(individuals, 109)
+      set.seed(119)
+      #load("/projects/FABEEG/BRRR/ref_subjects.RData")
+      #individuals=obs
+      individuals = sample(individuals, 109)
       Y = Y[names(Y) %in% individuals]
       
     }
@@ -135,8 +135,8 @@ prepare_data <- function(ex){
 }
 
 
-n2_data <- prepare_data(ex="N2A")
-n2b_data <- prepare_data(ex="N2B")
+n2_data <- prepare_data(ex="N2B")
+n2b_data <- prepare_data(ex="N2A")
 
 validation_data <- prepare_data(ex="N2C")
 Y3 <- validation_data[[1]]
@@ -159,11 +159,11 @@ ages = n2_data[[5]]
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y,K=8,n.iter=1000,thin=5,init="LDA", fam =x) #fit the model
+res <- brrr(X=X,Y=Y,K=15,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
-save(res, file = "results/full/46_indN2_BRRR_K6.RData")
+#save(res, file = "results/full/46_indN2_BRRR_K6.RData")
 lat_map <- Y%*%W
 lat_map_n2 <- Y3%*%W #mapping to latent space with N2_C data!# 
 

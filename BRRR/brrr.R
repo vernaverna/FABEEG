@@ -70,6 +70,7 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, n.iter=500, burnin=0.5, thin=1, init="L
   
   X <- X[,colSums(abs(X))>0,drop=FALSE]
   data <- list(genotypes=X,phenotypes=Y,confounders=NA)
+  data$crossprod.genotypes <- crossprod(data$genotypes)
   
   n.pheno <- ncol(data$phenotypes)
   n.train <- nrow(data$phenotypes)
@@ -242,18 +243,12 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, n.iter=500, burnin=0.5, thin=1, init="L
   mcmc.output$data <- data
   mcmc.output$runtime <- proc.time() - ptm
   
-  #ADDED: PTVE per each component
-  
-  total.variation.in.data <- sum(apply(data$phenotypes, 2, var))
-  for(k in 1:K){ 
-    total.variation.explained <- compute.amount.total.variance.explained(genotypes=data$genotypes, 
-                                                                         Psi=mcmc.output$model$brr$context$Psi[,k], 
-                                                                         Gamma=mcmc.output$model$brr$context$Gamma[k,])
-    print(paste0('PTVE of K=',k))
-    print(total.variation.explained/total.variation.in.data)
-  }
-  
-  
+  #ADDED: PTVE per each component (now fixed)
+  factor_variance <- compute.factorwise.variance(data=data, Psi=mcmc.output$model$brr$context$Psi,
+                                                 Gamma=mcmc.output$model$brr$context$Gamma)
+  mcmc.output$factor_variance <- factor_variance #total variation explained =sum
+  #print(factor_variance)
+
   
   return(mcmc.output)
   
