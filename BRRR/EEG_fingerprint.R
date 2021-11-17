@@ -135,10 +135,10 @@ prepare_data <- function(ex){
 }
 
 
-n2_data <- prepare_data(ex="N2B")
-n2b_data <- prepare_data(ex="N2A")
+n2_data <- prepare_data(ex="N1A")
+n2b_data <- prepare_data(ex="N1B")
 
-validation_data <- prepare_data(ex="N2C")
+validation_data <- prepare_data(ex="N2A")
 Y3 <- validation_data[[1]]
 
 Y1 = n2_data[[1]]
@@ -159,7 +159,7 @@ ages = n2_data[[5]]
 
 source("brrr.R")
 pred <- X*NA
-res <- brrr(X=X,Y=Y,K=15,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
+res <- brrr(X=X,Y=Y,K=10,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 

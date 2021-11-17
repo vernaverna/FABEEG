@@ -1,6 +1,6 @@
 ## For re-arranging the spectra files
 setwd("/projects/FABEEG/BRRR")
-data_path <- paste0(getwd(), "/data/absolute_spectra/")
+data_path <- paste0(getwd(), "/data/absolute_spectra_1min/")
 
 subjects <- list.files(data_path)
 #ages = read.csv('data/ages.csv')
@@ -17,7 +17,8 @@ for(i in 2:length(subjects)){
                 paste0(subj_dir, paste0(subjects[i], file)))
   }
   files2 = list.files(subj_dir) #TODO: change order (now n2e = 1st segment)
-  dirs = c("n1_sleep/", "n2a_sleep/", "n2b_sleep/", "n2c_sleep/", "n2d_sleep/", "n2e_sleep/")
+  dirs = c("n1_sleep/", "n1b_sleep", "n2a_sleep/", "n2b_sleep/", 
+           "n2c_sleep/", "n2d_sleep/", "n2e_sleep/")
   for(f in 1:length(files2)){
     newdir=dirs[f]
     file2=files2[f]

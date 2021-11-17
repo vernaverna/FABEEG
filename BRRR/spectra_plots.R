@@ -7,19 +7,19 @@ library("viridis")
 library("reshape2")
 library("dplyr")
 
-ex="N1"
+ex="N2A"
 
 setwd("/projects/FABEEG/BRRR")
 load(paste0("data/",ex,"spectrum.RData"))
 ages = read.csv('data/age_df.csv')
 ages <- ages[,-1]
 
-subj = ages[which(ages$Age>10),]$File #choose the age group
+subj = ages[which(ages$Age<5),]$File #choose the age group
 Y=Y[names(Y) %in% subj == TRUE] #TODO: there are some in ages that are not in Y
 subjects=subj
 
 #first try with one subject only 
-ind_data <- log10(Y[[4]])
+ind_data <- log10(Y[[34]])
 rownames(ind_data) <- read.csv("var/ch_names.csv", header = F)$V1
 avg <- apply(ind_data, 2, mean) #average over all channels
 
