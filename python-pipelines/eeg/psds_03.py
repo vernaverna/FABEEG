@@ -119,11 +119,13 @@ evokeds = dict()
 
 
 
-# TODO: make this neater!
+# TODO: make this neater! (now 1 min slices)
 info1 = info
-n1_spectra, freqs = psd_welch(epochs['sleep N1'][7:12].average(), fmax=fmax, n_fft=n_fft)
+n1_spectra, freqs = psd_welch(epochs['sleep N1'][8:10].average(), fmax=fmax, n_fft=n_fft)
+n1_spectra2, freqs = psd_welch(epochs['sleep N1'][5:7].average(), fmax=fmax, n_fft=n_fft)
 info1['sfreq'] = 1/(freqs[1]-freqs[0]) #change sampling freq so the 'time' axis shows frequencies
-evokeds['PSD N1'] = mne.EvokedArray(n1_spectra, info=info1, comment=comment1)
+evokeds['PSD N1 (1)'] = mne.EvokedArray(n1_spectra, info=info1, comment=comment1)
+evokeds['PSD N1 (2)'] = mne.EvokedArray(n1_spectra2, info=info1, comment=comment1)
 
 
 # TODO: do this inside of a loop!!
@@ -138,21 +140,22 @@ evokeds['PSD N1'] = mne.EvokedArray(n1_spectra, info=info1, comment=comment1)
 #evokeds['PSD N2 (3)'] = mne.EvokedArray(n2_spectra1, info=info1, comment=comment2)
 
 # create 5 spectras from N2
-n2_spectra1, freqs = psd_welch(epochs['sleep N2'][0:4].average(), fmax=fmax, n_fft=n_fft)
+n2_spectra1, freqs = psd_welch(epochs['sleep N2'][2:4].average(), fmax=fmax, n_fft=n_fft)
 evokeds['PSD N2 (1)'] = mne.EvokedArray(n2_spectra1, info=info1, comment=comment2)
-n2_spectra2, freqs = psd_welch(epochs['sleep N2'][4:8].average(), fmax=fmax, n_fft=n_fft)
+n2_spectra2, freqs = psd_welch(epochs['sleep N2'][6:8].average(), fmax=fmax, n_fft=n_fft)
 evokeds['PSD N2 (2)'] = mne.EvokedArray(n2_spectra2, info=info1, comment=comment2)
-n2_spectra3, freqs = psd_welch(epochs['sleep N2'][8:12].average(), fmax=fmax, n_fft=n_fft)
+n2_spectra3, freqs = psd_welch(epochs['sleep N2'][10:12].average(), fmax=fmax, n_fft=n_fft)
 evokeds['PSD N2 (3)'] = mne.EvokedArray(n2_spectra3, info=info1, comment=comment2)
-n2_spectra4, freqs = psd_welch(epochs['sleep N2'][12:16].average(), fmax=fmax, n_fft=n_fft)
+n2_spectra4, freqs = psd_welch(epochs['sleep N2'][12:14].average(), fmax=fmax, n_fft=n_fft)
 evokeds['PSD N2 (4)'] = mne.EvokedArray(n2_spectra4, info=info1, comment=comment2)
-n2_spectra5, freqs = psd_welch(epochs['sleep N2'][16:].average(), fmax=fmax, n_fft=n_fft)
+n2_spectra5, freqs = psd_welch(epochs['sleep N2'][16:18].average(), fmax=fmax, n_fft=n_fft)
 evokeds['PSD N2 (5)'] = mne.EvokedArray(n2_spectra5, info=info1, comment=comment2)
 
 
 fmin, fmax = freqs[0], freqs[-1]
-psds['sleep N1'] = n1_spectra
-psds['sleep N2'] = n2_spectra1
+psds['sleep N1 (1)'] = n1_spectra
+psds['sleep N1 (2)'] = n1_spectra2
+psds['sleep N2 (1)'] = n2_spectra1
 psds['sleep N2 (2)'] = n2_spectra2
 psds['sleep N2 (3)'] = n2_spectra3
 psds['sleep N2 (4)'] = n2_spectra4
@@ -166,7 +169,8 @@ del raw #free up some memory
 # save psds and evokeds
 write_hdf5(fname.psds(subject=args.subject), psds, overwrite=True) 
 mne.write_evokeds(fname.evoked(subject=args.subject), 
-                  [evokeds['PSD N1'], evokeds['PSD N2 (1)'], evokeds['PSD N2 (2)'], evokeds['PSD N2 (3)'],
+                  [evokeds['PSD N1 (1)'], evokeds['PSD N1 (2)'], evokeds['PSD N2 (1)'], 
+                   evokeds['PSD N2 (2)'], evokeds['PSD N2 (3)'],
                    evokeds['PSD N2 (4)'], evokeds['PSD N2 (5)']] ) 
 
 
@@ -174,9 +178,9 @@ mne.write_evokeds(fname.evoked(subject=args.subject),
 def on_pick(ax, ch_idx):
     """Create a larger PSD plot for when one of the tiny PSD plots is
        clicked."""
-    ax.plot(psds['freqs'], psds['sleep N1'][ch_idx], color='C0',
+    ax.plot(psds['freqs'], psds['sleep N1 (1)'][ch_idx], color='C0',
             label='sleep N1')
-    ax.plot(psds['freqs'], psds['sleep N2'][ch_idx], color='C1',
+    ax.plot(psds['freqs'], psds['sleep N2 (2)'][ch_idx], color='C1',
             label='sleep N2')
 
     ax.legend()
@@ -193,8 +197,8 @@ axes = iter_topography(info, layout, on_pick=on_pick, fig=fig,
 
 for ax, ch_idx in axes:
     handles = [
-        ax.plot(psds['freqs'], psds['sleep N1'][ch_idx], color='C0', label='sleep N1'),
-        ax.plot(psds['freqs'], psds['sleep N2'][ch_idx], color='C1', label='sleep N2')
+        ax.plot(psds['freqs'], psds['sleep N1 (1)'][ch_idx], color='C0', label='sleep N1'),
+        ax.plot(psds['freqs'], psds['sleep N2 (2)'][ch_idx], color='C1', label='sleep N2')
     ]
     
 #fig.legend("N1 sleep", "N2 sleep")
@@ -210,9 +214,9 @@ captions = []
 for ch_idx in range(len(info.ch_names)):
     fig2 = plt.figure(figsize=(10,7))
     
-    plt.plot(psds['freqs'], psds['sleep N1'][ch_idx], color='C0',
+    plt.plot(psds['freqs'], psds['sleep N1 (1)'][ch_idx], color='C0',
                                             label='sleep N1')
-    plt.plot(psds['freqs'], psds['sleep N2'][ch_idx], color='C1',
+    plt.plot(psds['freqs'], psds['sleep N2 (2)'][ch_idx], color='C1',
                                             label='sleep N2')
     plt.yscale('log')
     plt.legend()

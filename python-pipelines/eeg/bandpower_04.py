@@ -18,6 +18,8 @@ from config_eeg import get_all_fnames, fname, bads, age_df
 f_bands = [(0,1), (1,3), (3,5.2), (5.2,7.6), (7.6,10.2), (10.2, 13), (13,16),
            (16,19.2), (19.2,22.6), (22.6,26.2), (26.2,30), (30,34), (34,38.2), (38.2,42.6)]
 
+#TODO: change these!
+
 # Helper function to calculate bandpower for each sensor
 def bandpower(psd, f, fmin, fmax): 
     min_index = np.argmax(f > fmin) - 1
@@ -47,8 +49,9 @@ try:
     list(f.keys()) #name of the dataset 
     group = f['h5io']
     freqs = np.array(group['key_freqs'])
-    data_n1 = np.array(group['key_sleep N1'])
-    data_n2 = np.array(group['key_sleep N2'])
+    data_n1 = np.array(group['key_sleep N1 (1)'])
+    data_n1_2 = np.array(group['key_sleep N1 (2)'])
+    data_n2 = np.array(group['key_sleep N2 (1)'])
     data_n2_2 = np.array(group['key_sleep N2 (2)'])
     data_n2_3 = np.array(group['key_sleep N2 (3)'])
     data_n2_4 = np.array(group['key_sleep N2 (4)'])
@@ -58,7 +61,7 @@ try:
     f.close()
     
     #Create a directory to save the .csv files
-    parent_dir = "/projects/FABEEG/Data2R/absolute_spectra/"
+    parent_dir = "/projects/FABEEG/Data2R/absolute_spectra_1min/"
     subj_dir = parent_dir + args.subject
     Path(subj_dir).mkdir(parents=True, exist_ok=True)
     
@@ -67,7 +70,7 @@ try:
     # i.e. sum of spectral power over all bands is 100 for each channel and subject
     # TODO: make sure that this is the desired approach!
     
-    dataset = {'n1':data_n1, 'n2':data_n2, 'n2_2':data_n2_2, 'n2_3':data_n2_3,
+    dataset = {'n1':data_n1, 'n1_2':data_n1_2,'n2':data_n2, 'n2_2':data_n2_2, 'n2_3':data_n2_3,
                'n2_4':data_n2_4, 'n2_5':data_n2_5}
     
     for data_obj in list(dataset.keys()): #calculate bandpower for all PSDs 
