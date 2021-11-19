@@ -44,7 +44,7 @@ compute.factorwise.variance <- function(data, Psi, Gamma) {
   
 }
 
-brrr <- function(X=NULL, Y=NULL, K=NULL, n.iter=500, burnin=0.5, thin=1, init="LDA", fam=NULL,
+brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, init="LDA", fam=NULL,
                  seed=1, snip=TRUE, pruned=TRUE, snpScale=1/10) {
   
   source_directory <- function(path) {
@@ -69,7 +69,7 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, n.iter=500, burnin=0.5, thin=1, init="L
   source_directory(paste0(code.path, '/common/'))
   
   X <- X[,colSums(abs(X))>0,drop=FALSE]
-  data <- list(genotypes=X,phenotypes=Y,confounders=NA)
+  data <- list(genotypes=X,phenotypes=Y,confounders=Z) #include confounders (=matrix Z)? 
   data$crossprod.genotypes <- crossprod(data$genotypes)
   
   n.pheno <- ncol(data$phenotypes)
@@ -109,7 +109,7 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, n.iter=500, burnin=0.5, thin=1, init="L
   # n.snps = P (covariates)
   # n.patients = N (observations)
   # brr.rank = rank of the regression/latent-noise part
-  init.model <- initialize.from.prior(n.pheno= n.pheno, n.snps=n.snps, n.patients=n.train,
+  init.model <- initialize.from.prior(n.pheno= n.pheno, n.snps=n.snps, n.patients=n.train, n.confounders=ncol(data$confounders),
                                       fa.rank=3, brr.rank=brr.rank.init,  a.sigma = 2.2, b.sigma = 0.5)
   Gamma <- init.model$brr$context$Gamma
   Psi <- init.model$brr$context$Psi
@@ -157,6 +157,7 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, n.iter=500, burnin=0.5, thin=1, init="L
   
   init.model$brr$context$Gamma <- Gamma
   init.model$brr$context$Psi <- Psi
+  
   
   ## Set very small noise residuals
   init.model$fa$context$variances <- rep(0.01, n.pheno)

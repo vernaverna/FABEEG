@@ -6,9 +6,9 @@
 data <- "EEG_ind" # datatype
 
 if(data == "EEG_ind") { #TODO: fix repetition
-  fname <- paste0("results/full/under05_indN2_BRRR_K6.RData")
+  fname <- paste0("results/full/60_indN2_BRRR_K6.RData")
   load(fname)
-  datafile <- paste0("data/N2spectrum.RData") #only to get frequencies
+  datafile <- paste0("data/N2Aspectrum.RData") #only to get frequencies
   load(datafile)
   
   keepFeat <- which(apply(res$data$phenotypes,2,var,na.rm=T)>0)
@@ -47,7 +47,7 @@ coords = coords * 200
 ####
 ####
 
-filename <- paste0("fig_N2_under05_", data, ".pdf") # pdf file for saving plots
+filename <- paste0("fig_N2_60_", data, ".pdf") # pdf file for saving plots
 pdf(file=filename,width=20,height=30)
 
 plotLabels <- paste0("K",1:ncol(net$Y)) # plot lables

@@ -23,7 +23,7 @@ prepare_data <- function(ex){
   ages <- ages[,-1]
   
   use_all=F #should we use all subjects in training?
-  age_gap=c(1,19) #exclude some of the younger children? 
+  age_gap=c(0,19) #exclude some of the younger children? 
   #TODO: change to range?
   
   # Check if the file exists
@@ -31,10 +31,10 @@ prepare_data <- function(ex){
     load(loadfile)
     
     if(use_all==F){
-      set.seed(119)
+      set.seed(11)
       #load("/projects/FABEEG/BRRR/ref_subjects.RData")
       #individuals=obs
-      individuals = sample(individuals, 109)
+      individuals = sample(individuals, 60)
       Y = Y[names(Y) %in% individuals]
       
     }
@@ -135,10 +135,10 @@ prepare_data <- function(ex){
 }
 
 
-n2_data <- prepare_data(ex="N1A")
-n2b_data <- prepare_data(ex="N1B")
+n2_data <- prepare_data(ex="N2A")
+n2b_data <- prepare_data(ex="N2B")
 
-validation_data <- prepare_data(ex="N2A")
+validation_data <- prepare_data(ex="N2C")
 Y3 <- validation_data[[1]]
 
 Y1 = n2_data[[1]]
@@ -152,18 +152,26 @@ M = n2_data[[4]]
 subj = dimnames(Y)[[1]]
 ages = n2_data[[5]]
 
+#Trying with added Z
+#TODO: put inside prepare-data!
+Z1 = ages[ages$File %in% rownames(Y1),]
+reorder_idx <- match(rownames(Y1), Z1$File)
+Z1 <- Z1[reorder_idx,]
+
+Z = matrix(c(Z1$Age, Z1$Age)) 
+
 
 ### TRAINING ###
 
 # The model is trained using two sets of N2 data, and the performance is evaluated using third set
 
 source("brrr.R")
-pred <- X*NA
-res <- brrr(X=X,Y=Y,K=10,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
+#pred <- X*NA
+res <- brrr(X=X,Y=Y,K=10,Z=Z,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
-#save(res, file = "results/full/46_indN2_BRRR_K6.RData")
+save(res, file = "results/full/60_indN2_BRRR_K6.RData")
 lat_map <- Y%*%W
 lat_map_n2 <- Y3%*%W #mapping to latent space with N2_C data!# 
 
@@ -178,17 +186,7 @@ for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individual
   } 
 }
 
-#create another distance matrix from test data
-# S <- D*0 #S is dissimilarity matrix
-# colnames(S) <- rownames(S)
-# for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individuals   
-#   for(m in 1:M){     
-#     group_members <- rownames(lat_map_n2)[m]   
-#     idxs = which(row.names(lat_map_n2) %in% group_members) #     
-#     group_data <- lat_map_n2[idxs,]
-#     S[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_data)) #L1 distance#  
-#   } 
-# }
+
 
 
 
@@ -204,23 +202,6 @@ colnames(PROJ) <- c(paste0("class",1:M))
 
 accuracy = sum(diag(PROJ))/M
 print(paste("Model accuracy:", accuracy))
-
-#convert model matrices to factors and plot confusion matrix
-P_factor <- as.factor(colnames(PROJ))[PROJ %*% 1:ncol(PROJ)]
-X_factor <- as.factor(colnames(X))[X %*% 1:ncol(X)]
-
-
-#results are somewhat catastrophic
-cmat = confusion_matrix(X_factor, P_factor)
-print("Accurcy:")
-print(cmat$`Overall Accuracy`)
-print("Specificity:")
-print(cmat$Sensitivity)
-
-
-png("figures/K6full_confmat_77.png")
-plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
-dev.off()  
 
 
 nsubj <- length(unique(subj))
@@ -307,14 +288,34 @@ D_ages$cors <- cors
 
 
 #try hierarchical clustering with dissimilarity matrix
+
+#create another distance matrix from test data
+#TODO: calculate per component and do the clustering analysis
 library("dendextend")
+
+for(k in 1:K){
+  S <- D*0 #S is dissimilarity matrix
+  colnames(S) <- rownames(S)
+  for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individuals   
+    for(m in 1:M){     
+      group_members <- rownames(lat_map_n2)[m]   
+      idxs = which(row.names(lat_map_n2) %in% group_members) #     
+      group_data <- lat_map_n2[idxs,][1:k]
+      S[testidx,m] <- sum(abs(lat_map_n2[testidx,][1:k]-group_data)) #L1 distance#  
+    } 
+  }
+  
+  colnames(S) <- D_ages$Age
+  rownames(S) <- D_ages$Age
+  
+  hc <- hclust(as.dist(S), method="average")
+  plot(hc, main=paste0("Clustering on component #", 1, "-", k))
+  
+}
+
+
 heatmap(S)
 
-colnames(S) <- D_ages$Age
-rownames(S) <- D_ages$Age
-
-hc <- hclust(as.dist(S), method="average")
-plot(hc)
 dend <- as.dendrogram(hc)
 dend %>% set("branches_k_color", k = 5) %>% plot(main = "Nice defaults")
 

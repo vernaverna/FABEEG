@@ -1,5 +1,5 @@
 # copyright by the authors
-initialize.from.prior <- function(n.pheno=10, n.snps=15, n.patients=200, fa.rank=10, brr.rank=3, alpha0=-1, alpha1=-0.0005, fa.relevance.cutoff=0.01, brr.relevance.cutoff=0.01, local.shrinkage.nu=3, n.confounders=2, a3.shape=3, a3.rate=0.28, a3.lower.bound=2.1, a4.shape=4.1, a4.rate=0.31, a4.lower.bound=3.1, independent.noise = TRUE, a.sigma = 2.2, b.sigma=0.3, prior.var.Eta=1) {
+initialize.from.prior <- function(n.pheno=10, n.snps=15, n.patients=200, fa.rank=10, brr.rank=3, alpha0=-1, alpha1=-0.0005, fa.relevance.cutoff=0.01, brr.relevance.cutoff=0.01, local.shrinkage.nu=3, n.confounders=1, a3.shape=3, a3.rate=0.28, a3.lower.bound=2.1, a4.shape=4.1, a4.rate=0.31, a4.lower.bound=3.1, independent.noise = TRUE, a.sigma = 2.2, b.sigma=0.3, prior.var.Eta=1) {
 	
   ## Initialization of the model
   #
