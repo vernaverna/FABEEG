@@ -75,6 +75,11 @@ plt.title('CHILDEEG age distribution')
 filenames = ['FLE12515', 'FLE12431', 'FLE131198', 'FLE141276', 'FLE141752',
              'FLE151099', 'FLE151028']
 
+
+data_dir='/net/theta/fishpool/projects/FABEEG/childEEG_data/bids/sub-'+filenames[4]+'/eeg/sub-'+filenames[4]+'_eeg.edf'
+raw=mne.io.read_raw_edf(data_dir, preload=True)
+raw.plot()
+
 # Reading in the data
 raw2 = mne.io.read_raw_edf(fname.raw(subject=filenames[-2]), preload=True)
 raw2 = change_metadata(raw2)
