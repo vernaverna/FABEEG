@@ -24,7 +24,7 @@ prepare_data <- function(ex){
   ages$Age.group[old_idx] <- 15
   to_exclude=c(0,1,2,3) #c(0,1,2,3) #which age groups to exclude
   use_all=F #use all individuals?
-  stabilize=F #get even age groups?
+  stabilize=T #get even age groups?
   
   # Check if the file exists
   if(file.exists(loadfile)) {
@@ -32,7 +32,7 @@ prepare_data <- function(ex){
     
     if(use_all==F){
       set.seed(121)
-      individuals = sample(individuals, 100)
+      individuals = sample(individuals, 600)
       Y = Y[names(Y) %in% individuals]
       
     }
@@ -187,13 +187,15 @@ cossim <- function(x, y){
 }
 
 # The model is trained using N2 data, the performance is evaluated with another data
-
+omegas = c(1e+05,1e+04,1e+03,1e+02,1e+01,1,1e-01,1e-02,1e-03,1e-04,1e-05)
 source("brrr.R")
-pred <- X*NA
-res <- brrr(X=X,Y=Y1, K=8, n.iter=1000,thin=5,init="LDA", fam = x) #fit the model
+for(o in omegas){
+  res <- brrr(X=X,Y=Y1, K=5, n.iter=1000,thin=5,init="LDA", fam = x, omg=o) #fit the model  
+}
+
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
-save(res, file="results/full/age_over4_N2_BRRR_K6.RData")
+#save(res, file="results/full/age_over4_N2_BRRR_K6.RData")
 
 lat_map <- Y2%*%W #mapping to latent space with N2 sleep
 lat_comp <- X%*%res$model$brr$context$Psi + res$model$brr$context$Omega #latent space à la BRRR
@@ -208,8 +210,8 @@ for(testidx in 1:nrow(lat_map)){ #calculates the distances between individual an
     group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
     
     ix <- as.integer(m) -3 #+1
-    D[testidx,ix] <- cossim(lat_map[testidx,],group_mean) #cosine similarity
-    #D[testidx,ix] <- sum(abs(lat_map[testidx,]-group_mean)) #L1 distance
+    #D[testidx,ix] <- cossim(lat_map[testidx,],group_mean) #cosine similarity
+    D[testidx,ix] <- sum(abs(lat_map[testidx,]-group_mean)) #L1 distance
   }
 }
 
@@ -225,7 +227,7 @@ for(r in 1:nrow(D)){ #assign age groups based on lat. space distances
   }
   PROJ[r,index] <- 1
 }
-colnames(PROJ) <- c(paste0("class",0:(M-1)))
+colnames(PROJ) <- c(paste0("class",4:max(x)))
 
 #convert model matrices to factors and plot confusion matrix
 P_factor <- as.factor(colnames(PROJ))[PROJ %*% 1:ncol(PROJ)]
@@ -302,6 +304,24 @@ lat_map['condition'] = c(rep('ec', nsubj), rep('eo', nsubj))
 ggplot(data=as.data.frame(lat_map), aes(lat_map[,1], lat_map[,2], shape=condition, col=factor(x))) + 
   geom_point(size=3) + ggtitle("Subjects in latent mapping ") + 
   xlab("Component #1") + ylab("Component #2")
+
+
+
+######### LDA ###########
+
+#using PenalizedLDA.cv instead of own LOO-function to tune model params
+class=match(x, unique(x)) #this is for full data
+xte=Y1[subj,]
+#cv_results <- PenalizedLDA.cv(Y, class, nfold=6) 
+res2 <- PenalizedLDA(Y1, class, xte=xte, lambda=0, K=6)
+#png("figures/K6full_penLDA_confmat_77.png")
+cmat = confusion_matrix(res2$y, res2$ypred[,6]) #results with 6 discriminant vectors used
+plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
+print("Accurcy:")
+print(cmat$`Overall Accuracy`)
+
+dev.off()
+
 
 
 #TODO: try t-SNE/ Sammons' mapping for the same data!

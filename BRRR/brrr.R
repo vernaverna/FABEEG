@@ -45,7 +45,7 @@ compute.factorwise.variance <- function(data, Psi, Gamma) {
 }
 
 brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, init="LDA", fam=NULL,
-                 seed=1, snip=TRUE, pruned=TRUE, snpScale=1/10) {
+                 seed=1, snip=TRUE, pruned=TRUE, snpScale=1/10, omg=1e-6) {
   
   source_directory <- function(path) {
     files <- sort(dir(path, "\\.[rR]$", full.names = TRUE))
@@ -90,8 +90,8 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   # we are dealing with weak effects, this parameterization seems 
   # convenient
   # So here most of the data is explained by the covariates, not the noise?
-  Omega.coef <- 1e-06 #1e-6 #0.1 #7.5
-  
+  #Omega.coef <- 1e-03 #1e-6 #0.1 #7.5
+  Omega.coef <- omg
   
   
   
@@ -101,6 +101,9 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   # BRRR rank used for inititialization
   if (is.null(brr.rank)) brr.rank.init <- 3 else brr.rank.init <- brr.rank
   
+  if(!any(is.na(Z))){
+    n.confounders=ncol(data$confounders)
+  } else n.confounders=NA
   
   ######################
   #  initialize model  #
@@ -109,7 +112,8 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   # n.snps = P (covariates)
   # n.patients = N (observations)
   # brr.rank = rank of the regression/latent-noise part
-  init.model <- initialize.from.prior(n.pheno= n.pheno, n.snps=n.snps, n.patients=n.train, n.confounders=ncol(data$confounders),
+  # n.confounders=ncol(data$confounders)
+  init.model <- initialize.from.prior(n.pheno= n.pheno, n.snps=n.snps, n.patients=n.train, n.confounders=n.confounders,
                                       fa.rank=3, brr.rank=brr.rank.init,  a.sigma = 2.2, b.sigma = 0.5)
   Gamma <- init.model$brr$context$Gamma
   Psi <- init.model$brr$context$Psi

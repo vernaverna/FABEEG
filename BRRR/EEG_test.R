@@ -214,7 +214,7 @@ if(use_all==TRUE){
   W <- res$scaling
   lat_space=Y%*%W
   
-  pred <- X%*%res$model$brr$context$Psi%*%res$model$brr$context$Gamma #X%*%Psi%*%Gamma
+  #pred <- X%*%res$model$brr$context$Psi%*%res$model$brr$context$Gamma #X%*%Psi%*%Gamma
   D <- matrix(NA, nrow(X), ncol(X), dimnames=list(names(x), c())) #distance matrix
   
 
@@ -317,5 +317,9 @@ cmat = confusion_matrix(res2$y, res2$ypred[,14]) #results with 6 discriminant ve
 plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
 dev.off()
 
+#IDEA: could I use the discriminant functions and visualize them as topopolots similarly
+#      to BRRR's avg.gamma?
 
-# testing testing 
+
+
+

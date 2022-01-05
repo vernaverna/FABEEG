@@ -22,8 +22,9 @@ prepare_data <- function(ex){
   ages = read.csv('data/new_age_df.csv')
   ages <- ages[,-1]
   
-  use_all=F #should we use all subjects in training?
-  age_gap=c(0,19) #exclude some of the younger children? 
+  use_all=T #should we use all subjects in training?
+  #age_gap=c(1,19) #exclude some of the younger children?
+  Cap='FT'
   #TODO: change to range?
   
   # Check if the file exists
@@ -34,7 +35,7 @@ prepare_data <- function(ex){
       set.seed(11)
       #load("/projects/FABEEG/BRRR/ref_subjects.RData")
       #individuals=obs
-      individuals = sample(individuals, 60)
+      individuals = sample(individuals, 180)
       Y = Y[names(Y) %in% individuals]
       
     }
@@ -56,10 +57,13 @@ prepare_data <- function(ex){
       
       if(s %in% ages$File){ #temporal solution to get over the filename hassle
         age_data = ages[ages$File==s,]
-        if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
+        #if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
+        if(age_data$Cap == Cap){
           tmp <- t(Y[[s]]) #transposed
           tmp <- log10(tmp) #TODO: is this necessary???
-          if(any(is.na(tmp))) browser()
+          if(any(is.na(tmp))){ #browser()
+            corrupted = c(corrupted, s)
+          } 
           A[[s]] <- tmp[frequencies,chs] 
         } else {
           corrupted = c(corrupted, s)
@@ -135,22 +139,33 @@ prepare_data <- function(ex){
 }
 
 
-n2_data <- prepare_data(ex="N2A")
-n2b_data <- prepare_data(ex="N2B")
+n2_data <- prepare_data(ex="N2B")
+n2b_data <- prepare_data(ex="N2A")
+n2c_data <- prepare_data(ex="N2D")
+
 
 validation_data <- prepare_data(ex="N2C")
-Y3 <- validation_data[[1]]
+Y4 <- validation_data[[1]]
 
 Y1 = n2_data[[1]]
 Y2 = n2b_data[[1]]
+Y3 = n2c_data[[1]]
 
-Y = rbind(Y1, Y2)
+if(length(rownames(Y3)) != length(rownames(Y2))){
+  to_del= which(!rownames(Y2) %in% rownames(Y3))
+  Y2 <- Y2[-to_del,]
+  Y1 <- Y1[-to_del,]
+  Y4 <- Y4[-to_del,]
+}
 
-x = c(n2_data[[2]], n2b_data[[2]])
-X = rbind(n2_data[[3]], n2b_data[[3]]) #row binding
-M = n2_data[[4]]
+
+Y = rbind(Y1, Y2, Y3)
+
+x = c(n2c_data[[2]], n2c_data[[2]], n2c_data[[2]])
+X = rbind(n2c_data[[3]], n2c_data[[3]], n2c_data[[3]]) #row binding
+M = n2c_data[[4]]
 subj = dimnames(Y)[[1]]
-ages = n2_data[[5]]
+ages = validation_data[[5]]
 
 #Trying with added Z
 #TODO: put inside prepare-data!
@@ -158,20 +173,20 @@ Z1 = ages[ages$File %in% rownames(Y1),]
 reorder_idx <- match(rownames(Y1), Z1$File)
 Z1 <- Z1[reorder_idx,]
 
-Z = matrix(c(Z1$Age, Z1$Age)) 
+Z = matrix(c(Z1$Age, Z1$Age, Z1$Age)) 
 
-
+# TODO: add CV here, var.R does not work at all
 ### TRAINING ###
 
 # The model is trained using two sets of N2 data, and the performance is evaluated using third set
 
 source("brrr.R")
 #pred <- X*NA
-res <- brrr(X=X,Y=Y,K=10,Z=Z,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
+res <- brrr(X=X,Y=Y,K=15,Z=Z,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
-save(res, file = "results/full/60_indN2_BRRR_K6.RData")
+#save(res, file = "results/full/293_indN2_BRRR_K6.RData")
 lat_map <- Y%*%W
 lat_map_n2 <- Y3%*%W #mapping to latent space with N2_C data!# 
 
@@ -182,7 +197,8 @@ for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individual
     group_members <- rownames(lat_map)[m]   
     idxs = which(row.names(lat_map) %in% group_members) #     
     group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
-    D[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_mean)) #L1 distance#  
+    D[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_mean)) #L1 distance #TODO: CHECK this idiot
+    #D[testidx,m] <- sqrt(sum( (lat_map_n2[testidx,]-group_mean)**2 ))#L2 distance  
   } 
 }
 
@@ -214,7 +230,7 @@ lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, 3)
 
 subj_number <- factor(c(x,seq(1,nsubj)))
 
-ggplot(data=as.data.frame(lat_map), aes(lat_map[,6], lat_map[,7], shape=condition, col=factor(sex))) + 
+ggplot(data=as.data.frame(lat_map), aes(lat_map[,1], lat_map[,2], shape=condition, col=factor(sex))) + 
   geom_point(aes(size=age)) + ggtitle("Subjects in latent mapping ") + 
   xlab("Component #1") + ylab("Component #2")
 
@@ -305,10 +321,10 @@ for(k in 1:K){
     } 
   }
   
-  colnames(S) <- D_ages$Age
-  rownames(S) <- D_ages$Age
+  colnames(S) <- D_ages$Cap
+  rownames(S) <- D_ages$Cap
   
-  hc <- hclust(as.dist(S), method="average")
+  hc <- hclust(as.dist(S), method="ward.D")
   plot(hc, main=paste0("Clustering on component #", 1, "-", k))
   
 }
