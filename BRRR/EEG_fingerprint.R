@@ -22,7 +22,7 @@ prepare_data <- function(ex){
   ages = read.csv('data/new_age_df.csv')
   ages <- ages[,-1]
   
-  use_all=T #should we use all subjects in training?
+  use_all=F #should we use all subjects in training?
   #age_gap=c(1,19) #exclude some of the younger children?
   Cap='FT'
   #TODO: change to range?
@@ -182,7 +182,7 @@ Z = matrix(c(Z1$Age, Z1$Age, Z1$Age))
 
 source("brrr.R")
 #pred <- X*NA
-res <- brrr(X=X,Y=Y,K=15,Z=Z,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
+res <- brrr(X=X,Y=Y,K=6,Z=NA,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
@@ -309,15 +309,16 @@ D_ages$cors <- cors
 #TODO: calculate per component and do the clustering analysis
 library("dendextend")
 
-for(k in 1:K){
+for(k in 1:1){
   S <- D*0 #S is dissimilarity matrix
   colnames(S) <- rownames(S)
-  for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individuals   
+  for(testidx in 1:nrow(D)){ #calculates the distances between individuals   
     for(m in 1:M){     
       group_members <- rownames(lat_map_n2)[m]   
       idxs = which(row.names(lat_map_n2) %in% group_members) #     
-      group_data <- lat_map_n2[idxs,][1:k]
-      S[testidx,m] <- sum(abs(lat_map_n2[testidx,][1:k]-group_data)) #L1 distance#  
+      #group_data <- lat_map_n2[idxs,][1:k]
+      group_data <- lat_map_n2[c(idxs), 1:k]
+      S[testidx,m] <- sum(abs(lat_map_n2[testidx,1:k]-group_data)) #L1 distance#  
     } 
   }
   

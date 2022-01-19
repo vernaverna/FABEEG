@@ -32,7 +32,7 @@ prepare_data <- function(ex){
     
     if(use_all==F){
       set.seed(121)
-      individuals = sample(individuals, 600)
+      individuals = sample(individuals, 500)
       Y = Y[names(Y) %in% individuals]
       
     }
@@ -192,6 +192,8 @@ source("brrr.R")
 for(o in omegas){
   res <- brrr(X=X,Y=Y1, K=5, n.iter=1000,thin=5,init="LDA", fam = x, omg=o) #fit the model  
 }
+
+
 
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
