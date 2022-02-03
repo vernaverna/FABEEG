@@ -22,9 +22,9 @@ prepare_data <- function(ex){
   ages = read.csv('data/new_age_df.csv')
   ages <- ages[,-1]
   
-  use_all=F #should we use all subjects in training?
-  #age_gap=c(1,19) #exclude some of the younger children?
-  Cap='FT'
+  use_all=T #should we use all subjects in training?
+  age_gap=c(1,19) #exclude some of the younger children?
+  #Cap='-'
   #TODO: change to range?
   
   # Check if the file exists
@@ -57,8 +57,8 @@ prepare_data <- function(ex){
       
       if(s %in% ages$File){ #temporal solution to get over the filename hassle
         age_data = ages[ages$File==s,]
-        #if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
-        if(age_data$Cap == Cap){
+        if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
+        #if(age_data$Cap == Cap){
           tmp <- t(Y[[s]]) #transposed
           tmp <- log10(tmp) #TODO: is this necessary???
           if(any(is.na(tmp))){ #browser()
@@ -141,18 +141,30 @@ prepare_data <- function(ex){
 
 n2_data <- prepare_data(ex="N2B")
 n2b_data <- prepare_data(ex="N2A")
-n2c_data <- prepare_data(ex="N2D")
+n2c_data <- prepare_data(ex="N1A")
 
 
-validation_data <- prepare_data(ex="N2C")
+validation_data <- prepare_data(ex="N1B")
 Y4 <- validation_data[[1]]
 
 Y1 = n2_data[[1]]
 Y2 = n2b_data[[1]]
 Y3 = n2c_data[[1]]
 
-if(length(rownames(Y3)) != length(rownames(Y2))){
-  to_del= which(!rownames(Y2) %in% rownames(Y3))
+#x = c(n2c_data[[2]], n2c_data[[2]], n2c_data[[2]])
+#X = rbind(n2c_data[[3]], n2c_data[[3]], n2c_data[[3]]) #row binding
+
+#TODO: ei näin, vaan hyödynnä joukko-oppia
+
+if(length(rownames(Y4)) != length(rownames(Y2))){
+  to_del= which(!rownames(Y2) %in% rownames(Y4))
+  Y2 <- Y2[-to_del,]
+  Y1 <- Y1[-to_del,]
+  Y3 <- Y3[-to_del,]
+}
+
+if(length(rownames(Y3)) != length(rownames(Y4))){
+  to_del= which(!rownames(Y4) %in% rownames(Y3))
   Y2 <- Y2[-to_del,]
   Y1 <- Y1[-to_del,]
   Y4 <- Y4[-to_del,]
@@ -160,12 +172,24 @@ if(length(rownames(Y3)) != length(rownames(Y2))){
 
 
 Y = rbind(Y1, Y2, Y3)
-
-x = c(n2c_data[[2]], n2c_data[[2]], n2c_data[[2]])
-X = rbind(n2c_data[[3]], n2c_data[[3]], n2c_data[[3]]) #row binding
-M = n2c_data[[4]]
 subj = dimnames(Y)[[1]]
+M = length(unique(subj)) #number of groups (=subjects)
+S = length(subj) #number of observations
 ages = validation_data[[5]]
+
+x <- rep(NA,M); names(x) <- unique(subj)
+for(s in 1:M){
+  x[subj[s]] <- s
+}
+x=c(x,x,x)
+
+X <- matrix(0,S,M,dimnames=list(subj,paste0("class",1:M))) 
+for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]] <- 1
+
+#TODO: clear from the function above
+ages = ages[ages$File %in% unique(subj)==TRUE, ] #to get rid of some extra subjects that should not be there
+
+
 
 #Trying with added Z
 #TODO: put inside prepare-data!
@@ -176,19 +200,21 @@ Z1 <- Z1[reorder_idx,]
 Z = matrix(c(Z1$Age, Z1$Age, Z1$Age)) 
 
 # TODO: add CV here, var.R does not work at all
+
+
 ### TRAINING ###
 
 # The model is trained using two sets of N2 data, and the performance is evaluated using third set
 
 source("brrr.R")
 #pred <- X*NA
-res <- brrr(X=X,Y=Y,K=6,Z=NA,n.iter=500,thin=5,init="LDA", fam =x) #fit the model
+res <- brrr(X=X,Y=Y,K=20,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model
 res$scaling <- ginv(averageGamma(res))
 W <- res$scaling
 
-#save(res, file = "results/full/293_indN2_BRRR_K6.RData")
+#save(res, file = "results/full/over5_indN2_BRRR_K15.RData")
 lat_map <- Y%*%W
-lat_map_n2 <- Y3%*%W #mapping to latent space with N2_C data!# 
+lat_map_n2 <- Y4%*%W #mapping to latent space with N2_D data!# 
 
 D <- matrix(NA, nrow(lat_map_n2), ncol(X), dimnames=list(unique(names(x)), paste0("mean",unique(names(x))) ) ) #distance matrix# # # 
 
@@ -249,34 +275,40 @@ colors <- colors[factor(lat_map$group)]
 scatterplot3d(lat_map[,3:5], pch=shapes, color=colors, angle=20)
 
 
-#trying t-SNE
+#trying t-SNE 
+#TODO: test for larger data set
+
 
 library("Rtsne")
-age_col = round(ages[which(ages$File%in%subj),]$Age, 0)
-sex_col = ages[which(ages$File%in%subj),]$Sex
+D_ages <- ages[ages$File %in% rownames(D),]
+#match the ordering that is mixed due to random sampling
+reorder_indexes <- match(rownames(D), D_ages$File)
+D_ages <- D_ages[reorder_indexes,]
 
-colors = rainbow(length(unique(age_col)))
-names(colors) = unique(age_col)
 
 tsne <- Rtsne(D, dims=2, is_distance = T,
-              perplexity=4, verbose=TRUE, max_iter = 500, check_duplicates = F)
-#plot(tsne$Y, t='n', main="tsne")
-#text(tsne$Y, labels=x, col=colors[x])
+              perplexity=5, verbose=TRUE, max_iter = 500, check_duplicates = F)
 
-plot(tsne$Y,col=colors, asp=1)
+#plot(tsne$Y,col=colors, asp=1)
+#scatterplot3d(tsne$Y, pch=4, color=D_ages$Age, angle=60)
 
 
 
 #trying distance matrix with GGplot
 # TODO: something is wrong
-data_df <- data.frame(tsne$Y)
-rownames(data_df) <- rownames(D)
-data_df$age <- ages[which(ages$File%in%subj),]$Age
-data_df$sex <- ages[which(ages$File%in%subj),]$Sex
-data_df$group <- round(ages[which(ages$File%in%subj),]$Age, 0)
+D_ages$Y1 <- tsne$Y[,1]
+D_ages$Y2 <- tsne$Y[,2]
 
-ggplot(data_df, aes(x=X1, y=X2, color=age, shape=sex)) +
+
+ggplot(D_ages, aes(x=Y1, y=Y2, color=Age)) +
   geom_point(size=4) + theme_minimal()
+
+
+
+
+# Sammon mapping
+
+#https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/sammon.html
 
 
 

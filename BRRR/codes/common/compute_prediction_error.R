@@ -1,4 +1,14 @@
 # copyright by the authors
+#' this function computes the prediction error for the low-rank BRRR model
+#'
+#' @param test.data the data used to generate the model
+#' @param mcmc.output the output of the MCMC modelling step
+#' @param burnin the proportion of the MCMC chain to consider as burnin phase
+#'
+#' @return mse and ptve between input data and predicted data
+#' @export
+#'
+
 compute.prediction.error <- function(test.data, mcmc.output, burnin = 0.5) {
 	# this function computes the prediction error for the low-rank BRRR model
 
@@ -6,7 +16,7 @@ compute.prediction.error <- function(test.data, mcmc.output, burnin = 0.5) {
 	# remove burn-in
 	n.iter <- length(mcmc.output$traces$Gamma)	
 	tmp.output <- remove.burnin(mcmc.output, burnin = round(burnin * n.iter))
-	tmp.output <- remove.burnin(mcmc.output, burnin = 1)
+	tmp.output <- remove.burnin(mcmc.output, burnin = 1) #why the reformulation?
 
 	
 	
@@ -16,7 +26,7 @@ compute.prediction.error <- function(test.data, mcmc.output, burnin = 0.5) {
 	
 	
 	# compute predictions
-	for (i in 1:length(tmp.output$traces$Psi)) {
+	for (i in 1:length(tmp.output$traces$Psi)) { #for each MCMC trace?
 		
 		# prediction
 		preds	<- preds + 1/n.iter * test.data$genotypes %*% tmp.output$traces$Psi[[i]] %*% tmp.output$traces$Gamma[[i]]

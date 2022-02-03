@@ -30,12 +30,17 @@ averageGamma <- function(res) {
 
 compute.factorwise.variance <- function(data, Psi, Gamma) {
   
+  
+  #how about eigenvalue decomposition ???
+  
+  
   n.patients <- nrow(data$genotypes)
   genotype.cov <-  data$crossprod.genotypes / (n.patients-1)
   aux.Gamma <- tcrossprod(Gamma)  # same as Gamma %*% t(Gamma)
   aux.Psi <- t(Psi) %*% genotype.cov %*% Psi
   
-  total <- aux.Gamma * aux.Psi
+  total <- aux.Gamma * aux.Psi # covariance matrix of sorts?
+  
   
   # Total explained variance is obtained by summing elements
   # in total. Note that off-diagonal elements are added twice,
@@ -70,11 +75,11 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   
   X <- X[,colSums(abs(X))>0,drop=FALSE]
   data <- list(genotypes=X,phenotypes=Y,confounders=Z) #include confounders (=matrix Z)? 
-  data$crossprod.genotypes <- crossprod(data$genotypes)
+  data$crossprod.genotypes <- crossprod(data$genotypes) #same as t(X) %*% X
   
   n.pheno <- ncol(data$phenotypes)
   n.train <- nrow(data$phenotypes)
-  n.snps <- ncol(data$genotypes)
+  n.snps <- ncol(data$genotypes) #change to n.covariates?
   
   
   ############################

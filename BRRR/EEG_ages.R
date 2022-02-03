@@ -176,7 +176,6 @@ subj = dimnames(Y1)[[1]]
 groups = n2_data[[5]]
 ages = n2_data[[6]]
 
-
 ### TRAINING ###
 
 L1=FALSE

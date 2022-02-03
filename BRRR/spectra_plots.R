@@ -14,6 +14,17 @@ load(paste0("data/",ex,"spectrum.RData"))
 ages = read.csv('data/age_df.csv')
 ages <- ages[,-1]
 
+
+## PLOT AGE HISTOGRAM ##
+
+#TODO: think about the colour 
+p <- ggplot(data=ages, aes(x=Age)) +
+  geom_histogram(binwidth = 1, fill='chocolate2', color="#e9ecef", alpha=0.9) + 
+  ylab('Count') + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                        panel.background = element_blank()) #no grid
+p
+ggsave('figures/agehist.pdf', plot=p)
+
 subj = ages[which(ages$Age<5),]$File #choose the age group
 Y=Y[names(Y) %in% subj == TRUE] #TODO: there are some in ages that are not in Y
 subjects=subj
