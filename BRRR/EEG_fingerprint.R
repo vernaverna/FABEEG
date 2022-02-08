@@ -7,16 +7,18 @@ library("cvms")
 
 ## TODO: use less individuals! try with old and young kids as well
 
-# Function for preparing the data for analysis
+#' Function for preparing the EEG spectra for analysis
+#' 
+#' @param spectra list, tells which spectra are used for the model: e.g. c('N1C', 'N2B')
+#' @param validation_set which spectra to use in validation, e.g. 'N2C'
+#' 
 # ex = N1 or N2, depending which data is read in
-prepare_data <- function(ex){
+prepare_data <- function(spectra, validation_set){
+  
   
   # Choosing the channels and frequencies
   chs <- 1:19
   omitFreq = c(0,60)
-  
-  # Reading data into workspace
-  loadfile <- paste0("data/",ex,"spectrum.RData")
   
   #extract the age groups
   ages = read.csv('data/new_age_df.csv')
@@ -25,205 +27,194 @@ prepare_data <- function(ex){
   use_all=T #should we use all subjects in training?
   age_gap=c(1,19) #exclude some of the younger children?
   #Cap='-'
-  #TODO: change to range?
   
-  # Check if the file exists
-  if(file.exists(loadfile)) {
-    load(loadfile)
+  data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
+  data_X = vector(mode='list',length=length(spectra))
+  
+  names(data_Y) <- spectra
     
-    if(use_all==F){
-      set.seed(11)
-      #load("/projects/FABEEG/BRRR/ref_subjects.RData")
-      #individuals=obs
-      individuals = sample(individuals, 180)
-      Y = Y[names(Y) %in% individuals]
+  #Go through each data file
+  for(i in 1:length(spectra)){
+    # Reading data into workspace
+    spec = spectra[i]
+    loadfile <- paste0("data/",spec,"spectrum.RData")
+    
+    # Check if the file exists
+    if(file.exists(loadfile)) {
+      load(loadfile)
       
-    }
-    
-    # Omits frequencies
-    frequencies <- which(freq[,2] >= omitFreq[1] & freq[,2] <= omitFreq[2])
-    freq <- freq[frequencies, ]
-    
-    # Searching the names/identifiers of the subjects
-    subjects <- unlist(individuals)
-    S <- length(subjects)
-    A <- vector("list",length=S)
-    names(A) <- subjects
-    
-    corrupted = c()
-    
-    # Saving the data into matrix A
-    for(s in names(Y)) {
+      if(use_all==F){
+        set.seed(11)
+        #load("/projects/FABEEG/BRRR/ref_subjects.RData")
+        #individuals=obs
+        individuals = sample(individuals, 180)
+        Y = Y[names(Y) %in% individuals]
+        
+      }
       
-      if(s %in% ages$File){ #temporal solution to get over the filename hassle
-        age_data = ages[ages$File==s,]
-        if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
-        #if(age_data$Cap == Cap){
-          tmp <- t(Y[[s]]) #transposed
-          tmp <- log10(tmp) #TODO: is this necessary???
-          if(any(is.na(tmp))){ #browser()
+      # Omits frequencies
+      frequencies <- which(freq[,2] >= omitFreq[1] & freq[,2] <= omitFreq[2])
+      freq <- freq[frequencies, ]
+      
+      
+      
+      # Searching the names/identifiers of the subjects
+      subjects <- unlist(individuals)
+      S <- length(subjects)
+      A <- vector("list",length=S)
+      names(A) <- subjects
+      
+      corrupted = c() #container for files that are dropped
+      
+      # Saving the data into matrix A
+      for(s in names(Y)) {
+        
+        if(s %in% ages$File){ #temporal solution to get over the filename hassle
+          age_data = ages[ages$File==s,]
+          if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
+            #if(age_data$Cap == Cap){
+            tmp <- t(Y[[s]]) #transposed
+            tmp <- log10(tmp) 
+            if(any(is.na(tmp))){ #browser()
+              corrupted = c(corrupted, s)
+            } 
+            A[[s]] <- tmp[frequencies,chs] 
+          } else {
             corrupted = c(corrupted, s)
-          } 
-          A[[s]] <- tmp[frequencies,chs] 
+          }
         } else {
           corrupted = c(corrupted, s)
-        }
-      } else {
-        corrupted = c(corrupted, s)
-      } 
+        } 
+      }
+      
+      if(length(corrupted)>0){
+        obs <- subjects[subjects %in% corrupted == FALSE]
+        A = A[names(A) %in% corrupted == FALSE]
+      } else { 
+        obs <- subjects
+      }
+      
+    } else {
+      print(paste0("File '",loadfile,"' does not exist, returning!"))
+      return(0)
     }
-    #TODO: even age groups!!!!!
     
-    if(length(corrupted)>0){
-      obs <- subjects[subjects %in% corrupted == FALSE]
-      A = A[names(A) %in% corrupted == FALSE]
-      ages = ages[ages$File %in% corrupted == FALSE,]
-    } else { 
-      obs <- subjects
+    
+    # The number of classes and storing the subjects
+    M <- length(obs) #nclasses
+    S <- length(obs) #nsubj
+    
+    print("Data dimension per subject:")
+    print(dim(A[[1]]))
+    keepFeat <- NA
+    
+    # Making MEG matrix X and response vec y and filling them
+    Y <- matrix(NA,length(A),prod(dim(A[[1]])),dimnames=list(names(A),c()))
+    x = matrix(NA, length(A), dimnames=list(names(A)))
+    colnames(Y) <- c(outer(paste0("s",1:nrow(A[[1]]),"."),1:ncol(A[[1]]),paste0))
+    
+    
+    for(j in obs) { 
+      tmp <- A[[j]]
+      if(nrow(tmp)==ncol(tmp)) tmp[lower.tri(tmp)] <- 0
+      Y[j,] <- c(tmp)
     }
     
-  } else {
-    print(paste0("File '",loadfile,"' does not exist, returning!"))
-    return(0)
+    keepFeat <- which(apply(Y,2,var,na.rm=T)>0)
+    Y <- Y[,keepFeat]
+    
+    print("LDA matrix dimension:")
+    print(dim(Y))
+    
+    data_Y[[i]] <- Y
+    
   }
+
+  # Combine data into 1 big matrix
+
+  val=which(names(data_Y)==validation_set)
+  validation_data = data_Y[[val]] #extract validation data
+  data_Y[[val]] <- NULL
+  
+  data_Y <- do.call(rbind, data_Y) #make into matrices
+  # TODO: make sure that data_Y has the same elements!!!!
+  
+  #choose those subjects who are both in the validation set and train set
+  common_subjects = intersect(rownames(data_Y), rownames(validation_data)) 
+  to_keep = which(rownames(data_Y)%in%common_subjects)
+  data_Y <- data_Y[to_keep,]
+  
+  #Center and scale Y & validation data
+  tmp <- scale(data_Y[!is.na(data_Y[,1]),],center=T,scale=T)
+  Y1 <- scale(data_Y, attr(tmp,"scaled:center"), attr(tmp,"scaled:scale"))
+  
+  tmp1 <- scale(validation_data[!is.na(validation_data[,1]),],center=T,scale=T)
+  Y_val <- scale(validation_data, attr(tmp1,"scaled:center"), attr(tmp1,"scaled:scale"))
   
   
+  #Construct identifier matrix (covariates)
+  subj = dimnames(Y1)[[1]]
+  M = length(unique(subj)) #number of groups (=subjects)
+  S = length(subj) #number of observations
   
-  # The number of classes and storing the subjects
-  M <- length(obs) #nclasses
-  S <- length(obs) #nsubj
-  
-  print("Data dimension per subject:")
-  print(dim(A[[1]]))
-  keepFeat <- NA
-  
-  # Making MEG matrix X and response vec y and filling them
-  Y <- matrix(NA,length(A),prod(dim(A[[1]])),dimnames=list(names(A),c()))
-  x = matrix(NA, length(A), dimnames=list(names(A)))
-  colnames(Y) <- c(outer(paste0("s",1:nrow(A[[1]]),"."),1:ncol(A[[1]]),paste0))
-  
-  
-  for(i in obs) { 
-    tmp <- A[[i]]
-    if(nrow(tmp)==ncol(tmp)) tmp[lower.tri(tmp)] <- 0
-    Y[i,] <- c(tmp)
+  x <- rep(NA,M); names(x) <- unique(subj)
+  for(s in 1:M){
+    x[subj[s]] <- s
   }
+  x=c(x,x)
   
-  keepFeat <- which(apply(Y,2,var,na.rm=T)>0)
-  Y <- Y[,keepFeat]
-  
-  print("LDA matrix dimension:")
-  print(dim(Y))
-  
-  # Scaling & centering the Y for BRRR 
-  tmp <- scale(Y[!is.na(Y[,1]),],center=T,scale=T)
-  Y <- scale(Y, attr(tmp,"scaled:center"), attr(tmp,"scaled:scale"))
-  
-  
-  # Saving classes to x
-  x <- rep(NA,S); names(x) <- obs
-  for(s in 1:S){
-    x[obs[s]] <- s
-  }
-  
-  # Making design matrix out of classes
-  X <- matrix(0,S,M,dimnames=list(obs,paste0("class",1:M))) 
+  X <- matrix(0,S,M,dimnames=list(subj,paste0("subj_",unique(subj)))) 
   for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]] <- 1
-  if(M==2) {
-    print("Condensing two classes into one +-1 covariate.")
-    X <- X[,1,drop=FALSE] 
-    X[X==0] <- -1
-  }
   
-  return(list(Y, x, X, M, ages))
+  #Clean up the subject info dataframe
+  ages = ages[ages$File %in% unique(subj)==TRUE, ] #to get rid of some extra subjects that should not be there
+  
+  
+  #Trying with added Z
+  # Z1 = ages[ages$File %in% unique(subj),]
+  # reorder_idx <- match(rownames(Y1), Z1$File)
+  # Z1 <- Z1[reorder_idx,]
+  # 
+  # Z = matrix(c(Z1$Age, Z1$Age)) 
+  
+
+  return(list(Y1, x, X, ages, Y_val, Z=NA))
 }
 
 
-n2_data <- prepare_data(ex="N2B")
-n2b_data <- prepare_data(ex="N2A")
-n2c_data <- prepare_data(ex="N1A")
+n2_data <- prepare_data(spectra = c("N2A","N2B","N2D"), validation_set = "N2D")
+Y = n2_data[[1]]
+X = n2_data[[3]]
+x = n2_data[[2]]
+ages = n2_data[[4]]
 
-
-validation_data <- prepare_data(ex="N1B")
-Y4 <- validation_data[[1]]
-
-Y1 = n2_data[[1]]
-Y2 = n2b_data[[1]]
-Y3 = n2c_data[[1]]
-
-#x = c(n2c_data[[2]], n2c_data[[2]], n2c_data[[2]])
-#X = rbind(n2c_data[[3]], n2c_data[[3]], n2c_data[[3]]) #row binding
-
-#TODO: ei näin, vaan hyödynnä joukko-oppia
-
-if(length(rownames(Y4)) != length(rownames(Y2))){
-  to_del= which(!rownames(Y2) %in% rownames(Y4))
-  Y2 <- Y2[-to_del,]
-  Y1 <- Y1[-to_del,]
-  Y3 <- Y3[-to_del,]
-}
-
-if(length(rownames(Y3)) != length(rownames(Y4))){
-  to_del= which(!rownames(Y4) %in% rownames(Y3))
-  Y2 <- Y2[-to_del,]
-  Y1 <- Y1[-to_del,]
-  Y4 <- Y4[-to_del,]
-}
-
-
-Y = rbind(Y1, Y2, Y3)
-subj = dimnames(Y)[[1]]
-M = length(unique(subj)) #number of groups (=subjects)
-S = length(subj) #number of observations
-ages = validation_data[[5]]
-
-x <- rep(NA,M); names(x) <- unique(subj)
-for(s in 1:M){
-  x[subj[s]] <- s
-}
-x=c(x,x,x)
-
-X <- matrix(0,S,M,dimnames=list(subj,paste0("class",1:M))) 
-for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]] <- 1
-
-#TODO: clear from the function above
-ages = ages[ages$File %in% unique(subj)==TRUE, ] #to get rid of some extra subjects that should not be there
-
-
-
-#Trying with added Z
-#TODO: put inside prepare-data!
-Z1 = ages[ages$File %in% rownames(Y1),]
-reorder_idx <- match(rownames(Y1), Z1$File)
-Z1 <- Z1[reorder_idx,]
-
-Z = matrix(c(Z1$Age, Z1$Age, Z1$Age)) 
-
-# TODO: add CV here, var.R does not work at all
-
+Y2 = n2_data[[5]]
 
 ### TRAINING ###
 
-# The model is trained using two sets of N2 data, and the performance is evaluated using third set
+# The model is trained using two sets of N2 data, and the within-sample performance is evaluated using
+# MSE, PTVE and accuracy (L1 distances in the projection)
+
+#TODO: out-of sample prediction!
 
 source("brrr.R")
 #pred <- X*NA
 res <- brrr(X=X,Y=Y,K=20,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model
-res$scaling <- ginv(averageGamma(res))
+res$scaling <- ginv(averagePsi(res)%*%averageGamma(res)) #others have used projection (Y*(psi*gamma)-1)
 W <- res$scaling
 
 #save(res, file = "results/full/over5_indN2_BRRR_K15.RData")
-lat_map <- Y%*%W
-lat_map_n2 <- Y4%*%W #mapping to latent space with N2_D data!# 
+lat_map <- Y%*%ginv(averageGamma(res))
+lat_map_n2 <- Y2%*%W #mapping to latent space with N2_D data!# 
 
-D <- matrix(NA, nrow(lat_map_n2), ncol(X), dimnames=list(unique(names(x)), paste0("mean",unique(names(x))) ) ) #distance matrix# # # 
+D <- matrix(NA, ncol(X), ncol(X), dimnames=list(unique(names(x)), paste0("mean",unique(names(x))) ) ) #distance matrix# # # 
 
-for(testidx in 1:nrow(lat_map_n2)){ #calculates the distances between individual and group mean in lat.space   
-  for(m in 1:M){     
+for(testidx in 1:nrow(lat_map)){ #calculates the distances between individual and group mean in lat.space   
+  for(m in 1:ncol(X)){     
     group_members <- rownames(lat_map)[m]   
     idxs = which(row.names(lat_map) %in% group_members) #     
     group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
-    D[testidx,m] <- sum(abs(lat_map_n2[testidx,]-group_mean)) #L1 distance #TODO: CHECK this idiot
+    D[testidx,m] <- sum(abs(lat_map[testidx,]-group_mean)) #L1 distance #TODO: CHECK this idiot
     #D[testidx,m] <- sqrt(sum( (lat_map_n2[testidx,]-group_mean)**2 ))#L2 distance  
   } 
 }
@@ -240,10 +231,10 @@ for(r in 1:nrow(D)){ #assign age groups based on lat. space distances
   index <- which.min(D[r,])
   PROJ[r,index] <- 1+PROJ[r,index]
 }
-colnames(PROJ) <- c(paste0("class",1:M))
+colnames(PROJ) <- c(paste0("class",rownames(D)))
 
-accuracy = sum(diag(PROJ))/M
-print(paste("Model accuracy:", accuracy))
+accuracy = sum(diag(PROJ))/nrow(D)
+print(paste("Model accuracy:", accuracy)) #alright this is how I like it ;)
 
 
 nsubj <- length(unique(subj))

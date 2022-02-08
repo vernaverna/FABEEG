@@ -18,6 +18,8 @@ source("var.R")
 # the following function source_directory is by 
 # Mehmet Gonen (mehmet.gonen@gmail.com)
 
+#Helper functions to compute average matrices from MCMC traces
+
 averageGamma <- function(res) {
   G <- res$traces$Gamma[[1]]*0
   ps <- length(res$traces$Gamma)
@@ -28,12 +30,21 @@ averageGamma <- function(res) {
   return(G)
 }
 
+averagePsi <- function(res) {
+  P <- res$traces$Psi[[1]] * 0
+  ps <- length(res$traces$Psi)
+  for (i in 1:ps) {
+    Psi <- res$traces$Psi[[i]] / sqrt(apply(res$traces$Psi[[i]]^2, 1, mean)) # Move the scale to Psi
+    P <- P + Psi / ps
+  }
+  return(P)
+}
+
+
 compute.factorwise.variance <- function(data, Psi, Gamma) {
   
   
   #how about eigenvalue decomposition ???
-  
-  
   n.patients <- nrow(data$genotypes)
   genotype.cov <-  data$crossprod.genotypes / (n.patients-1)
   aux.Gamma <- tcrossprod(Gamma)  # same as Gamma %*% t(Gamma)
@@ -253,10 +264,10 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   mcmc.output$data <- data
   mcmc.output$runtime <- proc.time() - ptm
   
-  #ADDED: PTVE per each component (now fixed)
-  factor_variance <- compute.factorwise.variance(data=data, Psi=mcmc.output$model$brr$context$Psi,
-                                                 Gamma=mcmc.output$model$brr$context$Gamma)
-  mcmc.output$factor_variance <- factor_variance #total variation explained =sum
+  #ADDED: PTVE per each component (does not work)
+  # factor_variance <- compute.factorwise.variance(data=data, Psi=averagePsi(res),
+  #                                                Gamma=averageGamma(res))
+  # mcmc.output$factor_variance <- factor_variance #total variation explained =sum
   #print(factor_variance)
 
   

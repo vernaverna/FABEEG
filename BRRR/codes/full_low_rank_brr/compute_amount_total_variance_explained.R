@@ -22,8 +22,4 @@ compute.amount.total.variance.explained <- function(genotypes, Psi, Gamma) {
 
 }
 
-for(i in 1:20){
-  aux <- genotypes %*% Psi[,i] %*% Gamma[i,]
-  print(sum(apply(aux,2,var)))
-}
 
