@@ -24,8 +24,8 @@ prepare_data <- function(spectra, validation_set){
   ages = read.csv('data/new_age_df.csv')
   ages <- ages[,-1]
   
-  use_all=T #should we use all subjects in training?
-  age_gap=c(1,19) #exclude some of the younger children?
+  use_all=F #should we use all subjects in training?
+  age_gap=c(0,19) #exclude some of the younger children?
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -47,7 +47,7 @@ prepare_data <- function(spectra, validation_set){
         set.seed(11)
         #load("/projects/FABEEG/BRRR/ref_subjects.RData")
         #individuals=obs
-        individuals = sample(individuals, 180)
+        individuals = sample(individuals, 200)
         Y = Y[names(Y) %in% individuals]
         
       }
@@ -101,7 +101,7 @@ prepare_data <- function(spectra, validation_set){
     
     
     # The number of classes and storing the subjects
-    M <- length(obs) #nclasses
+    M <- length(obs) #nclasses#alright this is how I like it ;)
     S <- length(obs) #nsubj
     
     print("Data dimension per subject:")
@@ -161,9 +161,9 @@ prepare_data <- function(spectra, validation_set){
   for(s in 1:M){
     x[subj[s]] <- s
   }
-  x=c(x,x)
+  x=c(x,x,x)
   
-  X <- matrix(0,S,M,dimnames=list(subj,paste0("subj_",unique(subj)))) 
+  X <- matrix(0,S,M,dimnames=list(subj,unique(subj))) 
   for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]] <- 1
   
   #Clean up the subject info dataframe
@@ -171,70 +171,205 @@ prepare_data <- function(spectra, validation_set){
   
   
   #Trying with added Z
-  # Z1 = ages[ages$File %in% unique(subj),]
-  # reorder_idx <- match(rownames(Y1), Z1$File)
-  # Z1 <- Z1[reorder_idx,]
-  # 
-  # Z = matrix(c(Z1$Age, Z1$Age)) 
+  Z1 = ages[ages$File %in% unique(subj),]
+  reorder_idx <- match(rownames(Y_val), Z1$File)
+  Z1 <- Z1[reorder_idx,]
+
+  Z = matrix(c(Z1$Age, Z1$Age, Z1$Age))
   
 
-  return(list(Y1, x, X, ages, Y_val, Z=NA))
+  return(list(Y1, x, X, ages, Y_val, Z=Z))
 }
 
 
-n2_data <- prepare_data(spectra = c("N2A","N2B","N2D"), validation_set = "N2D")
+#### VALIDATION ####
+
+#' Function for validating the model
+#' 
+#' @param within_sample Logical. If FALSE, does out-of-sample validation
+#' @param dis which distance measure to use. One of 'L1' or 'L2' or 'cos'
+#' @param pK how many components to use in distance calculation. Must be between 1..K
+#' @param Xt the subject identifiers
+#' @param lat_map the latent mapping used
+# TODO: TRY IF WORKS JUST AS WELL WITHOUT LAT_SPACE PROJECTION???
+
+validation <- function(within_sample=FALSE, dis='L1', pK=K, Xt=X, lat_map){
+  
+  #distance matrix# 
+  D <- matrix(NA, ncol(Xt), ncol(Xt), dimnames=list(colnames(Xt), c(paste0('other', colnames(Xt)) )) )  
+  
+  # Helper function to calculate distance betewen 2 vectors
+  dist_func <- function(x, y){
+    if(dis=='L1'){
+      return(sum(abs(x-y)))
+    } else if(dis=='L2'){
+      return(sqrt( sum(x-y)**2) )
+    } else if(dis=='cos'){
+      return( sum(x*y) / (sqrt(sum(x**2))*sqrt(sum(y**2))) )
+    } else {
+      browser(text="wrong distance measure!")
+    }
+  }
+  
+  #calculates the distances between individuals in lat.space   
+  for(testidx in 1:ncol(Xt)){ 
+    for(m in 1:ncol(Xt)){     
+      group_members <- rownames(lat_map)[m]   
+      idxs = which(row.names(lat_map) %in% group_members) #    
+      #group_mean <- colMeans(lat_map[idxs,1:pK]) 
+      other_data <- colMeans(lat_map[tail(idxs,3), 1:pK]) #compare distances to other data. AVERAGE or CHOOSE 1?
+      if(within_sample){
+        D[testidx,m] <- dist_func(lat_map[testidx,1:pK],other_data)
+      } else {
+        D[testidx,m] <- dist_func(lat_map_n2[testidx,1:pK],other_data)
+      }
+    } 
+  }
+  
+  PROJ <- D*0 #initialize 'projection' matrix
+  
+  for(r in 1:nrow(D)){ #assign age groups based on minimal distance in lat. space
+    index <- which.min(D[r,])
+    PROJ[r,index] <- 1+PROJ[r,index]
+  }
+  colnames(PROJ) <- c(paste0("class",rownames(D)))
+  
+  accuracy = sum(diag(PROJ))/nrow(D)
+  print(paste("Model accuracy:", accuracy)) #alright this is how I like it ;)
+  
+  return(list(D, accuracy))
+  
+}
+
+
+
+#### CROSS-VALIDATION ####
+
+# notice though that I am using CV to answer different question than the validation above;
+#   now I examine how the individual markers (components) generalize to new individuals
+#   could one do some lind of paired analysis too though?
+# k-fold CV (permuted data, non-exhaustive)?  
+# pseudocode idea:
+# 1. divide data into k subsamples (randomly; however the data already is random ordered?) 
+# 2. train k models with k-1 parts of the data
+# 3. for each model, calculate their performance on the subsample left out of training
+# 4. average together the k scores 
+
+
+
+#' Function for performing cross-validation: calls 
+#' 
+#' @param n_folds how many folds to use
+#' @param K BRRR rank 
+#' @param iter how many iterations given to BRRR
+#' @param dis which distance measure to use in validation
+
+do_CV <- function(n_folds=5, K=20, iter=500, dis='L1') {
+  
+  
+  Ds <- vector(mode = "list", length = n_folds) #list containing results from each CV fold
+  names(Ds) <- c(paste0('fold_', seq(1:n_folds)) )
+  
+  subjects <- unique(names(x))
+  cvId <- c()
+  S <- ncol(X) #number of UNIQUE subjects - leaving subjects out, not data points 
+  
+  
+  while (length(cvId) < S) cvId <- c(cvId, sample(1:n_folds))
+  # if the number of subjects/observations is not a multiple of folds, truncate the labels
+  cvId <- cvId[1:S]
+  #cvId <- c(cvId, cvId)
+  
+  
+  for(fold in 1:n_folds){
+    
+    print(paste0('CV fold ', fold))
+    print('--------------------------')
+
+    
+    testsubj <- subjects[cvId==fold] #extract testsubj
+    train_Y <- Y[which(!rownames(Y)%in%testsubj),]
+    train_X <- X[which(!rownames(X)%in%testsubj) , which(!colnames(X)%in%testsubj) ]
+    train_fam <- x[which(!names(x)%in%testsubj)]
+    
+    #fit the model for training data
+    res <- brrr(X=train_X,Y=train_Y,K=K,Z=NA,n.iter=iter,thin=5,init="LDA",fam=train_fam)  
+    
+    #res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
+    res$scaling <- MASS::ginv(averageGamma(res))
+    W <- res$scaling
+    
+    #lat_map <- train_Y%*%W
+    lat_map <- Y[which(rownames(Y)%in%testsubj),]%*%W #mapping to latent space with unseen individuals
+    
+    #call validation function
+    D <- validation(within_sample = T, dis=dis, pK=K, lat_map=lat_map,#is not actually within-sample but oh well--- works now
+                    Xt=X[which(rownames(X)%in%testsubj) , which(colnames(X)%in%testsubj) ])
+    
+    
+    Ds[[fold]] <- list(D, res) #append results
+    
+
+  }
+  
+  return(Ds) #return the distance matrix and model
+}
+
+
+
+
+### TRAINING / RUNS ###
+
+# read in the data
+n2_data <- prepare_data(spectra = c("N2A","N2B","N2C","N2D"), validation_set = "N2D")
 Y = n2_data[[1]]
 X = n2_data[[3]]
 x = n2_data[[2]]
 ages = n2_data[[4]]
 
 Y2 = n2_data[[5]]
+Z = n2_data[[6]]
 
-### TRAINING ###
 
 # The model is trained using two sets of N2 data, and the within-sample performance is evaluated using
 # MSE, PTVE and accuracy (L1 distances in the projection)
-
-#TODO: out-of sample prediction!
-
 source("brrr.R")
-#pred <- X*NA
-res <- brrr(X=X,Y=Y,K=20,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model
-res$scaling <- ginv(averagePsi(res)%*%averageGamma(res)) #others have used projection (Y*(psi*gamma)-1)
-W <- res$scaling
+CV_results = do_CV(n_folds=10, K=20, iter=1000)  
+save(CV_results, file=paste0('results/', 10, 'foldCV/over1_3N2.RData'))
 
-#save(res, file = "results/full/over5_indN2_BRRR_K15.RData")
-lat_map <- Y%*%ginv(averageGamma(res))
-lat_map_n2 <- Y2%*%W #mapping to latent space with N2_D data!# 
+CV_scores <- lapply(CV_results, `[[`, 1)
 
-D <- matrix(NA, ncol(X), ncol(X), dimnames=list(unique(names(x)), paste0("mean",unique(names(x))) ) ) #distance matrix# # # 
+n=lapply(CV_scores, sapply, mean)
+accs <- unlist(lapply(n, `[[`, 2))
+print("Average CV accuracy:")
+print(mean(accs))
 
-for(testidx in 1:nrow(lat_map)){ #calculates the distances between individual and group mean in lat.space   
-  for(m in 1:ncol(X)){     
-    group_members <- rownames(lat_map)[m]   
-    idxs = which(row.names(lat_map) %in% group_members) #     
-    group_mean <- colMeans(lat_map[idxs,]) #mean over all individuals, vector of length K
-    D[testidx,m] <- sum(abs(lat_map[testidx,]-group_mean)) #L1 distance #TODO: CHECK this idiot
-    #D[testidx,m] <- sqrt(sum( (lat_map_n2[testidx,]-group_mean)**2 ))#L2 distance  
-  } 
-}
+# Ks <- c(6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30)
+# 
+# source("brrr.R")
+# 
+# 
+# for(k in Ks){
+#   res <- brrr(X=X,Y=Y,K=20,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model 
+#   
+#   res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
+#   res$scaling <- ginv(averageGamma(res))
+#   W <- res$scaling
+#   
+#   lat_map <- Y%*%W
+#   lat_map_n2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
+#   
+#   
+#   D <- validation(within_sample = F, dis='L1', pK=k)[[1]]
+#   save(res, file = paste0("results/full/over1_ind_2N2_BRRR_",k, ".RData") )
+# }
 
 
 
 
+#### VISUALIZATIONS ####
 
-#### VALIDATION ####
 
-PROJ <- D*0 #initialize 'projection' matrix
-
-for(r in 1:nrow(D)){ #assign age groups based on lat. space distances
-  index <- which.min(D[r,])
-  PROJ[r,index] <- 1+PROJ[r,index]
-}
-colnames(PROJ) <- c(paste0("class",rownames(D)))
-
-accuracy = sum(diag(PROJ))/nrow(D)
-print(paste("Model accuracy:", accuracy)) #alright this is how I like it ;)
 
 
 nsubj <- length(unique(subj))
@@ -278,7 +413,7 @@ D_ages <- D_ages[reorder_indexes,]
 
 
 tsne <- Rtsne(D, dims=2, is_distance = T,
-              perplexity=5, verbose=TRUE, max_iter = 500, check_duplicates = F)
+              perplexity=15, verbose=TRUE, max_iter = 500, check_duplicates = F)
 
 #plot(tsne$Y,col=colors, asp=1)
 #scatterplot3d(tsne$Y, pch=4, color=D_ages$Age, angle=60)
@@ -362,16 +497,20 @@ dend %>% set("branches_k_color", k = 5) %>% plot(main = "Nice defaults")
 
 
 
+### quick plots for results
+
+#over 1y olds, N2A and N2B within-model
+MSES <- c(0.2429,0.2165,0.2007,0.1893,0.1802,0.1729,0.1665,0.1615,0.1573,0.1535,0.1504,0.1475,0.1450,0.1428)
+ptves <- c(0.7569,0.7833,0.7991,0.8106,0.8196,0.8270,0.8334,0.8384,0.8426,0.8463,0.8494,0.8254,0.8549,0.8571)
+accs <- c(0.3926,0.5736,0.7530,0.8426,0.8426,0.8934,0.9154,0.9171,0.9323,0.9238,0.9205,0.9323,0.9425,0.9391)
+K <- c(4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30)
 
 
+#would be good on all data too!!!
+#### so use dat 
 
-
-
-
-
-
-
-
+plot(K, accs, type = 'l', col='red')
+lines(K,ptves)
 
 
 
