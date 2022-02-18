@@ -5,25 +5,28 @@ library("penalizedLDA")
 library("ggplot2")
 library("cvms")
 
-## 1. CONFUSION MATRIX ##
+## WORKING WITH FULL DATA MODEL ##
 
-#convert model matrices to factors and plot confusion matrix
-P_factor <- as.factor(colnames(PROJ))[PROJ %*% 1:ncol(PROJ)]
-X_factor <- as.factor(colnames(X))[X %*% 1:ncol(X)]
+load("results/full/over1_ind_3N2_BRRR_12.RData")
 
-
-#results are somewhat catastrophic
-cmat = confusion_matrix(X_factor, P_factor)
-print("Accurcy:")
-print(cmat$`Overall Accuracy`)
-print("Specificity:")
-print(cmat$Sensitivity)
+Y <- res$data$phenotypes
+X <- res$data$genotypes
+subj <- row.names(X)
+ages = read.csv('data/new_age_df.csv')
+ages <- ages[,-1]
+ages = ages[ages$File %in% unique(subj)==TRUE, ] #to get rid of some extra subjects that should not be there
 
 
-png("figures/K6full_confmat_77.png")
-plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
-dev.off()  
 
+inv_G <- res$scaling #inv(average(Gamma))
+inv_PG <- res$scaling2 #inv(average(Gamma)%*%average(Psi))
+
+p_G <- res$model$brr$context$Gamma #posterior Gamma
+p_P <- res$model$brr$context$Psi #posterior Psi
+
+Y_hat <- X%*%p_P%*%p_G
+lat_space <- Y%*%inv_G #obs x latent components
+lat_proj <- Y%*%inv_PG #has same dimensions as X
 
 
 
@@ -31,7 +34,7 @@ dev.off()
 
 nsubj <- length(unique(subj))
 # adding together N2 mappings  plus some covariates
-lat_map = as.data.frame(rbind(lat_map_n2[1:nsubj,], lat_map))
+lat_map = as.data.frame(rbind(lat_space))
 lat_map['condition'] = c(rep('test', nsubj), rep('train', 2*nsubj))
 lat_map['age'] = rep(ages[which(ages$File%in%subj),]$Age, 3) #get age data
 lat_map['group'] = rep(round(ages[which(ages$File%in%subj),]$Age, 0), 3) #get age data

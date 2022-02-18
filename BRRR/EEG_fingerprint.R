@@ -25,7 +25,7 @@ prepare_data <- function(spectra, validation_set){
   ages <- ages[,-1]
   
   use_all=F #should we use all subjects in training?
-  age_gap=c(0,19) #exclude some of the younger children?
+  age_gap=c(1,19) #exclude some of the younger children?
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -306,7 +306,7 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1') {
     D <- validation(within_sample = T, dis=dis, pK=K, lat_map=lat_map,#is not actually within-sample but oh well--- works now
                     Xt=X[which(rownames(X)%in%testsubj) , which(colnames(X)%in%testsubj) ])
     
-    
+
     Ds[[fold]] <- list(D, res) #append results
     
 
@@ -321,7 +321,7 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1') {
 ### TRAINING / RUNS ###
 
 # read in the data
-n2_data <- prepare_data(spectra = c("N2A","N2B","N2C","N2D"), validation_set = "N2D")
+n2_data <- prepare_data(spectra = c("N1A","N1B","N2D"), validation_set = "N2D")
 Y = n2_data[[1]]
 X = n2_data[[3]]
 x = n2_data[[2]]
@@ -334,8 +334,8 @@ Z = n2_data[[6]]
 # The model is trained using two sets of N2 data, and the within-sample performance is evaluated using
 # MSE, PTVE and accuracy (L1 distances in the projection)
 source("brrr.R")
-CV_results = do_CV(n_folds=10, K=20, iter=1000)  
-save(CV_results, file=paste0('results/', 10, 'foldCV/over1_3N2.RData'))
+CV_results = do_CV(n_folds=10, K=12, iter=1000)  
+save(CV_results, file=paste0('results/', 10, 'foldCV/K12over1_2N1.RData'))
 
 CV_scores <- lapply(CV_results, `[[`, 1)
 
@@ -343,6 +343,15 @@ n=lapply(CV_scores, sapply, mean)
 accs <- unlist(lapply(n, `[[`, 2))
 print("Average CV accuracy:")
 print(mean(accs))
+
+
+
+## Training with all data
+res <- brrr(X=X,Y=Y,K=15,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) 
+res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
+res$scaling <- ginv(averageGamma(res))
+save(res, file = paste0("results/full/over1_ind_3N2_BRRR_",12, ".RData") )
+
 
 # Ks <- c(6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30)
 # 
