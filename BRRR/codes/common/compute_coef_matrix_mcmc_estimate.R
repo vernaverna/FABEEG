@@ -1,4 +1,14 @@
 # copyright by the authors
+
+#' this function computes the estimate of the regression
+#' coefficient matrix from the posterior samples
+#'
+#' @param mcmc.output the output of the Monte-Carlo-Markov-Chain modelling step
+#'
+#' @return mean and standard deviation of the predicted regression coefficient (Psi %*% Gamma)
+#' @export
+#'
+
 compute.coef.matrix.mcmc.estimate <- function(mcmc.output) {
   
   # this function computes the estimate of the regression 

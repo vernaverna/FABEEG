@@ -1,4 +1,19 @@
 # copyright by the authors
+#' this function adds the current samples from the posteriors of model
+#' paramters to the trace list
+#'
+#' @param model the model so far
+#' @param data the input data
+#' @param trace the trace so far, will be initailized if NULL
+#' @param iter the iteration this was called from
+#' @param brr.vars.to.record what variables to record in case of a brr model
+#' @param fa.vars.to.record what variables to record in case of a fa model
+#' @param print.interesting unused
+#'
+#' @return the trace
+#' @export
+#'
+
 add.to.trace <- function(model, data, trace=NULL, iter=NA, brr.vars.to.record=c('Psi','Gamma','Gamma.local.shrinkage','star.deltas','a3a4','brr.rank'), fa.vars.to.record=c('variances','local.shrinkage','rank','Eta','a1a2','deltas','Lambda','A'), print.interesting = FALSE) {
   
   # this function adds the current samples from the posteriors of model

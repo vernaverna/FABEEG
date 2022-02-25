@@ -1,4 +1,34 @@
 # copyright by the authors
+#' Function for simulating from the posterior distribution of
+#' the infinite Bayesian low-rank reduced-rank regression model
+#'
+#' @param model model from which the MCMC is started.
+#'          This contains fields:
+#'          fa$context: Context of the covariance part.
+#'          fa$prior: Priors for the covariance part.
+#'          brr$context: Context for the reduced-rank coef matrix.
+#'          brr$prior: Priors for the reduced-rank coef matrix.
+#'          A: Confounder to target coefficient matrix.
+#' @param data this list has elements covariates, target,
+#'          confounders, crossprod.covariates
+#' @param n.iter The number of iterations to run
+#' @param thin thinning parameter for the MCMC
+#' @param fixed.brr.rank If this is a numeric value, this value
+#'          will be used as the fixed brr.rank
+#' @param brr.vars.to.record these parameters are included in the trace
+#' @param fa.vars.to.record these parameters are included in the trace
+#' @param brr.vars.to.fix these brr parameters are not updated
+#' @param ind.struct.noise include the independent structured noise model (H Lambda)
+#' @param fa.vars.to.update these fa parameters are updated
+#' @param latent.noise include the latent-noise model (Omega)
+#'
+#' @return a list containing:
+#' 	model: updated model
+#' traces: MCMC traces of the variables.
+#' @export
+#'
+
+
 gibbs.full.low.rank.brr <- function(model, data, n.iter, thin, fixed.brr.rank=NULL,
                                     brr.vars.to.record=c('Gamma.local.shrinkage',
                                                          'star.deltas', 'Psi', 'Gamma',
@@ -10,46 +40,6 @@ gibbs.full.low.rank.brr <- function(model, data, n.iter, thin, fixed.brr.rank=NU
                                     fa.vars.to.update = c('Lambda','variances','Eta',
                                                           'local.shrinkage','deltas','a1a2','rank'),
                                     latent.noise = TRUE) {
-	#
-	# Function for simulating from the posterior distribution of 
-	# a the infinite Bayesian low-rank reduced-rank regression model, 
-	#
-	# Inputs:
-	#	n.iter: The number of iterations to run
-	#
-	#	model: This is model from which the MCMC is started.
-	#          This contains fields:
-	#          fa$context: Context of the covariance part.
-	#          fa$prior: Priors for the covariance part.
-	#          brr$context: Context for the reduced-rank coef matrix.
-	#          brr$prior: Priors for the reduced-rank coef matrix.
-	#          A: Confounder to phenotype coefficient matrix.
-	#
-	#	data: this list has elements genotypes, phenotypes,
-	#          confounders, crossprod.genotypes
-	#
-	#	thin: thinning parameter for the MCMC
-	#
-	# fixed.brr.rank: If this is a numeric value, this value 
-	#          will be used as the fixed brr.rank
-	#
-	#
-	#
-	#	brr.vars.to.fix: these brr parameters are not updated
-	#	brr/fa.vars.to.record: these parameters are included in the trace
-  #	fa.vars.to.update: these fa parameters are updated
-  #
-	# ind.struct.noise: include the independent structured noise 
-  #                   model (H \Lambda)
-  #
-  # latent.noise: include the latent-noise model (\Omega)
-	#
-	# Outputs, a list containing:
-	#	model: updated model
-	#
-	#	traces: MCMC traces of the variables.
-	#
-	
 
 
 	

@@ -1,39 +1,37 @@
 # copyright by the authors
+#' Function for simulating from the posterior distribution of
+#'  a sparse Bayesian factor analysis model, as defined in
+#'  Bhattacharya and Dunson (2011).
+#'
+#' @param n.iter The number of iterations to run
+#' @param context contains initial values for all variables that
+#'            will be updated by the algorithm: "Lambda",
+#'            "variances", "Eta", "local.shrinkage", "deltas",
+#'            "a1a2", "rank" (Initialization from the prior
+#'            can be done by function "initialize.fa.from.prior").
+#'            Rank must always be >= 2
+#' @param prior contains hyperparameters of the model:
+#'          "local.shrinkage.nu", "a.sigma", "b.sigma",
+#'          "a1.shape", "a1.rate", "a1.lower.bound",
+#'          "a2.shape", "a2.rate", "a2.lower.bound",
+#'          "factor.relevance.cutoff", "alpha0", "alpha1"
+#' @param Y the observed data, i.e. dependent variable
+#' @param vars.to.update Only the variables specified here will be
+#'                   updated by the algorithm (must represent
+#'                   a subset of variables from the "context")
+#' @param thin  thin the mcmc?
+#' @param burnin the proportion of iterations to discard as bunin phase
+#' @param only.variances only update the residual noise variance parameters
+#'
+#' @return a list containing:
+#' 	           context: updated context
+#'    	       trace: MCMC traces of the variables.
+#' @export
+#'
+
 sparse.fa.gibbs <- function(n.iter, context, prior, Y,
 vars.to.update=c('Lambda','variances','Eta','local.shrinkage','deltas','a1a2','rank'), thin = NULL, burnin=NULL, only.variances = TRUE) {
-	#
-	# Function for simulating from the posterior distribution of 
-	# a sparse Bayesian factor analysis model, as defined in 
-	# Bhattacharya and Dunson (2011).
-	
-	# Inputs:
-	#	n.iter: The number of iterations to run
-	#
-	#	context: contains initial values for all variables that
-	#            will be updated by the algorithm: "Lambda", 
-	#            "variances", "Eta", "local.shrinkage", "deltas",
-	#            "a1a2", "rank" (Initialization from the prior 
-	#            can be done by function "initialize.fa.from.prior").
-	#            Rank must always be >= 2
-	#
-	#	prior: contains hyperparameters of the model:
-	#          "local.shrinkage.nu", "a.sigma", "b.sigma",
-	#          "a1.shape", "a1.rate", "a1.lower.bound",
-	#          "a2.shape", "a2.rate", "a2.lower.bound",
-	#          "factor.relevance.cutoff", "alpha0", "alpha1"
-	#
-	#	vars.to.update: Only the variables specified here will be
-	#                   updated by the algorithm (must represent
-	#                   a subset of variables from the "context").
-  #
-  # only.variances: only update the residual noise variance parameters
-  #
-  # thin, burnin: mcmc parameters 
-	#
-	# Outputs, a list containing:
-	#	context: updated context
-	#
-	#	trace: MCMC traces of the variables.
+  
 
 	# Unlist all values in context and prior for  easier use in the function.
 	

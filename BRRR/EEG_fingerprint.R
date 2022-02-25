@@ -24,7 +24,7 @@ prepare_data <- function(spectra, validation_set){
   ages = read.csv('data/new_age_df.csv')
   ages <- ages[,-1]
   
-  use_all=F #should we use all subjects in training?
+  use_all=T #should we use all subjects in training?
   age_gap=c(1,19) #exclude some of the younger children?
   #Cap='-'
   
@@ -161,7 +161,7 @@ prepare_data <- function(spectra, validation_set){
   for(s in 1:M){
     x[subj[s]] <- s
   }
-  x=c(x,x,x)
+  x=c(x,x,x) #TODO: should not change this manually!
   
   X <- matrix(0,S,M,dimnames=list(subj,unique(subj))) 
   for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]] <- 1
@@ -186,17 +186,20 @@ prepare_data <- function(spectra, validation_set){
 
 #' Function for validating the model
 #' 
-#' @param within_sample Logical. If FALSE, does out-of-sample validation
+#' @param within_sample Logical. If FALSE, does out-of-sample validation (unseen data points for all individuals)
 #' @param dis which distance measure to use. One of 'L1' or 'L2' or 'cos'
 #' @param pK how many components to use in distance calculation. Must be between 1..K
 #' @param Xt the subject identifiers
 #' @param lat_map the latent mapping used
+#' @param lat_map2 is using unseen data
+#' 
 # TODO: TRY IF WORKS JUST AS WELL WITHOUT LAT_SPACE PROJECTION???
 
-validation <- function(within_sample=FALSE, dis='L1', pK=K, Xt=X, lat_map){
+validation <- function(within_sample=FALSE, dis='L1', pK=K, Xt=X, lat_map, lat_map2=NULL){
   
   #distance matrix# 
   D <- matrix(NA, ncol(Xt), ncol(Xt), dimnames=list(colnames(Xt), c(paste0('other', colnames(Xt)) )) )  
+  
   
   # Helper function to calculate distance betewen 2 vectors
   dist_func <- function(x, y){
@@ -217,11 +220,12 @@ validation <- function(within_sample=FALSE, dis='L1', pK=K, Xt=X, lat_map){
       group_members <- rownames(lat_map)[m]   
       idxs = which(row.names(lat_map) %in% group_members) #    
       #group_mean <- colMeans(lat_map[idxs,1:pK]) 
-      other_data <- colMeans(lat_map[tail(idxs,3), 1:pK]) #compare distances to other data. AVERAGE or CHOOSE 1?
+      #other_data <- colMeans(lat_map[tail(idxs,1), 1:pK]) #compare distances to other data. AVERAGE 
+      other_data <- lat_map[tail(idxs,1), 1:pK] #or CHOOSE 1 point?
       if(within_sample){
         D[testidx,m] <- dist_func(lat_map[testidx,1:pK],other_data)
       } else {
-        D[testidx,m] <- dist_func(lat_map_n2[testidx,1:pK],other_data)
+        D[testidx,m] <- dist_func(lat_map2[testidx,1:pK],other_data)
       }
     } 
   }
@@ -263,8 +267,10 @@ validation <- function(within_sample=FALSE, dis='L1', pK=K, Xt=X, lat_map){
 #' @param K BRRR rank 
 #' @param iter how many iterations given to BRRR
 #' @param dis which distance measure to use in validation
+#' @param validation_scheme 'subject' if dropping subjects, 'unseen_data' if validating on new spectra
 
-do_CV <- function(n_folds=5, K=20, iter=500, dis='L1') {
+#TODO: parallelize: k-fold CV is embarrassingly parallel 
+do_CV <- function(n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subject') {
   
   
   Ds <- vector(mode = "list", length = n_folds) #list containing results from each CV fold
@@ -300,13 +306,42 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1') {
     W <- res$scaling
     
     #lat_map <- train_Y%*%W
-    lat_map <- Y[which(rownames(Y)%in%testsubj),]%*%W #mapping to latent space with unseen individuals
+    
     
     #call validation function
-    D <- validation(within_sample = T, dis=dis, pK=K, lat_map=lat_map,#is not actually within-sample but oh well--- works now
-                    Xt=X[which(rownames(X)%in%testsubj) , which(colnames(X)%in%testsubj) ])
+    if(validation_scheme=='subject'){
+      test_Y <- Y[which(rownames(Y)%in%testsubj),]
+      test_X <- X[which(rownames(X)%in%testsubj) , which(colnames(X)%in%testsubj) ]
+      lat_map <- test_Y%*%W #mapping to latent space with unseen individuals
+      
+      #is not actually within-sample but oh well--- works now
+      D <- validation(within_sample = T, dis=dis, pK=K, lat_map=lat_map, 
+                      Xt=test_X)
+      
+    } else if(validation_scheme=='unseen_data'){ #validate on the test spectra
+      test_Y <- Y2[which(!rownames(Y2)%in%testsubj),]
+      test_X <- train_X[1:nrow(test_Y),]
+      lat_map2 <- test_Y%*%W
+      lat_map <- train_Y%*%W
+      
+      #is not actually within-sample but oh well--- works now
+      D <- validation(within_sample = F, dis=dis, pK=K, lat_map=lat_map, lat_map2=lat_map2,  
+                      Xt=test_X)
+      
+      #calculate test MSE & PTVE
+      # PRED <- test_X%*%averagePsi(res)%*%averageGamma(res)
+      # test_MSE <- mean((test_Y-PRED)^2)
+      # test_PTVE <- 1 - sum(apply((test_Y-PRED),2,var)) / sum(apply(test_Y, 2, var))
+      # res$testMSE <- test_MSE
+      # res$testPTVE <- test_PTVE
+      # 
+      # print(paste0("Test MSE: \n", test_MSE))
+      # print(paste0("Test PTVE: \n", test_PTVE))
+      # 
+      
+    }
     
-
+    
     Ds[[fold]] <- list(D, res) #append results
     
 
@@ -321,21 +356,21 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1') {
 ### TRAINING / RUNS ###
 
 # read in the data
-n2_data <- prepare_data(spectra = c("N1A","N1B","N2D"), validation_set = "N2D")
+n2_data <- prepare_data(spectra = c("N2A","N2B","N2C","N2D"), validation_set = "N2D")
 Y = n2_data[[1]]
 X = n2_data[[3]]
 x = n2_data[[2]]
 ages = n2_data[[4]]
 
-Y2 = n2_data[[5]]
+Y2 = n2_data[[5]] #validation set daata
 Z = n2_data[[6]]
 
 
 # The model is trained using two sets of N2 data, and the within-sample performance is evaluated using
 # MSE, PTVE and accuracy (L1 distances in the projection)
 source("brrr.R")
-CV_results = do_CV(n_folds=10, K=12, iter=1000)  
-save(CV_results, file=paste0('results/', 10, 'foldCV/K12over1_2N1.RData'))
+CV_results = do_CV(n_folds=10, K=12, iter=1000, validation_scheme='unseen_data')  
+save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/K12over1_2N2.RData'))
 
 CV_scores <- lapply(CV_results, `[[`, 1)
 

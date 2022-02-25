@@ -1,4 +1,27 @@
 # copyright by the authors
+#' A function for running the updates for the
+#'  infinite reduced rank regression model.
+#'
+#' @param n.iter number of MCMC iterations
+#' @param vars.to.update list of variables to update
+#' @param context  contains the current values of the variables
+#' @param prior  contains the hyperparameter and the current
+#'   	values of the diagonal elements of the phenotype
+#'       covariance matrix
+#' @param covariates entered 0,1,2 coded covariates (however,
+#'       this assumption is not used anywhere, so,
+#'       function can be used with other kinds of
+#'       regressors as well.
+#' @param target scaled and centered target
+#' @param crossprod.covariates pre-computed crossprod(covariates)
+#'
+#' @return a list with elements:
+#'   updated.context: context with updated variables
+#'   trace: MCMC traces of the updated variables
+#'   time: total time taken by the updates
+#' @export
+#'
+
 infinite.brr.gibbs <- function(n.iter=500, vars.to.update=c('Psi','Gamma','Psi.local.shrinkage','Gamma.local.shrinkage','star.deltas','a3a4','brr.rank'), context, prior, genotypes, phenotypes, crossprod.genotypes=NULL) {
 	#
 	# A function for running the updates for the

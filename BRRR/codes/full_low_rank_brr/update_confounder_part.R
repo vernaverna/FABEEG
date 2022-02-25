@@ -1,4 +1,14 @@
 # copyright by the authors
+#' if there are known confounders, update the part of the model
+#' that accounts for them
+#' @param data the input data
+#' @param residuals ?
+#' @param model the model to update
+#'
+#' @return updated model and cpu time the updating took
+#' @export
+#'
+
 update.confounder.part <- function(data, residuals, model) {
   
   # if there are known confounders, update the part of the model

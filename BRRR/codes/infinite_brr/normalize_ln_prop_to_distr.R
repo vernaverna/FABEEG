@@ -1,4 +1,15 @@
 # copyright by the authors
+
+#' Documentation missing
+#'
+#' @param ln.prop.to.pr ?
+#' @param proposal the proposed
+#'
+#' @return
+#' @export
+#'
+
+
 normalize.ln.prop.to.distr <- function(ln.prop.to.pr, proposal) {
 	# assuming evenly spaced grid!
 	

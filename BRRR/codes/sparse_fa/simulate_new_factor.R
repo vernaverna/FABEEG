@@ -1,4 +1,22 @@
 # copyright by the authors
+#' his is a helper function of "sparse.fa.gibbs". The
+#' function is used when adding columns during the
+#' rank adaptation. See calling function for
+#' parameter definitions
+#'
+#' @param a.sigma .
+#' @param b.sigma .
+#' @param deltas .
+#' @param local.shrinkage.nu .
+#' @param a2 .
+#' @param n.targets .
+#' @param n.patients .
+#' @param prior.var.Eta .
+#'
+#' @return
+#'
+
+
 simulate.new.factor <- function(a.sigma, b.sigma, deltas, local.shrinkage.nu, a2, n.pheno, n.patients, prior.var.Eta) {
 	#
 	# This is a helper function of "sparse.fa.gibbs". The

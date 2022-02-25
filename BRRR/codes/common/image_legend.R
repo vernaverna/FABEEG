@@ -1,4 +1,11 @@
-# modified from image.legend by Martin Maechler
+#' A function to add an image legend,  modified from image.legend by Martin Maechler
+#' see comments below
+#'
+#'
+#'
+#'
+#' @return None
+#'
 image.legend <- function(x,y, zlim, at.z = NULL, col = heat.colors(12), legnd=NULL,
              lwd = max(3,32/length(col)), bg = NA, bty = "", ...)
   ## * kein y.i -- Benutzer soll rein ueber lwd steuern; sollte reichen.

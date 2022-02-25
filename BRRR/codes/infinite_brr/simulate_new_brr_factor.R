@@ -1,4 +1,17 @@
 # copyright by the authors
+
+#' creates a new row for Gamma
+#'
+#' @param star.deltas  ?
+#' @param local.shrinkage.nu ?
+#' @param a4 ?
+#' @param n.targets number of targets
+#' @param n.covariates number of covariates
+#'
+#' @return
+#' @export
+#'
+
 simulate.new.brr.factor <- function(star.deltas, local.shrinkage.nu, a4, n.pheno, n.snps) {
 	
   # Column to be added is never the first.

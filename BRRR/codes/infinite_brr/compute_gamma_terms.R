@@ -1,4 +1,13 @@
 # copyright by the authors
+#' helper function for sampling star.taus from their posterior
+#'
+#' @param brr.rank the rank of the latent space
+#' @param Gamma current gamma
+#' @param Gamma.local.shrinkage the local shrinkage parameter
+#'
+#' @return
+#'
+
 compute.gamma.terms <- function(brr.rank, Gamma, Gamma.local.shrinkage) {
   # helper function for sampling star.taus from their posterior
 	

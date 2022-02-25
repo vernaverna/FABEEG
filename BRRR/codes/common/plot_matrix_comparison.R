@@ -1,5 +1,16 @@
 # copyright by the authors
 
+#' this function is used for comparing the true model parameters
+#' to an estimate by plotting both.
+#'
+#' @param correct the parameters (Psi \%*\% Gamma) used to generate the data
+#' @param est.mean the estimated mean
+#' @param plot.path path to save the resulting plots, if null, opens an x11 connection
+#' @param plot.title title for the plot
+#'
+#' @export
+#'
+
 plot.matrix.comparison <- function(correct, est.mean=NULL, plot.path = NULL, plot.title) {
   
   # this function is used for comparing the true model parameters

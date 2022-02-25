@@ -264,6 +264,9 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   mcmc.output$data <- data
   mcmc.output$runtime <- proc.time() - ptm
   
+  #TODO: use check_mcmc_result.R !!!! to study convergence perhaps
+  
+  
   #ADDED: PTVE per each component (does not work)
   # factor_variance <- compute.factorwise.variance(data=data, Psi=averagePsi(res),
   #                                                Gamma=averageGamma(res))

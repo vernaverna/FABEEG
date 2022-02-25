@@ -1,4 +1,18 @@
 # copyright by the authors
+#' The function updates a vector specifying CPU-times taken by
+#' updates of each variable.
+#'
+#' @param cpu.times a vector where the total time spent at each update
+#'              is written
+#' @param conf.res list of times taken to update confounders part of the model
+#' @param fa.res  list of times taken to update fa part of the model
+#' @param brr.res list of times taken to update brr part of the model
+#'
+#' @return the trace of cpu times
+#' @export
+#'
+
+
 record.cpu.times <- function(cpu.times=NULL, conf.res=NULL, fa.res=NULL, brr.res=NULL) {
   # The function updates a vector specifying CPU-times taken by 
   # updates of each variable.

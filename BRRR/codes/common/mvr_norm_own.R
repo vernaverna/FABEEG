@@ -1,4 +1,13 @@
 # copyright by the authors
+#' random values from a multivariate normal distribution
+#'
+#' @param mu the mean of the distribution
+#' @param Sigma Sigma
+#'
+#' @return the random values
+#' @export
+#'
+
 mvr.norm.own <- function(mu, Sigma) {
 	d <- nrow(Sigma)
 	A <- try(chol(Sigma), silent=T)

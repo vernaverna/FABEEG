@@ -1,14 +1,18 @@
 # copyright by the authors
+#' A function for simulating independent SNP genotypes
+#'
+#' @param n.patients number of patients (observations)
+#' @param n.snps number of genotypes (covariates)
+#' @param mafs minor allele frequencies, if not given will be drawn
+#' from a uniform random distribution
+#'
+#' @return unnormalized genotypes
+#' @export
+#'
+
+
 simulate.genotypes <- function(n.patients, n.snps, mafs = NULL) {
-  #
-  # A function for simulating independent SNP genotypes.
-  #
-  # Inputs:
-  #   n.patients: number of patients
-  #   n.snps: number of genotypes
-  #
-  # Outputs:
-  #   genotypes (unnormalized)
+
   
   if (is.null(mafs)) {
     mafs <- runif(n=n.snps, min=0.05, 0.5)

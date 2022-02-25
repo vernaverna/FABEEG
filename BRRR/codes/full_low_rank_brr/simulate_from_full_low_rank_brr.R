@@ -1,18 +1,22 @@
 # copyright by the authors
+#' This function simulates data (covariates, target) from a
+#' low-rank BRRR model
+#'
+#' @param true.model the low-rank BRRR model to be used for generating data
+#' @param mafs when covariates (parameter covariates) not provided,
+#         this parameter must contain the minor-allele frequencies
+#         for the simulated SNP data
+#' @param covariates (optional): a matrix to be used as the covariates
+#                         if not provided, will be generated according
+#                         to mafs to resemble SNP data
+#'
+#' @return the simulated data, a list containing covariates, target,confoundes and crossproduct of the covariates
+#' @export
+#'
+
+
 simulate.from.full.low.rank.brr <- function(true.model, mafs=NULL, genotypes = NULL) {
 
-  # This function simulates data (genotypes, phenotypes) from a
-  # low-rank BRRR model
-  
-  # parameters:
-  #   true.model: the low-rank BRRR model to be used for generating data
-  #   genotypes (optional): a matrix to be used as the covariates
-  #                         if not provided, will be generated according
-  #                         to mafs to resemble SNP data
-  #   mafs: when covariates (parameter genotypes) not provided,
-  #         this parameter must contain the minor-allele frequencies 
-  #         for the simulated SNP data
-	
 
 	# Variables related to the low-rank covariance
 	variances <- true.model$fa$context$variances

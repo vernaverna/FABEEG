@@ -1,38 +1,45 @@
 # copyright by the authors
 
-initialize.infinite.brr <- function(local.shrinkage.nu=3, a3.shape=18, a3.rate=2, a3.lower.bound=2, a4.shape=18, a4.rate=2, a4.lower.bound=3, brr.factor.relevance.cutoff=0.01, alpha0=-1, alpha1=-5E-4, a.sigma=1, b.sigma=1, brr.rank=3, n.snps=50, n.pheno=10, step.size=10) {
-	#
-	# A function for initializing the sparse infinite
-	# Bayesian reduced rank regression.
-	#
-	# Inputs:
-	#   local.shrinkage.nu, a3.shape, a3.rate, a3.lower.bound
-	#   a4.shape, a4.rate, a4.lower.bound,
-	#   brr.factor.relevance.cutoff, alpha0, alpha1, a.sigma,
-	#   b.sigma, brr.rank, n.snps, n.pheno, n.patients
-	
-	#
-	#	If a.sigma and b.sigma are given (non-NA), variances 
-	#	will be simulated using these values. Otherwise, 
-	#	the variances will be set to NA.
-	#
-	#
-	# Outputs:
-	#   context: a list with fields Psi, Gamma,
-	#       Psi.local.shrinkage, Gamma.local.shrinkage,
-	#       star.deltas, a3a4, brr.rank
-	#
-	#   prior: a list fields local.shrinkage.nu,
-	#       a3.shape, a3.rate, a3.lower.bound,
-	#       a4.shape, a4.rate, a4.lower.bound,
-	#       brr.factor.relevance.cutoff, alpha0
-	#       alpha1, variances
-	#   (Note: variances is actually not a hyperparameter;
-	#   however, it is required when updating the low-rank
-	#   regression coefficent matrix, but it is not updated
-	#   itself.)
+#' A function for initializing the sparse infinite
+#' Bayesian reduced rank regression.
+#'
+#' @param local.shrinkage.nu see initialize_fa_from_prior
+#' @param a3.shape dito
+#' @param a3.rate dito
+#' @param a3.lower.bound dito
+#' @param a4.shape dito
+#' @param a4.rate dito
+#' @param a4.lower.bound dito
+#' @param brr.factor.relevance.cutoff  dito
+#' @param alpha0 dito
+#' @param alpha1 dito
+#' @param a.sigma If a.sigma and b.sigma are given (non-NA), variances
+# 	will be simulated using these values. Otherwise,
+# 	the variances will be set to NA.
+#' @param b.sigma dito
+#' @param brr.rank the rank assumed
+#' @param n.covariates number of covariates
+#' @param n.targets number of targets
+#' @param step.size ?
+#'
+#' @return context: a list with fields Psi, Gamma,
+#'       Psi.local.shrinkage, Gamma.local.shrinkage,
+#'       star.deltas, a3a4, brr.rank
+#'
+#'   prior: a list fields local.shrinkage.nu,
+#'       a3.shape, a3.rate, a3.lower.bound,
+#'       a4.shape, a4.rate, a4.lower.bound,
+#'       brr.factor.relevance.cutoff, alpha0
+#'       alpha1, variances
+#'   (Note: variances is actually not a hyperparameter;
+#'   however, it is required when updating the low-rank
+#'   regression coefficent matrix, but it is not updated
+#'   itself.)
+#' @export
+#'
 
-	
+initialize.infinite.brr <- function(local.shrinkage.nu=3, a3.shape=18, a3.rate=2, a3.lower.bound=2, a4.shape=18, a4.rate=2, a4.lower.bound=3, brr.factor.relevance.cutoff=0.01, alpha0=-1, alpha1=-5E-4, a.sigma=1, b.sigma=1, brr.rank=3, n.snps=50, n.pheno=10, step.size=10) {
+
 	## Hyperparameters:    
 	if (!is.na(a.sigma)) {
 		precisions <- rgamma(n=n.pheno, shape=a.sigma, rate=b.sigma)

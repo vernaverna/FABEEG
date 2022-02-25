@@ -1,22 +1,21 @@
 # copyright by the authors
+#' Helper function for the Gibbs sampling. The function
+#' computes the residuals
+#'
+#' @param type One of 'brr', 'fa', or 'confounder', depending on
+#'         which part of the model we are going to update
+#'         using the obtained residuals.
+#' @param model The current model
+#' @param data List with fields: 'covariates', 'target', and
+#' 		  'confounders'
+#'
+#' @return a list containing:
+#' 	residuals: matrix of residuals
+#' @export
+
+
 compute.residuals <- function(type, model, data) {
-	#
-	# Helper function for the Gibbs sampling. The function
-	# computes the residuals 
-	#
-	# Inputs:
-	#	type: One of 'brr', 'fa', or 'confounder', depending on
-	#         which part of the model we are going to update
-	#         using the obtained residuals.
-	#
-	#	model: The current model
-	#	
-	#	data: List with fields: 'genotypes', 'phenotypes', and
-	#		  'confounders'
-	#
-	#
-	# Outputs, a list containing:
-	#	residuals: matrix of residuals
+
 
 	phenotypes <- data$phenotypes
 	if (type=='brr') {

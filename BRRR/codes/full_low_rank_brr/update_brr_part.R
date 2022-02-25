@@ -1,4 +1,20 @@
 # copyright by the authors
+#' update the brr part of the model
+#'
+#' @param data the input data
+#' @param residuals ?
+#' @param model the model used
+#' @param fixed.brr.rank in given brrr with a fixed rank is used
+#' @param brr.vars.to.fix the variables to keep fixed
+#' @param current.iter current iteration
+#' @param brr.vars.to.update what variables to update
+#' @param latent.noise update Omega value?
+#'
+#' @return the updated model and the cpu time computation took
+#' @export
+#'
+
+
 update.brr.part <- function(data, residuals, model, fixed.brr.rank, brr.vars.to.fix, current.iter, brr.vars.to.update = NULL, latent.noise = TRUE) {
 
 
