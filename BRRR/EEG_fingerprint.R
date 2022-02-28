@@ -362,15 +362,35 @@ X = n2_data[[3]]
 x = n2_data[[2]]
 ages = n2_data[[4]]
 
-Y2 = n2_data[[5]] #validation set daata
+Y2 = n2_data[[5]] #validation set data
 Z = n2_data[[6]]
 
 
 # The model is trained using two sets of N2 data, and the within-sample performance is evaluated using
 # MSE, PTVE and accuracy (L1 distances in the projection)
+
+Ks <- c(6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30)
 source("brrr.R")
-CV_results = do_CV(n_folds=10, K=12, iter=1000, validation_scheme='unseen_data')  
-save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/K12over1_2N2.RData'))
+
+for(k in Ks){
+  CV_results = do_CV(n_folds=10, K=k, iter=1000, validation_scheme='subject')
+  
+  CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
+  CV_ptves <- lapply(CV_results, `[[`, 2)
+  CV_2 <- lapply(CV_ptves, `[[`, 1)
+  CV_ptve <- lapply(CV_2, `[[`, 3)
+  
+  n=lapply(CV_scores, sapply, mean)
+  accs <- unlist(lapply(n, `[[`, 2))
+  print("Average CV accuracy:")
+  print(mean(accs))
+  
+  print("Average train-PTVE:")
+  print( mean(unlist(CV_ptve)) )
+}
+  
+CV_results = do_CV(n_folds=10, K=6, iter=1000, validation_scheme='subject')  
+save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/K12over1_3N2.RData'))
 
 CV_scores <- lapply(CV_results, `[[`, 1)
 
@@ -382,7 +402,8 @@ print(mean(accs))
 
 
 ## Training with all data
-res <- brrr(X=X,Y=Y,K=15,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) 
+
+res <- brrr(X=X,Y=Y,K=k,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) 
 res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
 res$scaling <- ginv(averageGamma(res))
 save(res, file = paste0("results/full/over1_ind_3N2_BRRR_",12, ".RData") )

@@ -3,11 +3,12 @@
 setwd("/projects/FABEEG/BRRR")
 library("penalizedLDA")
 library("ggplot2")
+library("dplyr")
 library("cvms")
 
 ## WORKING WITH FULL DATA MODEL ##
 
-load("results/full/over1_ind_3N2_BRRR_12.RData")
+load("results/full/over1_ind_2N2_BRRR_12.RData")
 
 Y <- res$data$phenotypes
 X <- res$data$genotypes
@@ -35,16 +36,30 @@ lat_proj <- Y%*%inv_PG #has same dimensions as X
 nsubj <- length(unique(subj))
 # adding together N2 mappings  plus some covariates
 lat_map = as.data.frame(rbind(lat_space))
-lat_map['condition'] = c(rep('test', nsubj), rep('train', 2*nsubj))
-lat_map['age'] = rep(ages[which(ages$File%in%subj),]$Age, 3) #get age data
-lat_map['group'] = rep(round(ages[which(ages$File%in%subj),]$Age, 0), 3) #get age data
-lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, 3)
+lat_map['spectra'] = c(rep('N2A', nsubj), rep('N2B', nsubj))
+lat_map['age'] = rep(ages[which(ages$File%in%subj),]$Age, 2) #get age data
+lat_map['group'] = rep(round(ages[which(ages$File%in%subj),]$Age, 0), 2) #get age data
+lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, 2)
+lat_map['cap'] = rep(ages[which(ages$File%in%subj),]$Cap, 2)
+lat_map['subject'] = subj[1:nsubj]
 
-subj_number <- factor(c(x,seq(1,nsubj)))
 
-ggplot(data=as.data.frame(lat_map), aes(lat_map[,6], lat_map[,7], shape=condition, col=factor(sex))) + 
-  geom_point(aes(size=age)) + ggtitle("Subjects in latent mapping ") + 
-  xlab("Component #1") + ylab("Component #2")
+#Create a latent space mapping, highlighting only certain individuals
+
+#get colorblind-friendly palette
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+
+lat_map_mini=lat_map[c(1:8, 592:599), ] #make highlight points
+
+ggplot(data=as.data.frame(lat_map), 
+       aes(lat_map[,1], lat_map[,2], shape=spectra)) + 
+  geom_point(alpha=0.2) + geom_point(data=lat_map_mini, 
+                                     aes(lat_map_mini[,1], lat_map_mini[,2], shape=spectra, colour=subject),
+                                     size=3) +
+  ggtitle("Subjects in latent mapping ") + scale_colour_manual(values=cbbPalette)+
+  xlab("Component #1") + ylab("Component #2") + xlim(-45,55) + ylim(-25,30) +
+  theme(legend.position="none") + theme_bw()
 
 
 # trying 3D plots

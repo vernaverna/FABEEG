@@ -3,17 +3,21 @@
 #                                    #
 ######################################
 
-data <- "EEG_ind" # datatype
+#TODO: add miniheads? (nope) + same individual, different data??
+
+data <- "raw" # datatype
 
 if(data == "EEG_ind") { #TODO: fix repetition
-  fname <- paste0("results/full/over1_ind_2N2_BRRR_K6.RData")
+  fname <- paste0("results/full/over1_ind_2N2_BRRR_12.RData")
   load(fname)
   datafile <- paste0("data/N2Aspectrum.RData") #only to get frequencies
   load(datafile)
-  
+
+
   keepFeat <- which(apply(res$data$phenotypes,2,var,na.rm=T)>0)
   #Y <- cbind(res$scaling[,1:5], t(res$model$A)) #to get confounder weight matrix too
-  Y <- res$scaling
+  Y <- res$scaling 
+  #Y <- t(exp (res$data$phenotypes) )[,1:12] #take 12 individuals, N2A data 
   net <- list(omitMag=F,Y=Y,keepFeat=keepFeat, #create the net object only now
               penLDA=4,omitN=2000,l1d=200)
   net$lambda <- 0
@@ -23,6 +27,34 @@ if(data == "EEG_ind") { #TODO: fix repetition
   
   coords <- read.table("var/coords.csv",sep=",")
   ch_names <- read.table("var/ch_names.csv", sep=",")
+  
+} else if(data == 'raw'){
+  
+
+  spectra <- c('1A','1B','2A','2B','2C','2D')
+  Ys <- matrix(ncol=length(spectra), nrow = 266) 
+  #Ys <- vector(mode = 'list', length=length(spectra))
+  
+  for(i in 1:length(spectra)){
+    spectrum=spectra[i]
+    datafile <- paste0("data/N",spectrum,"spectrum.RData")
+    load(datafile)
+    Ys[,i] <- exp( log10(c(Y$FLE151021)) ) #scaling in order to make differences more visible
+  }
+  
+  Y=Ys
+  keepFeat <- which(apply(Y,1,var,na.rm=T)>0)
+  net <- list(omitMag=F,Y=Ys,keepFeat=keepFeat, #create the net object only now
+              penLDA=4,omitN=2000,l1d=200)
+  net$lambda <- 0
+  
+  
+  net$freq <- freq
+  
+  coords <- read.table("var/coords.csv",sep=",")
+  ch_names <- read.table("var/ch_names.csv", sep=",")
+  
+  
 } else {
   fname <- paste0("results/full/age_over4_N2_BRRR_K6.RData")
   load(fname)
@@ -50,7 +82,7 @@ coords = coords * 200
 ####
 ####
 
-filename <- paste0("fig_N2abK6_591_", data, ".pdf") # pdf file for saving plots
+filename <- paste0("figures/fig_FLE151021_spectra", data, ".pdf") # pdf file for saving plots
 pdf(file=filename,width=20,height=30)
 
 plotLabels <- paste0("K",1:ncol(net$Y)) # plot lables
