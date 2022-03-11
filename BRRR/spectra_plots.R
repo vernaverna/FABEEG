@@ -11,7 +11,7 @@ ex="N2A"
 
 setwd("/projects/FABEEG/BRRR")
 load(paste0("data/",ex,"spectrum.RData"))
-ages = read.csv('data/age_df.csv')
+ages = read.csv('data/new_age_df.csv')
 ages <- ages[,-1]
 
 
@@ -19,7 +19,7 @@ ages <- ages[,-1]
 
 #TODO: think about the colour 
 p <- ggplot(data=ages, aes(x=Age)) +
-  geom_histogram(binwidth = 1, fill='chocolate2', color="#e9ecef", alpha=0.9) + 
+  geom_histogram(binwidth = 1, fill='yellowgreen', color="#e9ecef", alpha=0.9) + 
   ylab('Count') + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                         panel.background = element_blank()) #no grid
 p

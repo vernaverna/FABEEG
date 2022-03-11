@@ -18,7 +18,7 @@ prepare_data <- function(spectra, validation_set){
   
   # Choosing the channels and frequencies
   chs <- 1:19
-  omitFreq = c(0,60)
+  omitFreq = c(0,60) #TODO: how about using only low-freq activity? u10, u5?
   
   #extract the age groups
   ages = read.csv('data/new_age_df.csv')
@@ -47,7 +47,7 @@ prepare_data <- function(spectra, validation_set){
         set.seed(11)
         #load("/projects/FABEEG/BRRR/ref_subjects.RData")
         #individuals=obs
-        individuals = sample(individuals, 200)
+        individuals = sample(individuals, 210)
         Y = Y[names(Y) %in% individuals]
         
       }
@@ -161,7 +161,7 @@ prepare_data <- function(spectra, validation_set){
   for(s in 1:M){
     x[subj[s]] <- s
   }
-  x=c(x,x,x) #TODO: should not change this manually!
+  x=rep(x, length(spectra)-1) 
   
   X <- matrix(0,S,M,dimnames=list(subj,unique(subj))) 
   for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]] <- 1
@@ -219,12 +219,19 @@ validation <- function(within_sample=FALSE, dis='L1', pK=K, Xt=X, lat_map, lat_m
     for(m in 1:ncol(Xt)){     
       group_members <- rownames(lat_map)[m]   
       idxs = which(row.names(lat_map) %in% group_members) #    
-      #group_mean <- colMeans(lat_map[idxs,1:pK]) 
-      #other_data <- colMeans(lat_map[tail(idxs,1), 1:pK]) #compare distances to other data. AVERAGE 
-      other_data <- lat_map[tail(idxs,1), 1:pK] #or CHOOSE 1 point?
+      #group_mean <- colMeans(lat_map[idxs,1:pK])
       if(within_sample){
+        
+        if(length(idxs == 3)){
+          other_data <- colMeans(lat_map[tail(idxs,2), 1:pK])
+        } else {
+          other_data <- lat_map[tail(idxs,1), 1:pK] 
+        }
         D[testidx,m] <- dist_func(lat_map[testidx,1:pK],other_data)
+        
       } else {
+        
+        other_data <- colMeans(lat_map[idxs, 1:pK])
         D[testidx,m] <- dist_func(lat_map2[testidx,1:pK],other_data)
       }
     } 
@@ -356,7 +363,7 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subjec
 ### TRAINING / RUNS ###
 
 # read in the data
-n2_data <- prepare_data(spectra = c("N2A","N2B","N2C","N2D"), validation_set = "N2D")
+n2_data <- prepare_data(spectra = c("N1A","N1B","N2C","N2D"), validation_set = "N2D")
 Y = n2_data[[1]]
 X = n2_data[[3]]
 x = n2_data[[2]]
@@ -369,11 +376,11 @@ Z = n2_data[[6]]
 # The model is trained using two sets of N2 data, and the within-sample performance is evaluated using
 # MSE, PTVE and accuracy (L1 distances in the projection)
 
-Ks <- c(6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30)
+Ks <- c(32, 34, 36, 38, 40, 42, 44, 46, 48, 50)
 source("brrr.R")
 
 for(k in Ks){
-  CV_results = do_CV(n_folds=10, K=k, iter=1000, validation_scheme='subject')
+  CV_results = do_CV(n_folds=10, K=12, iter=1000, validation_scheme='subject')
   
   CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
   CV_ptves <- lapply(CV_results, `[[`, 2)
@@ -388,9 +395,13 @@ for(k in Ks){
   print("Average train-PTVE:")
   print( mean(unlist(CV_ptve)) )
 }
+
+
+
+
   
-CV_results = do_CV(n_folds=10, K=6, iter=1000, validation_scheme='subject')  
-save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/K12over1_3N2.RData'))
+CV_results = do_CV(n_folds=5, K=6, iter=1000, validation_scheme='unseen_data')  
+save(CV_results, file=paste0('results/', 10, 'foldCV/K12all_N1N2.RData'))
 
 CV_scores <- lapply(CV_results, `[[`, 1)
 
@@ -402,12 +413,20 @@ print(mean(accs))
 
 
 ## Training with all data
-
-res <- brrr(X=X,Y=Y,K=k,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) 
+K=12
+res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=1e-6) 
 res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
 res$scaling <- ginv(averageGamma(res))
-save(res, file = paste0("results/full/over1_ind_3N2_BRRR_",12, ".RData") )
+save(res, file = paste0("results/full/over_1_N1_2N2_BRRR_K",K, ".RData") )
+W <- res$scaling
+lat_map <- Y%*%W
+lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
 
+D1 <- validation(within_sample = T, dis='L1', pK=K, lat_map=lat_map, lat_map2=NULL, Xt=X)
+
+#baseline: calculate distances on all data
+lat_map <- Y 
+D <- validation(within_sample = F, dis='L1', pK=K, lat_map=lat_map, lat_map2=lat_map2, Xt=X)
 
 # Ks <- c(6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30)
 # 
@@ -422,10 +441,10 @@ save(res, file = paste0("results/full/over1_ind_3N2_BRRR_",12, ".RData") )
 #   W <- res$scaling
 #   
 #   lat_map <- Y%*%W
-#   lat_map_n2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
+#   lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
 #   
 #   
-#   D <- validation(within_sample = F, dis='L1', pK=k)[[1]]
+#   D <- validation(within_sample = T, dis='L1', pK=k, lat_map=lat_map, lat_map2=NULL, Xt=X)
 #   save(res, file = paste0("results/full/over1_ind_2N2_BRRR_",k, ".RData") )
 # }
 

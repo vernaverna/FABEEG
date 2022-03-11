@@ -6,10 +6,26 @@ library("ggplot2")
 library("dplyr")
 library("cvms")
 
-## WORKING WITH FULL DATA MODEL ##
+## Test component simlarities ##
 
+load("results/full/over1_ind_2N2_BRRR_12.RData") #try with the best ptve models tho!
+comp1 <- res$scaling
+res2 <- load("results/full/over1_ind_3N2_BRRR_12.RData")
+comp2 <- res$scaling
+rm(res)
+
+cossim <- function(x,y){ #calculate cossimilarity between matrices
+  return( sum(x*y) / (sqrt(sum(x**2))*sqrt(sum(y**2))) )
+}
+
+for(i in 1:ncol(comp1)){
+  print("cosine similarity:")
+  print( cossim(comp1[,i], comp2[,i]) )
+}
+
+
+  ## WORKING WITH FULL DATA MODEL ##  
 load("results/full/over1_ind_2N2_BRRR_12.RData")
-
 Y <- res$data$phenotypes
 X <- res$data$genotypes
 subj <- row.names(X)
@@ -28,6 +44,20 @@ p_P <- res$model$brr$context$Psi #posterior Psi
 Y_hat <- X%*%p_P%*%p_G
 lat_space <- Y%*%inv_G #obs x latent components
 lat_proj <- Y%*%inv_PG #has same dimensions as X
+
+
+
+source("visNetwork.R")
+net <- list(omitMag=omitMag,Y=res$scaling,keepFeat=keepFeat,
+            penLDA=4,omitN=omitN,l1d=l1d)
+net$lambda <- lambda
+
+net$freq <- freq
+net$fname <- fname
+
+save(net,file=fname)
+visNetwork(net,onlyPdf=TRUE)
+visNetwork(net,onlyPdf=TRUE,levelplot=TRUE)
 
 
 
@@ -141,4 +171,43 @@ plot(hc)
 dend <- as.dendrogram(hc)
 dend %>% set("branches_k_color", k = 5) %>% plot(main = "Nice defaults")
 
+
+
+# Or how about k-means?
+install.packages("ClusterR")
+install.packages("cluster")
+
+
+
+
+# Plotting dependence of train-PTVE, accuracy and lat. space dimension
+
+K=c(6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50)
+Accuracy=c(0.5026919,0.6054551,0.6409343,0.6762854,0.6796895,0.7216066,0.7083464,0.7184304,
+           0.7436832,0.7470019,0.7739353,0.750349,0.770631,0.7841903,0.7993876,0.780715,
+           0.7808432,0.8077339,0.780715,0.8061672,0.8010255,0.8110668,0.8026207)
+PTVE=c(0.783122,0.7989688,0.8105054,0.8198825,0.8272988,0.8337677,0.8387554,0.8431643,
+       0.8468616,0.8499344,0.8528079,0.8554512,0.8575301,0.8595379,0.8612431,0.8628522,
+       0.8643616,0.8657661,0.8670517,0.868357,0.8694523,0.870628,0.871647)
+
+data=as.data.frame(cbind(K, Accuracy, PTVE))
+
+
+#ggplot(data=data, aes(x=K, y=Accuracy) ) + geom_line() + 
+#  geom_line(data=data, aes(x=K, y=PTVE)) +
+#  theme_minimal()
+
+plot(Accuracy~K, type='l', col='yellowgreen', ylim=c(0.49, 0.9),
+     ylab="", lwd=3, bty='n')
+lines(PTVE~K, col='purple4', lwd=3, bty='n')
+grid(nx = NA,
+     ny = NULL,
+     lty = 2, col = "gray", lwd = 0.8)
+
+legend('bottomright', legend = c('Accuracy', 'PTVE'),  
+       col=c('yellowgreen', 'purple4'), pch=19, bty = "n", 
+       pt.cex = 1.8, 
+       cex = 1.2, 
+       text.col = "black", 
+       horiz = F , inset = c(0.07, 0.07) )
 
