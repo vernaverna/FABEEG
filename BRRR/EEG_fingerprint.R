@@ -25,7 +25,7 @@ prepare_data <- function(spectra, validation_set){
   ages <- ages[,-1]
   
   use_all=T #should we use all subjects in training?
-  age_gap=c(1,19) #exclude some of the younger children?
+  age_gap=c(7,19) #exclude some of the younger children?
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -47,7 +47,7 @@ prepare_data <- function(spectra, validation_set){
         set.seed(11)
         #load("/projects/FABEEG/BRRR/ref_subjects.RData")
         #individuals=obs
-        individuals = sample(individuals, 210)
+        individuals = sample(individuals, 206)
         Y = Y[names(Y) %in% individuals]
         
       }
@@ -363,7 +363,7 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subjec
 ### TRAINING / RUNS ###
 
 # read in the data
-n2_data <- prepare_data(spectra = c("N1A","N1B","N2C","N2D"), validation_set = "N2D")
+n2_data <- prepare_data(spectra = c("N2A","N2B","N2D"), validation_set = "N2D")
 Y = n2_data[[1]]
 X = n2_data[[3]]
 x = n2_data[[2]]
@@ -413,11 +413,12 @@ print(mean(accs))
 
 
 ## Training with all data
+source("brrr.R")
 K=12
 res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=1e-6) 
 res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
 res$scaling <- ginv(averageGamma(res))
-save(res, file = paste0("results/full/over_1_N1_2N2_BRRR_K",K, ".RData") )
+save(res, file = paste0("results/full/over7_2N2_BRRR_K",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)

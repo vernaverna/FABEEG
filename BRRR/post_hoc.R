@@ -8,9 +8,9 @@ library("cvms")
 
 ## Test component simlarities ##
 
-load("results/full/over1_ind_2N2_BRRR_12.RData") #try with the best ptve models tho!
+load("results/full/over7_2N2_BRRR_K12.RData") #try with the best ptve models tho!
 comp1 <- res$scaling
-res2 <- load("results/full/over1_ind_3N2_BRRR_12.RData")
+res2 <- load("results/full/203_2N2_BRRR_K12.RData")
 comp2 <- res$scaling
 rm(res)
 
@@ -19,9 +19,18 @@ cossim <- function(x,y){ #calculate cossimilarity between matrices
 }
 
 for(i in 1:ncol(comp1)){
-  print("cosine similarity:")
+  print(paste0("cosine similarity of K",i))
   print( cossim(comp1[,i], comp2[,i]) )
 }
+
+M <- matrix(NA, nrow=ncol(comp1), ncol=ncol(comp1))
+for(i in 1:ncol(comp1)){
+  for(j in 1:ncol(comp2)){
+    M[i,j] <- cossim(comp1[,i], comp2[,j])
+  }
+}
+rownames(M) <- c(paste0('res1_K', c(1:12)))
+colnames(M) <- c(paste0('res2_K', c(1:12)))
 
 
   ## WORKING WITH FULL DATA MODEL ##  
