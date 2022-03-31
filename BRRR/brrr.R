@@ -113,7 +113,7 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   
   
   learnt.params <- list()
-  
+
   # BRRR rank used for inititialization
   if (is.null(brr.rank)) brr.rank.init <- 3 else brr.rank.init <- brr.rank
   
@@ -194,7 +194,7 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   
   # set BRRR shrinkage parameters. Note that in the notation of the
   # paper these are a1 and a2 (and vice versa)
-  init.model$brr$context$a3a4 <- c(10, 4.1) #c(2, 2) #
+  init.model$brr$context$a3a4 <- c(2, 2) #c(10, 4.1) #
   
   # Testing! More variance to Psi, to allow for different scales in X!
   init.model$brr$prior$psiPrec <- 1 #10000 #
@@ -264,13 +264,27 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   mcmc.output$data <- data
   mcmc.output$runtime <- proc.time() - ptm
   
-  #TODO: use check_mcmc_result.R !!!! to study convergence perhaps
+  #Use check_mcmc_result.R to study convergence 
+  context <- list()
+  context$Psi <- mcmc.output$model$brr$context$Psi #what should be put into context?
+  context$Gamma <- mcmc.output$model$brr$context$Gamma
+  name='coefMat'
+  plot.path = paste0(getwd(), "/figures/mcmc_")
+  plot.title = "coefMat=Psi*Gamma"
+  result = check.mcmc.result(context = context, mcmc.output = mcmc.output, name=name, plot.path = plot.path, plot.title = plot.title)
+  
+  #  From Gillberg. et. al. (2016):
+  #
+  #     Averaged effective sample sizes (ESS) and potential scale reduction
+  #     factors (PSRF) were computed for 200 randomly selected parameters of the regression
+  #     coefficient matrix (Gelman et al., 2004). 
+  #
   
   
-  #ADDED: PTVE per each component (does not work)
-  # factor_variance <- compute.factorwise.variance(data=data, Psi=averagePsi(res),
-  #                                                Gamma=averageGamma(res))
-  # mcmc.output$factor_variance <- factor_variance #total variation explained =sum
+  #ADDED: PTVE per each component 
+  factor_variance <- compute.factorwise.variance(data=data, Psi=averagePsi(mcmc.output),
+                                                  Gamma=averageGamma(mcmc.output))
+  mcmc.output$factor_variance <- factor_variance #total variation explained =sum
   #print(factor_variance)
 
   

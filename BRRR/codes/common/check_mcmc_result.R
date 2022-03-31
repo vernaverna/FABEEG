@@ -9,7 +9,7 @@
 #' @param plot.title the plots title
 #'
 #' @return a list containing mse                              the mean squared error between the correct and estimated mean
-#'                           prop.in.interval                 the proportion of values used to generate the model that is withing 2 standard devaitions of the predicted mean
+#'                           prop.in.interval                 the proportion of values used to generate the model that is withing 2 standard deviations of the predicted mean
 #'                           correct, est.mean, est.std       the input data
 #'                           correlation                      the correlation between the values use to generate the model and the models prediction
 #' @export

@@ -5,10 +5,10 @@
 
 #TODO: add miniheads? (nope) + same individual, different data??
 
-data <- "EEG_ind" # datatype
+data <- "raw" # datatype
 
 if(data == "EEG_ind") { #TODO: fix repetition
-  fname <- paste0("results/full/203_2N2_BRRR_K12.RData")
+  fname <- paste0("results/full/over7_2N1_BRRR_K12.RData")
   load(fname)
   datafile <- paste0("data/N2Aspectrum.RData") #only to get frequencies
   load(datafile)
@@ -39,7 +39,8 @@ if(data == "EEG_ind") { #TODO: fix repetition
     spectrum=spectra[i]
     datafile <- paste0("data/N",spectrum,"spectrum.RData")
     load(datafile)
-    Ys[,i] <- exp( log10(c(Y$FLE151021)) ) #scaling in order to make differences more visible
+    #Ys[,i] <- exp( log10(c(Y$FLE151021)) ) #scaling in order to make differences more visible
+    Ys[,i] <- c(Y$FLE151021)
   }
   
   Y=Ys
@@ -82,10 +83,13 @@ coords = coords * 200
 ####
 ####
 
-filename <- paste0("figures/203_2N2", data, ".pdf") # pdf file for saving plots
+filename <- paste0("figures/FLE15021", data, ".pdf") # pdf file for saving plots
 pdf(file=filename,width=20,height=30)
-
 plotLabels <- paste0("K",1:ncol(net$Y)) # plot lables
+if(data=='raw'){
+  plotLabels <- paste0("N", spectra)
+}
+
 maxK <- ncol(net$Y) # number of latent components
 n_channels <- nrow(net$Y)/nrow(net$freq) # number of meg channels
 n_bands <- nrow(net$freq) # number of frequency bands

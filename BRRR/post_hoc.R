@@ -5,16 +5,19 @@ library("penalizedLDA")
 library("ggplot2")
 library("dplyr")
 library("cvms")
+library("RColorBrewer")
+library("corrplot")
+
 
 ## Test component simlarities ##
 
 load("results/full/over7_2N2_BRRR_K12.RData") #try with the best ptve models tho!
 comp1 <- res$scaling
-res2 <- load("results/full/203_2N2_BRRR_K12.RData")
+res2 <- load("results/full/over7_2N1_BRRR_K12.RData")
 comp2 <- res$scaling
 rm(res)
 
-cossim <- function(x,y){ #calculate cossimilarity between matrices
+cossim <- function(x,y){ #calculate cossimilarity between vectors
   return( sum(x*y) / (sqrt(sum(x**2))*sqrt(sum(y**2))) )
 }
 
@@ -29,9 +32,20 @@ for(i in 1:ncol(comp1)){
     M[i,j] <- cossim(comp1[,i], comp2[,j])
   }
 }
-rownames(M) <- c(paste0('res1_K', c(1:12)))
-colnames(M) <- c(paste0('res2_K', c(1:12)))
+rownames(M) <- c(paste0('A_K', c(1:12))) #rows=res1
+colnames(M) <- c(paste0('B_K', c(1:12)))
 
+#maybe better to use abs values with gradient palette
+heatmap(abs(M),  Colv = NA, Rowv = NA, col=brewer.pal(8,"BuPu"), 
+        xlab="model B",ylab="model A",main="Heatmap of cosine distances") 
+
+P=cor(Ys, method = 'spearman')
+rownames(P) <- plotLabels
+colnames(P) <- plotLabels
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+corrplot(P, method = "color", col=col(200), type = "lower",
+         title="Correlations between global PSDs of one subject",
+         addCoef.col = "black", mar=c(0,0,1,0))
 
   ## WORKING WITH FULL DATA MODEL ##  
 load("results/full/over1_ind_2N2_BRRR_12.RData")
@@ -191,30 +205,36 @@ install.packages("cluster")
 
 # Plotting dependence of train-PTVE, accuracy and lat. space dimension
 
-K=c(6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50)
-Accuracy=c(0.5026919,0.6054551,0.6409343,0.6762854,0.6796895,0.7216066,0.7083464,0.7184304,
-           0.7436832,0.7470019,0.7739353,0.750349,0.770631,0.7841903,0.7993876,0.780715,
-           0.7808432,0.8077339,0.780715,0.8061672,0.8010255,0.8110668,0.8026207)
-PTVE=c(0.783122,0.7989688,0.8105054,0.8198825,0.8272988,0.8337677,0.8387554,0.8431643,
-       0.8468616,0.8499344,0.8528079,0.8554512,0.8575301,0.8595379,0.8612431,0.8628522,
-       0.8643616,0.8657661,0.8670517,0.868357,0.8694523,0.870628,0.871647)
+#K=c(6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50)
+#Accuracy=c(0.5026919,0.6054551,0.6409343,0.6762854,0.6796895,0.7216066,0.7083464,0.7184304,
+#           0.7436832,0.7470019,0.7739353,0.750349,0.770631,0.7841903,0.7993876,0.780715,
+#           0.7808432,0.8077339,0.780715,0.8061672,0.8010255,0.8110668,0.8026207)
+#PTVE=c(0.783122,0.7989688,0.8105054,0.8198825,0.8272988,0.8337677,0.8387554,0.8431643,
+#       0.8468616,0.8499344,0.8528079,0.8554512,0.8575301,0.8595379,0.8612431,0.8628522,
+#       0.8643616,0.8657661,0.8670517,0.868357,0.8694523,0.870628,0.871647)
 
-data=as.data.frame(cbind(K, Accuracy, PTVE))
+P<-c(80,180,280,380,480,580,680,780)
+Accuracy<-c(0.3375,0.5592593,0.5396825,0.552924,0.537326,0.5421456,0.5395425,0.4837607) #for the different Ns; K=12
+PTVE <-c(0.7839801,0.7560055,0.7771796,0.7729471,0.772513275,0.7694992,0.768224,0.7740776)
+
+
+
+data=as.data.frame(cbind(P, Accuracy, PTVE))
 
 
 #ggplot(data=data, aes(x=K, y=Accuracy) ) + geom_line() + 
 #  geom_line(data=data, aes(x=K, y=PTVE)) +
 #  theme_minimal()
 
-plot(Accuracy~K, type='l', col='yellowgreen', ylim=c(0.49, 0.9),
+plot(Accuracy~P, type='l', col='darkorange', ylim=c(0.30, 0.8),
      ylab="", lwd=3, bty='n')
-lines(PTVE~K, col='purple4', lwd=3, bty='n')
+lines(PTVE~P, col='darkcyan', lwd=3, bty='n')
 grid(nx = NA,
      ny = NULL,
      lty = 2, col = "gray", lwd = 0.8)
 
 legend('bottomright', legend = c('Accuracy', 'PTVE'),  
-       col=c('yellowgreen', 'purple4'), pch=19, bty = "n", 
+       col=c('darkorange', 'darkcyan'), pch=19, bty = "n", 
        pt.cex = 1.8, 
        cex = 1.2, 
        text.col = "black", 

@@ -22,9 +22,9 @@ prepare_data <- function(ex){
   # Group +15 year-olds together in group 15
   old_idx = which(ages$Age.group >= 15)
   ages$Age.group[old_idx] <- 15
-  to_exclude=c(0,1,2,3) #c(0,1,2,3) #which age groups to exclude
-  use_all=F #use all individuals?
-  stabilize=T #get even age groups?
+  to_exclude=c(0,1,2) #c(0,1,2,3) #which age groups to exclude
+  use_all=T #use all individuals?
+  stabilize=F #get even age groups?
   
   # Check if the file exists
   if(file.exists(loadfile)) {
@@ -147,8 +147,8 @@ prepare_data <- function(ex){
   }
   
   # Making design matrix out of classes
-  X <- matrix(0,S,M,dimnames=list(obs,paste0("class",4:max(x) )) ) #TODO: I do not want to change these manually!
-  for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]-3] <- 1 #classes go from 4 to 15, shift by one
+  X <- matrix(0,S,M,dimnames=list(obs,paste0("class",3:max(x) )) ) #TODO: I do not want to change these manually!
+  for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]-2] <- 1 #classes go from 4 to 15, shift by one
   if(M==2) {
     print("Condensing two classes into one +-1 covariate.")
     X <- X[,1,drop=FALSE] 
@@ -167,10 +167,11 @@ n2b_data <- prepare_data(ex="N2B") #validation set
 Y1 = n2_data[[1]]
 Y2 = n2b_data[[1]]
 
-#Y = rbind(Y1, Y2)
+Y = rbind(Y1, Y2)
+Y = scale(Y,center=T,scale=T)
 
-x = n2_data[[2]]
-X = n2_data[[3]]
+x = c(n2_data[[2]], n2_data[[2]])
+X = rbind(n2_data[[3]], n2_data[[3]])
 M = n2_data[[4]]
 subj = dimnames(Y1)[[1]]
 groups = n2_data[[5]]
@@ -189,7 +190,7 @@ cossim <- function(x, y){
 omegas = c(1e+05,1e+04,1e+03,1e+02,1e+01,1,1e-01,1e-02,1e-03,1e-04,1e-05)
 source("brrr.R")
 for(o in omegas){
-  res <- brrr(X=X,Y=Y1, K=5, n.iter=1000,thin=5,init="LDA", fam = x, omg=o) #fit the model  
+  res <- brrr(X=X,Y=Y, Z=NA, K=12, n.iter=1000,thin=5,init="PCA", fam =x, omg=1e-8) #fit the model  
 }
 
 
@@ -302,7 +303,7 @@ lat_map = as.data.frame(rbind(lat_map_ec[1:nsubj,], lat_map_eo))
 lat_map['condition'] = c(rep('ec', nsubj), rep('eo', nsubj))
 
 
-ggplot(data=as.data.frame(lat_map), aes(lat_map[,1], lat_map[,2], shape=condition, col=factor(x))) + 
+ggplot(data=as.data.frame(lat_map), aes(lat_map[,1], lat_map[Y,2], shape=condition, col=factor(x))) + 
   geom_point(size=3) + ggtitle("Subjects in latent mapping ") + 
   xlab("Component #1") + ylab("Component #2")
 
@@ -312,14 +313,14 @@ ggplot(data=as.data.frame(lat_map), aes(lat_map[,1], lat_map[,2], shape=conditio
 
 #using PenalizedLDA.cv instead of own LOO-function to tune model params
 class=match(x, unique(x)) #this is for full data
-xte=Y1[subj,]
+xte=Y[subj,]
 #cv_results <- PenalizedLDA.cv(Y, class, nfold=6) 
-res2 <- PenalizedLDA(Y1, class, xte=xte, lambda=0, K=6)
+res2 <- PenalizedLDA(Y, class, xte=xte, lambda=0, K=1)
 #png("figures/K6full_penLDA_confmat_77.png")
-cmat = confusion_matrix(res2$y, res2$ypred[,6]) #results with 6 discriminant vectors used
+cmat = confusion_matrix(res2$y, res2$ypred) #results with 6 discriminant vectors used
 plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
 print("Accurcy:")
-print(cmat$`Overall Accuracy`)
+print(cmat$`Balanced Accuracy`)
 
 dev.off()
 

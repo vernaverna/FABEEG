@@ -11,21 +11,23 @@ library("cvms")
 #' 
 #' @param spectra list, tells which spectra are used for the model: e.g. c('N1C', 'N2B')
 #' @param validation_set which spectra to use in validation, e.g. 'N2C'
+#' @param n_inds is using only a subset of data, how many individuals to use?
+#' @param group_by_spectra boolean, classify spectra rather than individuals?
 #' 
 # ex = N1 or N2, depending which data is read in
-prepare_data <- function(spectra, validation_set){
+prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra = F){
   
   
   # Choosing the channels and frequencies
   chs <- 1:19
-  omitFreq = c(0,60) #TODO: how about using only low-freq activity? u10, u5?
+  omitFreq = c(0,60) 
   
   #extract the age groups
   ages = read.csv('data/new_age_df.csv')
   ages <- ages[,-1]
   
   use_all=T #should we use all subjects in training?
-  age_gap=c(7,19) #exclude some of the younger children?
+  age_gap=c(0,19) #exclude some of the younger children?
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -47,7 +49,7 @@ prepare_data <- function(spectra, validation_set){
         set.seed(11)
         #load("/projects/FABEEG/BRRR/ref_subjects.RData")
         #individuals=obs
-        individuals = sample(individuals, 206)
+        individuals = sample(individuals, n_inds)
         Y = Y[names(Y) %in% individuals]
         
       }
@@ -74,7 +76,8 @@ prepare_data <- function(spectra, validation_set){
           if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
             #if(age_data$Cap == Cap){
             tmp <- t(Y[[s]]) #transposed
-            tmp <- log10(tmp) 
+            #tmp <- exp(log10(tmp)) #ADDED EXP
+            tmp <- log10(tmp)
             if(any(is.na(tmp))){ #browser()
               corrupted = c(corrupted, s)
             } 
@@ -154,17 +157,40 @@ prepare_data <- function(spectra, validation_set){
   
   #Construct identifier matrix (covariates)
   subj = dimnames(Y1)[[1]]
-  M = length(unique(subj)) #number of groups (=subjects)
-  S = length(subj) #number of observations
   
-  x <- rep(NA,M); names(x) <- unique(subj)
-  for(s in 1:M){
-    x[subj[s]] <- s
+  if(group_by_spectra){
+    classes <- setdiff(spectra, validation_set)
+    M <- 2 #either N1 or N2 spectra
+    S = length(subj) #number of observations
+    
+    x <- rep(NA,S); names(x) <- subj
+    # TODO: automate for M
+    group_idx <- seq(1, length(x), length(x)/M)
+    x[group_idx[1]:group_idx[2]] <- 1
+    x[(group_idx[2]+1):length(x)] <- 2
+    
+    X <- matrix(0,S,M,dimnames=list(subj,classes) )
+    for (i in 1:length(x)) if (!is.na(x[i])) X[i, x[i]] <- 1
+    
+    print("Condensing two classes into one +-1 covariate.")
+    X <- X[, 1, drop = FALSE]
+    X[X == 0] <- -1
+    
+    
+  } else {
+    M = length(unique(subj)) #number of groups (=subjects) 
+    S = length(subj) #number of observations
+    
+    x <- rep(NA,M); names(x) <- unique(subj)
+    for(s in 1:M){
+      x[subj[s]] <- s
+    }
+    x=rep(x, length(spectra)-1) 
+    
+    X <- matrix(0,S,M,dimnames=list(subj,unique(subj)))
+    for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]] <- 1
   }
-  x=rep(x, length(spectra)-1) 
-  
-  X <- matrix(0,S,M,dimnames=list(subj,unique(subj))) 
-  for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]] <- 1
+
   
   #Clean up the subject info dataframe
   ages = ages[ages$File %in% unique(subj)==TRUE, ] #to get rid of some extra subjects that should not be there
@@ -175,7 +201,7 @@ prepare_data <- function(spectra, validation_set){
   reorder_idx <- match(rownames(Y_val), Z1$File)
   Z1 <- Z1[reorder_idx,]
 
-  Z = matrix(c(Z1$Age, Z1$Age, Z1$Age))
+  Z = matrix(c(Z1$Age, Z1$Age))
   
 
   return(list(Y1, x, X, ages, Y_val, Z=Z))
@@ -188,14 +214,14 @@ prepare_data <- function(spectra, validation_set){
 #' 
 #' @param within_sample Logical. If FALSE, does out-of-sample validation (unseen data points for all individuals)
 #' @param dis which distance measure to use. One of 'L1' or 'L2' or 'cos'
-#' @param pK how many components to use in distance calculation. Must be between 1..K
+#' @param pK vector, which components to use in distance calculation
 #' @param Xt the subject identifiers
 #' @param lat_map the latent mapping used
 #' @param lat_map2 is using unseen data
 #' 
 # TODO: TRY IF WORKS JUST AS WELL WITHOUT LAT_SPACE PROJECTION???
 
-validation <- function(within_sample=FALSE, dis='L1', pK=K, Xt=X, lat_map, lat_map2=NULL){
+validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, lat_map2=NULL){
   
   #distance matrix# 
   D <- matrix(NA, ncol(Xt), ncol(Xt), dimnames=list(colnames(Xt), c(paste0('other', colnames(Xt)) )) )  
@@ -223,16 +249,20 @@ validation <- function(within_sample=FALSE, dis='L1', pK=K, Xt=X, lat_map, lat_m
       if(within_sample){
         
         if(length(idxs == 3)){
-          other_data <- colMeans(lat_map[tail(idxs,2), 1:pK])
+          other_data <- colMeans(lat_map[tail(idxs,2), pK])
         } else {
-          other_data <- lat_map[tail(idxs,1), 1:pK] 
+          other_data <- lat_map[tail(idxs,1), pK] 
         }
-        D[testidx,m] <- dist_func(lat_map[testidx,1:pK],other_data)
+        D[testidx,m] <- dist_func(lat_map[testidx,pK],other_data)
         
       } else {
         
-        other_data <- colMeans(lat_map[idxs, 1:pK])
-        D[testidx,m] <- dist_func(lat_map2[testidx,1:pK],other_data)
+        if(length(idxs)>2){
+          other_data <- colMeans(lat_map[idxs, pK])
+        } else {
+          other_data <- lat_map[idxs, pK]
+        }
+        D[testidx,m] <- dist_func(lat_map2[testidx,pK],other_data)
       }
     } 
   }
@@ -322,7 +352,7 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subjec
       lat_map <- test_Y%*%W #mapping to latent space with unseen individuals
       
       #is not actually within-sample but oh well--- works now
-      D <- validation(within_sample = T, dis=dis, pK=K, lat_map=lat_map, 
+      D <- validation(within_sample = T, dis=dis, pK=c(1:K), lat_map=lat_map, 
                       Xt=test_X)
       
     } else if(validation_scheme=='unseen_data'){ #validate on the test spectra
@@ -332,7 +362,7 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subjec
       lat_map <- train_Y%*%W
       
       #is not actually within-sample but oh well--- works now
-      D <- validation(within_sample = F, dis=dis, pK=K, lat_map=lat_map, lat_map2=lat_map2,  
+      D <- validation(within_sample = F, dis=dis, pK=c(1:K), lat_map=lat_map, lat_map2=lat_map2,  
                       Xt=test_X)
       
       #calculate test MSE & PTVE
@@ -362,25 +392,27 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subjec
 
 ### TRAINING / RUNS ###
 
-# read in the data
-n2_data <- prepare_data(spectra = c("N2A","N2B","N2D"), validation_set = "N2D")
-Y = n2_data[[1]]
-X = n2_data[[3]]
-x = n2_data[[2]]
-ages = n2_data[[4]]
 
-Y2 = n2_data[[5]] #validation set data
-Z = n2_data[[6]]
+Ns <- seq(80, 780, by=100)
 
-
-# The model is trained using two sets of N2 data, and the within-sample performance is evaluated using
-# MSE, PTVE and accuracy (L1 distances in the projection)
-
-Ks <- c(32, 34, 36, 38, 40, 42, 44, 46, 48, 50)
-source("brrr.R")
-
-for(k in Ks){
-  CV_results = do_CV(n_folds=10, K=12, iter=1000, validation_scheme='subject')
+for(n in Ns){
+  
+  # read in the data
+  n2_data <- prepare_data(spectra = c("N2A","N2B","N1A"), validation_set = "N1A")
+  Y = n2_data[[1]]
+  X = n2_data[[3]]
+  x = n2_data[[2]]
+  ages = n2_data[[4]]
+  
+  Y2 = n2_data[[5]] #validation set data
+  Z = n2_data[[6]]
+  
+  
+  # The model is trained using two sets of N2 data, and the within-sample performance is evaluated using
+  # MSE, PTVE and accuracy (L1 distances in the projection)
+  source("brrr.R")
+  
+  CV_results = do_CV(n_folds=10, K=30, iter=1000, validation_scheme='unseen_data')
   
   CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
   CV_ptves <- lapply(CV_results, `[[`, 2)
@@ -397,11 +429,22 @@ for(k in Ks){
 }
 
 
-
-
+# loop thru results and do unseen_data validation
+accs = c()
+for(f in 1:length(CV_results)){
+  res <- CV_results[[f]][[2]]
+  res$scaling <- ginv(averageGamma(res))
+  Xt <- res$data$genotypes
+  lat_map <- res$data$phenotypes
+  lat_map2 <- Y2[which(rownames(Y2)%in%colnames(Xt)),]
+  D <- validation(within_sample = F, dis='L1', pK=c(1:K), 
+                  lat_map=lat_map, lat_map2=lat_map2, Xt=Xt)
   
-CV_results = do_CV(n_folds=5, K=6, iter=1000, validation_scheme='unseen_data')  
-save(CV_results, file=paste0('results/', 10, 'foldCV/K12all_N1N2.RData'))
+  accs = c(D[[2]], accs)
+}
+  
+CV_results = do_CV(n_folds=10, K=12, iter=1000, validation_scheme='unseen_data')  
+save(CV_results, file=paste0('results/', 10, 'foldCV/K12all_N1.RData'))
 
 CV_scores <- lapply(CV_results, `[[`, 1)
 
@@ -415,19 +458,24 @@ print(mean(accs))
 ## Training with all data
 source("brrr.R")
 K=12
-res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=1e-6) 
+res <- brrr(X=X,Y=Y,K=1,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=1) 
 res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
 res$scaling <- ginv(averageGamma(res))
-save(res, file = paste0("results/full/over7_2N2_BRRR_K",K, ".RData") )
+
+ptve = res$factor_variance/sum(res$factor_variance)
+K <- c(1:K)
+plot(K,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
+
+#save(res, file = paste0("results/full/all_2N2_BRRR_K",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
 
-D1 <- validation(within_sample = T, dis='L1', pK=K, lat_map=lat_map, lat_map2=NULL, Xt=X)
+D1 <- validation(within_sample = T, dis='L1', pK=c(1:K), lat_map=lat_map, lat_map2=NULL, Xt=X)
 
 #baseline: calculate distances on all data
 lat_map <- Y 
-D <- validation(within_sample = F, dis='L1', pK=K, lat_map=lat_map, lat_map2=lat_map2, Xt=X)
+D <- validation(within_sample = F, dis='L2', pK=c(1:K), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
 
 # Ks <- c(6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30)
 # 
@@ -454,12 +502,18 @@ D <- validation(within_sample = F, dis='L1', pK=K, lat_map=lat_map, lat_map2=lat
 
 #### VISUALIZATIONS ####
 
+Y <- res$data$phenotypes
+X <- res$data$genotypes
 
+x <- rep(NA, times=nrow(X))
+names(x) <- rownames(X)
+for(i in 1:length(x)) x[i] <- which(X[i,]==1)
+subj <- names(x)
 
 
 nsubj <- length(unique(subj))
 # adding together N2 mappings  plus some covariates
-lat_map = as.data.frame(rbind(lat_map_n2[1:nsubj,], lat_map))
+lat_map = as.data.frame(rbind(lat_map2[1:nsubj,], lat_map))
 lat_map['condition'] = c(rep('test', nsubj), rep('train', 2*nsubj))
 lat_map['age'] = rep(ages[which(ages$File%in%subj),]$Age, 3) #get age data
 lat_map['group'] = rep(round(ages[which(ages$File%in%subj),]$Age, 0), 3) #get age data
@@ -467,9 +521,9 @@ lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, 3)
 
 subj_number <- factor(c(x,seq(1,nsubj)))
 
-ggplot(data=as.data.frame(lat_map), aes(lat_map[,1], lat_map[,2], shape=condition, col=factor(sex))) + 
+ggplot(data=as.data.frame(lat_map), aes(lat_map[,4], lat_map[,6], shape=condition, col=factor(sex))) + 
   geom_point(aes(size=age)) + ggtitle("Subjects in latent mapping ") + 
-  xlab("Component #1") + ylab("Component #2")
+  xlab("Component #4") + ylab("Component #6")
 
 
 
@@ -498,7 +552,7 @@ D_ages <- D_ages[reorder_indexes,]
 
 
 tsne <- Rtsne(D, dims=2, is_distance = T,
-              perplexity=15, verbose=TRUE, max_iter = 500, check_duplicates = F)
+              perplexity=3, verbose=TRUE, max_iter = 500, check_duplicates = F)
 
 #plot(tsne$Y,col=colors, asp=1)
 #scatterplot3d(tsne$Y, pch=4, color=D_ages$Age, angle=60)
@@ -511,7 +565,7 @@ D_ages$Y1 <- tsne$Y[,1]
 D_ages$Y2 <- tsne$Y[,2]
 
 
-ggplot(D_ages, aes(x=Y1, y=Y2, color=Age)) +
+ggplot(D_ages, aes(x=Y1, y=Y2, color=Sex)) +
   geom_point(size=4) + theme_minimal()
 
 
@@ -597,6 +651,28 @@ K <- c(4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30)
 plot(K, accs, type = 'l', col='red')
 lines(K,ptves)
 
+
+########## PENLDA for sleep stage differences #################
+
+
+######### LDA ###########
+
+#using PenalizedLDA.cv instead of own LOO-function to tune model params
+
+#sample randomly
+rand <- sample(x, 300)
+class=match(rand, unique(rand)) #this is for full data
+
+xte=Y[names(rand),]
+#cv_results <- PenalizedLDA.cv(Y, class, nfold=6) 
+res2 <- PenalizedLDA(Y[names(rand),], class, xte=xte, type="ordered", lambda=0, lambda2=0,K=1)
+#png("figures/K6full_penLDA_confmat_77.png")
+cmat = confusion_matrix(res2$y, res2$ypred) #results with 6 discriminant vectors used
+plot_confusion_matrix(cmat$`Confusion Matrix`[[1]])
+print("Accurcy:")
+print(cmat$`Balanced Accuracy`)
+
+dev.off()
 
 
 
