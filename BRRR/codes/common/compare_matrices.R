@@ -15,8 +15,6 @@
 
 
 compare.matrices <- function(correct, est.mean, est.std) {
-  # a function to compare a mcmc estimates for a matrix of
-  # parameters with the values used to generate the data
   comp <- list()
   comp$mse <- mean((correct-est.mean)^2)
   lower.bound <- est.mean-2*est.std

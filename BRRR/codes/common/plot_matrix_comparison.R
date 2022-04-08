@@ -13,9 +13,6 @@
 
 plot.matrix.comparison <- function(correct, est.mean=NULL, plot.path = NULL, plot.title) {
   
-  # this function is used for comparing the true model parameters
-  # to an estimate by plotting both.
-  
   n.col <- ncol(correct)
   n.row <- nrow(correct)
   

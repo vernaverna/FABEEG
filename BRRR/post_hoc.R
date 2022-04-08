@@ -96,6 +96,7 @@ lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, 2)
 lat_map['cap'] = rep(ages[which(ages$File%in%subj),]$Cap, 2)
 lat_map['subject'] = subj[1:nsubj]
 
+gender <- ifelse(lat_map$sex == "F",1,0)
 
 #Create a latent space mapping, highlighting only certain individuals
 
@@ -218,13 +219,22 @@ Accuracy<-c(0.3375,0.5592593,0.5396825,0.552924,0.537326,0.5421456,0.5395425,0.4
 PTVE <-c(0.7839801,0.7560055,0.7771796,0.7729471,0.772513275,0.7694992,0.768224,0.7740776)
 
 
+library(reshape2)
+K <- c(1:12)
+data=as.data.frame(cbind(K, N1, N2))
+melt(data, id.vars = "K", measure.vars = c("N1", "N2"))
+colnames(data) <- c("K", "model", "correlation")
 
-data=as.data.frame(cbind(P, Accuracy, PTVE))
-
-
-#ggplot(data=data, aes(x=K, y=Accuracy) ) + geom_line() + 
-#  geom_line(data=data, aes(x=K, y=PTVE)) +
-#  theme_minimal()
+ggplot(data=data, aes(x=K, y=correlation, color=model) ) + geom_point(size=4) + 
+  scale_color_manual(values = c("#00AFBB", "#FC4E07")) +
+  #geom_point(data=data, aes(x=K, y=N2), color='darkorange', size=4) +
+  geom_text(
+    label=data$correlation, 
+    nudge_x = 0.1, nudge_y = 0.05, 
+    check_overlap = T
+  ) + 
+ # xlim(0, 12) +
+  theme_minimal()
 
 plot(Accuracy~P, type='l', col='darkorange', ylim=c(0.30, 0.8),
      ylab="", lwd=3, bty='n')

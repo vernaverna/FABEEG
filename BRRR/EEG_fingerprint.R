@@ -27,7 +27,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
   ages <- ages[,-1]
   
   use_all=T #should we use all subjects in training?
-  age_gap=c(0,19) #exclude some of the younger children?
+  age_gap=c(7,19) #exclude some of the younger children?
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -398,7 +398,7 @@ Ns <- seq(80, 780, by=100)
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N2A","N2B","N1A"), validation_set = "N1A")
+  n2_data <- prepare_data(spectra = c("N1A","N2B","N2C"), validation_set = "N2C")
   Y = n2_data[[1]]
   X = n2_data[[3]]
   x = n2_data[[2]]
@@ -412,7 +412,7 @@ for(n in Ns){
   # MSE, PTVE and accuracy (L1 distances in the projection)
   source("brrr.R")
   
-  CV_results = do_CV(n_folds=10, K=30, iter=1000, validation_scheme='unseen_data')
+  CV_results = do_CV(n_folds=5, K=12, iter=1000, validation_scheme='subject')
   
   CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
   CV_ptves <- lapply(CV_results, `[[`, 2)
@@ -436,8 +436,8 @@ for(f in 1:length(CV_results)){
   res$scaling <- ginv(averageGamma(res))
   Xt <- res$data$genotypes
   lat_map <- res$data$phenotypes
-  lat_map2 <- Y2[which(rownames(Y2)%in%colnames(Xt)),]
-  D <- validation(within_sample = F, dis='L1', pK=c(1:K), 
+  #lat_map2 <- Y2[which(rownames(Y2)%in%colnames(Xt)),]
+  D <- validation(within_sample = T, dis='L1', pK=c(1:K), 
                   lat_map=lat_map, lat_map2=lat_map2, Xt=Xt)
   
   accs = c(D[[2]], accs)
@@ -458,7 +458,7 @@ print(mean(accs))
 ## Training with all data
 source("brrr.R")
 K=12
-res <- brrr(X=X,Y=Y,K=1,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=1) 
+res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=0.01) 
 res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
 res$scaling <- ginv(averageGamma(res))
 
@@ -466,7 +466,8 @@ ptve = res$factor_variance/sum(res$factor_variance)
 K <- c(1:K)
 plot(K,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
 
-#save(res, file = paste0("results/full/all_2N2_BRRR_K",K, ".RData") )
+K=12
+save(res, file = paste0("results/full/over13_2N1_BRRR_K",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)

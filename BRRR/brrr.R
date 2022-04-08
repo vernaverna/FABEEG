@@ -61,7 +61,7 @@ compute.factorwise.variance <- function(data, Psi, Gamma) {
 }
 
 brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, init="LDA", fam=NULL,
-                 seed=1, snip=TRUE, pruned=TRUE, snpScale=1/10, omg=1e-6) {
+                 seed=1, snip=TRUE, pruned=TRUE, snpScale=1/10, omg=1e-2) {
   
   source_directory <- function(path) {
     files <- sort(dir(path, "\\.[rR]$", full.names = TRUE))
@@ -265,13 +265,13 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   mcmc.output$runtime <- proc.time() - ptm
   
   #Use check_mcmc_result.R to study convergence 
-  context <- list()
-  context$Psi <- mcmc.output$model$brr$context$Psi #what should be put into context?
-  context$Gamma <- mcmc.output$model$brr$context$Gamma
-  name='coefMat'
-  plot.path = paste0(getwd(), "/figures/mcmc_")
-  plot.title = "coefMat=Psi*Gamma"
-  result = check.mcmc.result(context = context, mcmc.output = mcmc.output, name=name, plot.path = plot.path, plot.title = plot.title)
+  #context <- list()
+  #context$Psi <- res$model$brr$context$Psi #what should be put into context?
+  #context$Gamma <- res$model$brr$context$Gamma
+  #name='coefMat'
+  #plot.path = paste0(getwd(), "/figures/mcmc_")
+  #plot.title = "coefMat=Psi*Gamma"
+  #result = check.mcmc.result(context = context, mcmc.output = mcmc.output, name=name, plot.path = plot.path, plot.title = plot.title)
   
   #  From Gillberg. et. al. (2016):
   #
@@ -282,8 +282,12 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   
   
   #ADDED: PTVE per each component 
+  #factor_variance <- compute.factorwise.variance(data=data, Psi=averagePsi(mcmc.output),
+  #                                                Gamma=averageGamma(mcmc.output))
+  #
+  # Psi = t(ginv(averagePsi(mcmc.output)) or just averagePsi(mcmc.output)? Depends?
   factor_variance <- compute.factorwise.variance(data=data, Psi=averagePsi(mcmc.output),
-                                                  Gamma=averageGamma(mcmc.output))
+                                                 Gamma=t(ginv(averageGamma(mcmc.output))))
   mcmc.output$factor_variance <- factor_variance #total variation explained =sum
   #print(factor_variance)
 
