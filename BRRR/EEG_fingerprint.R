@@ -5,6 +5,8 @@ library("ggplot2")
 library("cvms")
 
 
+
+
 ## TODO: use less individuals! try with old and young kids as well
 
 #' Function for preparing the EEG spectra for analysis
@@ -203,8 +205,9 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
 
   Z = matrix(c(Z1$Age, Z1$Age))
   
-
-  return(list(Y1, x, X, ages, Y_val, Z=Z))
+  data <- list(Y1, x, X, ages, Y_val, Z=Z)
+  names(data) <- c("Y", "x", "X", "ages", "Y2", "Z")
+  return(data)
 }
 
 
@@ -286,29 +289,21 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
 
 #### CROSS-VALIDATION ####
 
-# notice though that I am using CV to answer different question than the validation above;
-#   now I examine how the individual markers (components) generalize to new individuals
-#   could one do some lind of paired analysis too though?
-# k-fold CV (permuted data, non-exhaustive)?  
-# pseudocode idea:
-# 1. divide data into k subsamples (randomly; however the data already is random ordered?) 
-# 2. train k models with k-1 parts of the data
-# 3. for each model, calculate their performance on the subsample left out of training
-# 4. average together the k scores 
-
-
-
 #' Function for performing cross-validation: calls 
 #' 
+#' @param data list containing the data  
 #' @param n_folds how many folds to use
 #' @param K BRRR rank 
 #' @param iter how many iterations given to BRRR
 #' @param dis which distance measure to use in validation
 #' @param validation_scheme 'subject' if dropping subjects, 'unseen_data' if validating on new spectra
 
-#TODO: parallelize: k-fold CV is embarrassingly parallel 
-do_CV <- function(n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subject') {
+
+do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subject') {
   
+  library(foreach)    # install.packages('foreach') options(repos = c(CRAN = “http://cran.rstudio.com”))
+  library(doParallel) # install.packages('doParallel')
+  registerDoParallel(makeCluster(4)) # Use 4 cores for parallel CV
   
   Ds <- vector(mode = "list", length = n_folds) #list containing results from each CV fold
   names(Ds) <- c(paste0('fold_', seq(1:n_folds)) )
@@ -323,12 +318,11 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subjec
   cvId <- cvId[1:S]
   #cvId <- c(cvId, cvId)
   
-  
-  for(fold in 1:n_folds){
+  results <- foreach(fold=1:n_folds, .export=c("validation")) %dopar% {
     
-    print(paste0('CV fold ', fold))
-    print('--------------------------')
-
+    Y <- data$Y #extract these here to avoid racing problems
+    X <- data$X
+    x <- data$x
     
     testsubj <- subjects[cvId==fold] #extract testsubj
     train_Y <- Y[which(!rownames(Y)%in%testsubj),]
@@ -336,6 +330,7 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subjec
     train_fam <- x[which(!names(x)%in%testsubj)]
     
     #fit the model for training data
+    source("brrr.R")
     res <- brrr(X=train_X,Y=train_Y,K=K,Z=NA,n.iter=iter,thin=5,init="LDA",fam=train_fam)  
     
     #res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
@@ -362,7 +357,7 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subjec
       lat_map <- train_Y%*%W
       
       #is not actually within-sample but oh well--- works now
-      D <- validation(within_sample = F, dis=dis, pK=c(1:K), lat_map=lat_map, lat_map2=lat_map2,  
+      D <- validation(within_sample = F, dis=dis, pK=c(1:2), lat_map=lat_map, lat_map2=lat_map2,  
                       Xt=test_X)
       
       #calculate test MSE & PTVE
@@ -379,15 +374,16 @@ do_CV <- function(n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subjec
     }
     
     
-    Ds[[fold]] <- list(D, res) #append results
+    #Ds[[fold]] <- list(D, res) #append results
+    
+    
+  }
+    
+}
+    
     
 
-  }
   
-  return(Ds) #return the distance matrix and model
-}
-
-
 
 
 ### TRAINING / RUNS ###
@@ -398,34 +394,34 @@ Ns <- seq(80, 780, by=100)
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N1A","N2B","N2C"), validation_set = "N2C")
-  Y = n2_data[[1]]
-  X = n2_data[[3]]
-  x = n2_data[[2]]
-  ages = n2_data[[4]]
-  
-  Y2 = n2_data[[5]] #validation set data
-  Z = n2_data[[6]]
-  
+  n2_data <- prepare_data(spectra = c("N1A","N1B","N2C"), validation_set = "N2C")
+  # Y = n2_data[[1]]
+  # X = n2_data[[3]]
+  # x = n2_data[[2]]
+  # ages = n2_data[[4]]
+  # 
+  # Y2 = n2_data[[5]] #validation set data
+  # Z = n2_data[[6]]
+  # 
   
   # The model is trained using two sets of N2 data, and the within-sample performance is evaluated using
   # MSE, PTVE and accuracy (L1 distances in the projection)
   source("brrr.R")
   
-  CV_results = do_CV(n_folds=5, K=12, iter=1000, validation_scheme='subject')
+  CV_results = do_CV(data=n2_data, n_folds=5, K=12, iter=1000, validation_scheme='subject')
   
-  CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
-  CV_ptves <- lapply(CV_results, `[[`, 2)
-  CV_2 <- lapply(CV_ptves, `[[`, 1)
-  CV_ptve <- lapply(CV_2, `[[`, 3)
+  CV_scores <- lapply(CV_results, `[[`, 2) #unlisting stuff; looks ugly
+  #CV_ptves <- lapply(CV_results, `[[`, 2)
+  #CV_2 <- lapply(CV_ptves, `[[`, 1)
+  #CV_ptve <- lapply(CV_2, `[[`, 3)
   
   n=lapply(CV_scores, sapply, mean)
-  accs <- unlist(lapply(n, `[[`, 2))
+  accs <- unlist(lapply(n, `[[`, 1))
   print("Average CV accuracy:")
   print(mean(accs))
   
-  print("Average train-PTVE:")
-  print( mean(unlist(CV_ptve)) )
+  #print("Average train-PTVE:")
+  #print( mean(unlist(CV_ptve)) )
 }
 
 
@@ -436,7 +432,7 @@ for(f in 1:length(CV_results)){
   res$scaling <- ginv(averageGamma(res))
   Xt <- res$data$genotypes
   lat_map <- res$data$phenotypes
-  #lat_map2 <- Y2[which(rownames(Y2)%in%colnames(Xt)),]
+  lat_map2 <- Y2[which(rownames(Y2)%in%colnames(Xt)),]
   D <- validation(within_sample = T, dis='L1', pK=c(1:K), 
                   lat_map=lat_map, lat_map2=lat_map2, Xt=Xt)
   

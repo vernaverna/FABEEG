@@ -116,6 +116,7 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
 
   # BRRR rank used for inititialization
   if (is.null(brr.rank)) brr.rank.init <- 3 else brr.rank.init <- brr.rank
+  rank <- brr.rank.init
   
   if(!any(is.na(Z))){
     n.confounders=ncol(data$confounders)
@@ -135,12 +136,12 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   Psi <- init.model$brr$context$Psi
   if(init=="PCA") {
     pcaInit <- prcomp(Y)
-    Gamma <- t(pcaInit$rotation[,1:K])*apply(pcaInit$x[,1:K],2,sd)
+    Gamma <- t(pcaInit$rotation[,1:rank])*apply(pcaInit$x[,1:rank],2,sd)
     Psi[,] <- rnorm(n.snps*brr.rank.init, sd=1)
     
   } else if(init=="LDA") {
     fam <- match(fam,sort(unique(fam)))
-    res <- PenalizedLDA(Y,fam,lambda=0,K=K,standardized=TRUE) ###standardized true ?
+    res <- PenalizedLDA(Y,fam,lambda=0,K=rank,standardized=TRUE) ###standardized true ?
     Gamma <- t(res$discrim)
     Psi[,] <- 0
     if(exists("Xg") && ncol(Xg)>0) { #Genotype in covariates - initialize to fit the data
@@ -152,7 +153,7 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
     }
     # Rest of variance to be explained with the families
     if(prod(dim(Psi))>1) {
-      for(k in 1:K) {
+      for(k in 1:rank) {
         Yres <- Y - X %*% Psi %*% Gamma #residual
         for(f in 1:max(fam))
           Psi[f,k] <- mean(Yres[fam==f,]%*%Gamma[k,]/sum(Gamma[k,]^2))
@@ -286,9 +287,9 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   #                                                Gamma=averageGamma(mcmc.output))
   #
   # Psi = t(ginv(averagePsi(mcmc.output)) or just averagePsi(mcmc.output)? Depends?
-  factor_variance <- compute.factorwise.variance(data=data, Psi=averagePsi(mcmc.output),
-                                                 Gamma=t(ginv(averageGamma(mcmc.output))))
-  mcmc.output$factor_variance <- factor_variance #total variation explained =sum
+  #factor_variance <- compute.factorwise.variance(data=data, Psi=t(ginv(averagePsi(mcmc.output))),
+  #                                               Gamma=t(ginv(averageGamma(mcmc.output))))
+  #mcmc.output$factor_variance <- factor_variance #total variation explained =sum
   #print(factor_variance)
 
   
