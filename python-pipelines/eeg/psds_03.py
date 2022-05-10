@@ -105,40 +105,40 @@ age_df.to_csv('ages.csv', index=False)
 
 
 
-# Making evoked arrays: comments
+#Making evoked arrays: comments
 
-# comment1 = 'Subj: {}, Age: {}, Sex: {}, Sleep: N1'.format(str(subj_info.iloc[0,0]), float(subj_info['Age']),
-#                                                         str(subj_info.iloc[0,1]))
-# comment2 = 'Subj: {}, Age: {}, Sex: {}, Sleep: N2'.format(str(subj_info.iloc[0,0]), float(subj_info['Age']),
-#                                                         str(subj_info.iloc[0,1]))
-
-
-
-# # Create events of 30 s  
-# events_n1 = mne.make_fixed_length_events(raw, id=1, start=0, stop=300.0, duration=30, overlap=0) 
-# events_n2 = mne.make_fixed_length_events(raw, id=2, start=300.0, stop=900.0, duration=30, overlap=0)
-# events = np.append(events_n1, events_n2, axis=0) #this is clumsy, but did not come up with anything else
-# event_dict = {'sleep N1':1, 'sleep N2':2}
-
-
-# # Create epochs from events
-# epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=0.0, tmax=30, baseline=(0,0)) 
-
-
-# # Create evoked responses, but as spectra
-# evokeds = dict()
-# #evokeds['N1'] = epochs['sleep N1'].average() #averages over each epoch
-# #evokeds['N2'] = epochs['sleep N2'].average()
+comment1 = 'Subj: {}, Age: {}, Sex: {}, Sleep: N1'.format(str(subj_info.iloc[0,0]), float(subj_info['Age']),
+                                                        str(subj_info.iloc[0,1]))
+comment2 = 'Subj: {}, Age: {}, Sex: {}, Sleep: N2'.format(str(subj_info.iloc[0,0]), float(subj_info['Age']),
+                                                        str(subj_info.iloc[0,1]))
 
 
 
-# # TODO: make this neater! (now 1 min slices)
-# info1 = info
-# n1_spectra, freqs = psd_welch(epochs['sleep N1'][8:10].average(), fmax=fmax, n_fft=n_fft)
-# n1_spectra2, freqs = psd_welch(epochs['sleep N1'][5:7].average(), fmax=fmax, n_fft=n_fft)
-# info1['sfreq'] = 1/(freqs[1]-freqs[0]) #change sampling freq so the 'time' axis shows frequencies
-# evokeds['PSD N1 (1)'] = mne.EvokedArray(n1_spectra, info=info1, comment=comment1)
-# evokeds['PSD N1 (2)'] = mne.EvokedArray(n1_spectra2, info=info1, comment=comment1)
+# Create events of 30 s  
+events_n1 = mne.make_fixed_length_events(raw, id=1, start=0, stop=300.0, duration=30, overlap=0) 
+events_n2 = mne.make_fixed_length_events(raw, id=2, start=300.0, stop=900.0, duration=30, overlap=0)
+events = np.append(events_n1, events_n2, axis=0) #this is clumsy, but did not come up with anything else
+event_dict = {'sleep N1':1, 'sleep N2':2}
+
+
+# Create epochs from events
+epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=0.0, tmax=30, baseline=(0,0)) 
+
+
+# Create evoked responses, but as spectra
+evokeds = dict()
+#evokeds['N1'] = epochs['sleep N1'].average() #averages over each epoch
+#evokeds['N2'] = epochs['sleep N2'].average()
+
+
+
+# TODO: make this neater! (now 1 min slices)
+info1 = info
+n1_spectra, freqs = psd_welch(epochs['sleep N1'][8:10].average(), fmax=fmax, n_fft=n_fft)
+n1_spectra2, freqs = psd_welch(epochs['sleep N1'][5:7].average(), fmax=fmax, n_fft=n_fft)
+info1['sfreq'] = 1/(freqs[1]-freqs[0]) #change sampling freq so the 'time' axis shows frequencies
+evokeds['PSD N1 (1)'] = mne.EvokedArray(n1_spectra, info=info1, comment=comment1)
+evokeds['PSD N1 (2)'] = mne.EvokedArray(n1_spectra2, info=info1, comment=comment1)
 
 
 # # TODO: do this inside of a loop!!
@@ -152,32 +152,32 @@ age_df.to_csv('ages.csv', index=False)
 # #n2_spectra3, _ = psd_welch(epochs['sleep N2'][21:26].average(), fmax=fmax, n_fft=n_fft)
 # #evokeds['PSD N2 (3)'] = mne.EvokedArray(n2_spectra1, info=info1, comment=comment2)
 
-# # create 5 spectras from N2
-# n2_spectra1, freqs = psd_welch(epochs['sleep N2'][2:4].average(), fmax=fmax, n_fft=n_fft)
-# evokeds['PSD N2 (1)'] = mne.EvokedArray(n2_spectra1, info=info1, comment=comment2)
-# n2_spectra2, freqs = psd_welch(epochs['sleep N2'][6:8].average(), fmax=fmax, n_fft=n_fft)
-# evokeds['PSD N2 (2)'] = mne.EvokedArray(n2_spectra2, info=info1, comment=comment2)
-# n2_spectra3, freqs = psd_welch(epochs['sleep N2'][10:12].average(), fmax=fmax, n_fft=n_fft)
-# evokeds['PSD N2 (3)'] = mne.EvokedArray(n2_spectra3, info=info1, comment=comment2)
-# n2_spectra4, freqs = psd_welch(epochs['sleep N2'][12:14].average(), fmax=fmax, n_fft=n_fft)
-# evokeds['PSD N2 (4)'] = mne.EvokedArray(n2_spectra4, info=info1, comment=comment2)
-# n2_spectra5, freqs = psd_welch(epochs['sleep N2'][16:18].average(), fmax=fmax, n_fft=n_fft)
-# evokeds['PSD N2 (5)'] = mne.EvokedArray(n2_spectra5, info=info1, comment=comment2)
+# create 5 spectras from N2
+n2_spectra1, freqs = psd_welch(epochs['sleep N2'][2:4].average(), fmax=fmax, n_fft=n_fft)
+evokeds['PSD N2 (1)'] = mne.EvokedArray(n2_spectra1, info=info1, comment=comment2)
+n2_spectra2, freqs = psd_welch(epochs['sleep N2'][6:8].average(), fmax=fmax, n_fft=n_fft)
+evokeds['PSD N2 (2)'] = mne.EvokedArray(n2_spectra2, info=info1, comment=comment2)
+n2_spectra3, freqs = psd_welch(epochs['sleep N2'][10:12].average(), fmax=fmax, n_fft=n_fft)
+evokeds['PSD N2 (3)'] = mne.EvokedArray(n2_spectra3, info=info1, comment=comment2)
+n2_spectra4, freqs = psd_welch(epochs['sleep N2'][12:14].average(), fmax=fmax, n_fft=n_fft)
+evokeds['PSD N2 (4)'] = mne.EvokedArray(n2_spectra4, info=info1, comment=comment2)
+n2_spectra5, freqs = psd_welch(epochs['sleep N2'][16:18].average(), fmax=fmax, n_fft=n_fft)
+evokeds['PSD N2 (5)'] = mne.EvokedArray(n2_spectra5, info=info1, comment=comment2)
 
 
-# fmin, fmax = freqs[0], freqs[-1]
-# psds['sleep N1 (1)'] = n1_spectra
-# psds['sleep N1 (2)'] = n1_spectra2
-# psds['sleep N2 (1)'] = n2_spectra1
-# psds['sleep N2 (2)'] = n2_spectra2
-# psds['sleep N2 (3)'] = n2_spectra3
-# psds['sleep N2 (4)'] = n2_spectra4
-# psds['sleep N2 (5)'] = n2_spectra5
+fmin, fmax = freqs[0], freqs[-1]
+psds['sleep N1 (1)'] = n1_spectra
+psds['sleep N1 (2)'] = n1_spectra2
+psds['sleep N2 (1)'] = n2_spectra1
+psds['sleep N2 (2)'] = n2_spectra2
+psds['sleep N2 (3)'] = n2_spectra3
+psds['sleep N2 (4)'] = n2_spectra4
+psds['sleep N2 (5)'] = n2_spectra5
 
-# # Add some metadata to the file we are writing
-# psds['info'] = raw.info
-# psds['freqs'] = freqs
-# del raw #free up some memory
+# Add some metadata to the file we are writing
+psds['info'] = raw.info
+psds['freqs'] = freqs
+del raw #free up some memory
 
 # # save psds and evokeds
 # write_hdf5(fname.psds(subject=args.subject), psds, overwrite=True) 
@@ -188,59 +188,59 @@ age_df.to_csv('ages.csv', index=False)
 
 
 
-# def on_pick(ax, ch_idx):
-#     """Create a larger PSD plot for when one of the tiny PSD plots is
-#        clicked."""
-#     ax.plot(psds['freqs'], psds['sleep N1 (1)'][ch_idx], color='C0',
-#             label='sleep N1')
-#     ax.plot(psds['freqs'], psds['sleep N2 (2)'][ch_idx], color='C1',
-#             label='sleep N2')
+def on_pick(ax, ch_idx):
+     """Create a larger PSD plot for when one of the tiny PSD plots is
+        clicked."""
+     ax.plot(psds['freqs'], psds['sleep N1 (1)'][ch_idx], color='C0',
+             label='sleep N1')
+     ax.plot(psds['freqs'], psds['sleep N2 (2)'][ch_idx], color='C1',
+             label='sleep N2')
 
-#     ax.legend()
-#     ax.set_xlabel('Frequency')
-#     ax.set_ylabel('PSD')
+     ax.legend()
+     ax.set_xlabel('Frequency')
+     ax.set_ylabel('PSD')
 
 
-# # Make the big topo figure
-# # TODO: label naming!!!!!
-# fig = plt.figure(figsize=(14, 9))
-# axes = iter_topography(info, layout, on_pick=on_pick, fig=fig,
-#                        axis_facecolor='white', fig_facecolor='white',
-#                        axis_spinecolor='white')
+# Make the big topo figure
+# TODO: label naming!!!!!
+fig = plt.figure(figsize=(14, 9))
+axes = iter_topography(info, layout, on_pick=on_pick, fig=fig,
+                       axis_facecolor='white', fig_facecolor='white',
+                       axis_spinecolor='white')
 
-# for ax, ch_idx in axes:
-#     handles = [
-#         ax.plot(psds['freqs'], psds['sleep N1 (1)'][ch_idx], color='C0', label='sleep N1'),
-#         ax.plot(psds['freqs'], psds['sleep N2 (2)'][ch_idx], color='C1', label='sleep N2')
-#     ]
+for ax, ch_idx in axes:
+    handles = [
+        ax.plot(psds['freqs'], psds['sleep N1 (1)'][ch_idx], color='C0', label='sleep N1'),
+        ax.plot(psds['freqs'], psds['sleep N2 (2)'][ch_idx], color='C1', label='sleep N2')
+    ]
     
-# #fig.legend("N1 sleep", "N2 sleep")
-# #fig.show()
+fig.legend("N1 sleep", "N2 sleep")
+#fig.show()
 
 
-# #Added to manually save the channel-wise plots
-# #NOTE: dropping freqs over 20.5 Hz to have more informative figs, hence the selection [0:x] 
-# #TODO: remove reference, get 18 figs?
+# Added to manually save the channel-wise plots
+# NOTE: dropping freqs over 20.5 Hz to have more informative figs, hence the selection [0:x] 
+# TODO: remove reference, get 18 figs?
 
-# figs2 = []
-# captions = []
-# for ch_idx in range(len(info.ch_names)):
-#     fig2 = plt.figure(figsize=(10,7))
+figs2 = []
+captions = []
+for ch_idx in range(len(info.ch_names)):
+    fig2 = plt.figure(figsize=(10,7))
     
-#     plt.plot(psds['freqs'], psds['sleep N1 (1)'][ch_idx], color='C0',
-#                                             label='sleep N1')
-#     plt.plot(psds['freqs'], psds['sleep N2 (2)'][ch_idx], color='C1',
-#                                             label='sleep N2')
-#     plt.yscale('log')
-#     plt.legend()
-#     captions.append((info.ch_names[ch_idx]))
-#     plt.xlabel('Frequency')
-#     plt.ylabel('PSD')
+    plt.plot(psds['freqs'], psds['sleep N1 (1)'][ch_idx], color='C0',
+                                            label='sleep N1')
+    plt.plot(psds['freqs'], psds['sleep N2 (2)'][ch_idx], color='C1',
+                                            label='sleep N2')
+    plt.yscale('log')
+    plt.legend()
+    captions.append((info.ch_names[ch_idx]))
+    plt.xlabel('Frequency')
+    plt.ylabel('PSD')
 
         
         
-#     figs2.append(fig2)
-#     plt.close(fig2)
+    figs2.append(fig2)
+    plt.close(fig2)
 
 
 # # Save resultus to report

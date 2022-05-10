@@ -6,9 +6,9 @@ on just EEG data.
 import argparse
 from collections import defaultdict
 
-from mne import Epochs
+from mne import Epochs, channels
 from mne.io import read_raw_fif
-from mne.preprocessing import find_eog_events, ICA
+from mne.preprocessing import find_eog_events, ICA, create_eog_epochs, create_ecg_epochs, corrmap
 from mne import open_report
 
 from config_eeg import get_all_fnames, task_from_fname, fname, eog_channel
@@ -21,7 +21,7 @@ args = parser.parse_args()
 # Along the way, we collect figures for quality control
 figures = defaultdict(list)
 
-#eog_channel = "PIETSO"
+eog_channel = "Pietso"
 
 # Not all subjects have files for all conditions. These functions grab the
 # files that do exist for the subject.
@@ -36,9 +36,24 @@ for filt_fname, ica_fname, clean_fname in all_fnames:
     #task = task_from_fname(filt_fname)
 
     raw_filt = read_raw_fif(filt_fname, preload=True)
+    
+    #TODO: move these to first preprocessing step. Need to clean up the pipeline a bit
+    raw_filt.set_channel_types({'EKG':'ecg', 'EMG': 'emg', 'Pietso':'eog', 'Effort':'resp',
+                                'EMG sin':'emg', 'EMG dex':'emg', 'DigIn':'misc', 'Photic':'misc'})
+    # Sensor locations not provided with data - use standard layout
+    ten_twenty_montage = channels.make_standard_montage('standard_1020')
+    raw_filt.set_montage(ten_twenty_montage)
+    
+    #eog_evoked = create_ecg_epochs(raw_filt).average()
+    #eog_evoked.apply_baseline(baseline=(None, -0.2))
+    #eog_evoked.plot_image(combine='mean')
 
     # Run a detection algorithm for the onsets of eye blinks (EOG).
-    eog_events = find_eog_events(raw_filt,ch_name=eog_channel)
+    try:
+        eog_events = find_eog_events(raw_filt,ch_name=eog_channel)
+    except (ValueError):
+        eog_channel = "PIETSO"
+        eog_events = find_eog_events(raw_filt,ch_name=eog_channel)
 
     # Perform ICA decomposition
     ica = ICA(random_state=0).fit(raw_filt)
@@ -80,4 +95,4 @@ for filt_fname, ica_fname, clean_fname in all_fnames:
                 replace=True)
 
         report.save(fname.report_html(subject=args.subject),
-                    overwrite=True, open_browser=False)
+                    overwrite=True, open_browser=True)
