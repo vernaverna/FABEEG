@@ -2,6 +2,7 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
+   xmlns:osb="http://www.openswatchbook.org/uri/2009/osb"
    xmlns:dc="http://purl.org/dc/elements/1.1/"
    xmlns:cc="http://creativecommons.org/ns#"
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -19,6 +20,14 @@
    sodipodi:docname="biomag2022_poster.svg">
   <defs
      id="defs2">
+    <linearGradient
+       id="linearGradient29485"
+       osb:paint="solid">
+      <stop
+         style="stop-color:#ffe6d5;stop-opacity:1;"
+         offset="0"
+         id="stop29483" />
+    </linearGradient>
     <marker
        inkscape:stockid="Arrow1Lend"
        orient="auto"
@@ -431,14 +440,14 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.4142136"
-     inkscape:cx="399.17225"
-     inkscape:cy="252.76841"
+     inkscape:cx="433.60871"
+     inkscape:cy="575.51394"
      inkscape:document-units="mm"
-     inkscape:current-layer="g8972-3-6"
+     inkscape:current-layer="layer1"
      showgrid="true"
-     inkscape:window-width="1848"
-     inkscape:window-height="1136"
-     inkscape:window-x="1992"
+     inkscape:window-width="2490"
+     inkscape:window-height="1376"
+     inkscape:window-x="70"
      inkscape:window-y="27"
      inkscape:window-maximized="1"
      inkscape:snap-others="false"
@@ -457,7 +466,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -791,23 +800,23 @@
        id="rect29761"
        width="188.7991"
        height="0.94492882"
-       x="10.961308"
-       y="270.54166" />
+       x="10.696724"
+       y="271.59998" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:9.32926178px;line-height:1.25;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.24989089"
-       x="11.271258"
-       y="19.936798"
+       x="12.648087"
+       y="15.869226"
        id="text29765"
-       transform="scale(0.96084381,1.0407519)"><tspan
+       transform="scale(0.9608438,1.0407519)"><tspan
          sodipodi:role="line"
          id="tspan29763"
-         x="11.271258"
-         y="19.936798"
+         x="12.648087"
+         y="15.869226"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:9.32926178px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';stroke-width:0.24989089">Capturing individual variation in children's</tspan><tspan
          sodipodi:role="line"
-         x="11.271258"
-         y="31.598375"
+         x="12.648087"
+         y="27.530804"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:9.32926178px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';stroke-width:0.24989089"
          id="tspan29767">oscillatory brain activity during nREM sleep</tspan></text>
     <rect
@@ -820,15 +829,25 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:10.45855236px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26146379"
-       x="10.901694"
-       y="45.481167"
+       x="12.508135"
+       y="35.022614"
        id="text29786"
-       transform="scale(0.98820969,1.011931)"><tspan
+       transform="scale(0.98820968,1.011931)"><tspan
          sodipodi:role="line"
          id="tspan29784"
-         x="10.901694"
-         y="45.481167"
-         style="font-size:3.88055552px;stroke-width:0.26146379;fill:#ff6600;-inkscape-font-specification:'Nimbus Sans Bold';font-family:'Nimbus Sans';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;">Verna Heikkinen, Mia Liljeström, Sampsa Vanhatalo, Leena Lauronen, Hanna Renvall </tspan></text>
+         x="12.508135"
+         y="35.022614"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:3.88055563px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';fill:#ff6600;stroke-width:0.26146379">Verna Heikkinen<tspan
+   style="font-size:64.99999762%;baseline-shift:super"
+   id="tspan30991">1,2</tspan>, Mia Liljeström<tspan
+   style="font-size:64.99999762%;baseline-shift:super"
+   id="tspan30993">1,2</tspan>, Sampsa Vanhatalo<tspan
+   style="font-size:65%;baseline-shift:super"
+   id="tspan31011">3</tspan>, Leena Lauronen<tspan
+   style="font-size:65%;baseline-shift:super"
+   id="tspan31013">3</tspan>, Hanna Renvall<tspan
+   style="font-size:64.99999762%;baseline-shift:super"
+   id="tspan30995">1,2</tspan> </tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:bold;font-size:10.58333302px;line-height:1.25;font-family:'Nimbus Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;-inkscape-font-specification:'Nimbus Sans Bold';font-stretch:normal;font-variant:normal;"
@@ -1509,7 +1528,7 @@
     </g>
     <g
        style="enable-background:new"
-       transform="matrix(0.08077181,0,0,0.08411826,141.37094,54.95859)"
+       transform="matrix(0.07442142,0,0,0.07588518,11.061724,114.29306)"
        id="g46962">
       <g
          id="g46960">
@@ -1816,7 +1835,7 @@
     </g>
     <g
        style="enable-background:new"
-       transform="matrix(0.09647762,0,0,0.10523731,147.10833,221.32917)"
+       transform="matrix(0.09647762,0,0,0.10523731,223.81468,172.49903)"
        id="g51112">
       <g
          transform="scale(0.75)"
@@ -1957,64 +1976,67 @@
            y="824.66254"
            style="font-size:16px;" /></flowRegion><flowPara
          id="flowPara5017" /></flowRoot>    <g
-       id="g5125"
-       transform="matrix(0.83489919,0,0,0.89530605,3.1970445,28.375414)">
-      <text
-         id="text4979"
-         y="214.97917"
-         x="14.552083"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';letter-spacing:0px;word-spacing:0px;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-         xml:space="preserve"><tspan
-           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:6.3499999px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';fill:#ff6600;stroke-width:0.26458332"
-           y="214.97917"
-           x="14.552083"
-           id="tspan4977"
-           sodipodi:role="line">CONCLUSIONS</tspan></text>
-      <flowRoot
-         transform="matrix(0.26458333,0,0,0.26458333,4.3467262,-0.94494048)"
-         style="font-style:normal;font-weight:normal;font-size:14.66666698px;line-height:1.25;font-family:'Nimbus Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;-inkscape-font-specification:'Nimbus Sans';font-stretch:normal;font-variant:normal;"
-         id="flowRoot5019"
-         xml:space="preserve"><flowRegion
-           style="font-size:14.66666698px;-inkscape-font-specification:'Nimbus Sans';font-family:'Nimbus Sans';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;"
-           id="flowRegion5021"><rect
-             style="font-size:14.66666698px;-inkscape-font-specification:'Nimbus Sans';font-family:'Nimbus Sans';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;"
-             y="838.23395"
-             x="57.857143"
-             height="177.14287"
-             width="602.85712"
-             id="rect5023" /></flowRegion><flowPara
-           id="flowPara5025"><flowSpan
-   id="flowSpan5027"
-   style="font-size:14.66666698px;-inkscape-font-specification:'Nimbus Sans';font-family:'Nimbus Sans';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;">The promising results demonstrate that bayesian latent variable models are</flowSpan> <flowSpan
-   id="flowSpan5029"
-   style="font-size:14.66666698px;-inkscape-font-specification:'Nimbus Sans';font-family:'Nimbus Sans';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;">applicable to low-resolution and often noise-prone clinical EEG data</flowSpan></flowPara><flowPara
-           id="flowPara5037" /><flowPara
-           id="flowPara5039">Future longitudinal studies are needed to establish M/EEG fingerprint consistency over developmental periods</flowPara><flowPara
-           id="flowPara5041" /><flowPara
-           id="flowPara5043">Using high-density EEG measurements and additional clinical covariates could reveal oscillatory patterns related to neurological disorders or brain function in general</flowPara><flowPara
-           id="flowPara5033" /></flowRoot>      <circle
-         r="1.2"
-         cy="223.01115"
-         cx="16.15848"
-         id="path5047"
-         style="opacity:0.93699999;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:0.26458332;stroke-opacity:1" />
-      <circle
-         r="1.2"
-         cy="237.27975"
-         cx="16.063988"
-         id="path5047-9"
-         style="opacity:0.93699999;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:0.26458332;stroke-opacity:1" />
-      <circle
-         r="1.2"
-         cy="252.3988"
-         cx="16.063988"
-         id="path5047-6"
-         style="opacity:0.93699999;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:0.26458332;stroke-opacity:1" />
-      <path
-         style="fill:none;stroke:#000000;stroke-width:0.30602697px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-         d="m 157.79205,144.88714 v 2.95523 h 6.33809"
-         id="path8921"
-         inkscape:connector-curvature="0" />
+       id="g29173"
+       transform="translate(34.785197,10.348568)">
+      <g
+         id="g29199"
+         transform="translate(-0.74835466,-5.0513939)">
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:9.15008736px;line-height:1.25;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';letter-spacing:0px;word-spacing:0px;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:0.22875218"
+           x="81.763184"
+           y="182.01173"
+           id="text4979"
+           transform="scale(0.96567563,1.0355444)"><tspan
+             sodipodi:role="line"
+             id="tspan4977"
+             x="81.763184"
+             y="182.01173"
+             style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:5.4900527px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';fill:#ff6600;stroke-width:0.22875218">CONCLUSIONS</tspan></text>
+        <flowRoot
+           xml:space="preserve"
+           id="flowRoot5019"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;line-height:1.25;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+           transform="matrix(0.22090041,0,0,0.23688306,66.507406,-4.836936)"><flowRegion
+             id="flowRegion5021"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"><rect
+               id="rect5023"
+               width="382.6286"
+               height="268.89447"
+               x="57.857143"
+               y="838.23395"
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'" /></flowRegion><flowPara
+             id="flowPara5025"><flowSpan
+   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"
+   id="flowSpan5027">The promising results demonstrate that bayesian latent variable models are</flowSpan> <flowSpan
+   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"
+   id="flowSpan5029">applicable to low-resolution and often noise-prone clinical EEG data</flowSpan></flowPara><flowPara
+             id="flowPara5037" /><flowPara
+             id="flowPara5039">Future longitudinal studies are needed to establish M/EEG fingerprint consistency over developmental periods</flowPara><flowPara
+             id="flowPara5041" /><flowPara
+             id="flowPara5043">Using high-density EEG measurements and additional clinical covariates could reveal oscillatory patterns related to neurological disorders or brain function in general</flowPara><flowPara
+             id="flowPara5033" /></flowRoot>        <ellipse
+           style="opacity:0.93699999;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:0.22875218;stroke-opacity:1"
+           id="path5047"
+           cx="76.930298"
+           cy="195.6723"
+           rx="1.0018791"
+           ry="1.0743673" />
+        <ellipse
+           style="opacity:0.93699999;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:0.22875218;stroke-opacity:1"
+           id="path5047-9"
+           cx="76.851402"
+           cy="212.93719"
+           rx="1.0018791"
+           ry="1.0743673" />
+        <ellipse
+           style="opacity:0.93699999;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:0.22875218;stroke-opacity:1"
+           id="path5047-6"
+           cx="76.851402"
+           cy="225.53793"
+           rx="1.0018791"
+           ry="1.0743673" />
+      </g>
     </g>
     <text
        xml:space="preserve"
@@ -2052,7 +2074,7 @@
            style="font-size:13.33333333px;" /></flowRegion><flowPara
          id="flowPara14817" /></flowRoot>    <g
        id="g9135"
-       transform="translate(-4.1596593,-4.7141435)">
+       transform="matrix(0.92111887,0,0,0.90036232,62.586058,-20.984657)">
       <g
          id="g38006"
          transform="matrix(0.09845818,0,0,0.09844592,-11.921653,152.75223)">
@@ -14888,37 +14910,42 @@
     </g>
     <g
        id="g5125-3"
-       transform="matrix(0.83489919,0,0,0.89530605,-1.5314664,-133.71559)">
+       transform="matrix(0.83489919,0,0,0.89530605,-1.7960484,-136.46322)">
+      <rect
+         id="rect28319"
+         width="226.3262"
+         height="39.076668"
+         x="14.831261"
+         y="208.79907"
+         style="fill:#ffe6d5;stroke-width:0.31195164" />
       <text
          id="text4979-6"
          y="214.97917"
-         x="14.552083"
+         x="17.689278"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';letter-spacing:0px;word-spacing:0px;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:0.26458332"
          xml:space="preserve"><tspan
            style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:6.3499999px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';fill:#ff6600;stroke-width:0.26458332"
            y="214.97917"
-           x="14.552083"
+           x="17.689278"
            id="tspan4977-7"
            sodipodi:role="line">INTRODUCTION</tspan></text>
       <flowRoot
-         transform="matrix(0.26458333,0,0,0.26458333,-1.2554073,-3.6615006)"
-         style="font-style:normal;font-weight:normal;font-size:14.66666698px;line-height:1.25;font-family:'Nimbus Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;-inkscape-font-specification:'Nimbus Sans';font-stretch:normal;font-variant:normal;"
+         transform="matrix(0.26458333,0,0,0.26458333,2.5540434,-4.2883991)"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;line-height:1.25;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
          id="flowRoot5019-5"
          xml:space="preserve"><flowRegion
-           style="font-size:14.66666698px;-inkscape-font-specification:'Nimbus Sans';font-family:'Nimbus Sans';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"
            id="flowRegion5021-3"><rect
-             style="font-size:14.66666698px;-inkscape-font-specification:'Nimbus Sans';font-family:'Nimbus Sans';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"
              y="838.23395"
              x="57.857143"
-             height="177.14287"
-             width="602.85712"
+             height="117.90836"
+             width="829.83612"
              id="rect5023-5" /></flowRegion><flowPara
-           id="flowPara5033-9">Sleep electroencephalogram (EEG) is known to be highly individual and heritable, with unique aspects related to maturation. The magnetoencephalographic (MEG) spectral power structure has recently been associated with genetic factors using <flowSpan
-   style="-inkscape-font-specification:'Nimbus Sans';font-family:'Nimbus Sans';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;"
-   id="flowSpan9051">Bayesian reduced-rank regression</flowSpan> (BRRR) for extracting a low-dimensional representation of familial data features. This approach has shown that the spectral power structure is highly consistent within participants irrespective of experimental state, suggestive of subject-specific cortical fingerprints. How well the approach generalizes to more noise-prone and low-resolution clinical EEG data and, e.g., during brain maturation is not known.</flowPara></flowRoot>    </g>
+           id="flowPara5033-9">Sleep electroencephalogram (EEG) is known to be highly individual and heritable [4], with unique aspects related to maturation [3]. The magnetoencephalographic (MEG) spectral power structure has recently been associated with genetic factors using Bayesian reduced-rank regression (BRRR) for extracting a low-dimensional representation of familial data features [2]. This approach has shown that the spectral power structure is highly consistent within participants irrespective of experimental state, suggestive of subject-specific cortical fingerprints. How well the approach generalizes to more noise-prone and low-resolution clinical EEG data and, e.g., during brain maturation is not known.</flowPara></flowRoot>    </g>
     <g
        id="g14877"
-       transform="matrix(0.92538493,0,0,0.8943552,17.612153,7.9167812)">
+       transform="matrix(0.71899519,0,0,0.68140754,58.421046,27.686124)">
       <g
          transform="translate(-3.9234744,8.290521)"
          id="g37190">
@@ -47963,7 +47990,7 @@
     </g>
     <g
        id="g5125-3-3"
-       transform="matrix(0.83489919,0,0,0.89530605,-4.133436,-22.43042)">
+       transform="matrix(0.83489919,0,0,0.89530605,-1.217509,-38.087176)">
       <g
          id="g8972"
          transform="translate(2.8521407,-68.561285)">
@@ -47986,12 +48013,89 @@
              id="flowRegion5021-3-3"
              style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"><rect
                id="rect5023-5-5"
-               width="424.37747"
-               height="159.93159"
+               width="839.37646"
+               height="81.742035"
                x="57.857143"
                y="838.23395"
                style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'" /></flowRegion><flowPara
-             id="flowPara9137">BRRR was applied on 19-channel nREM sleep EEG recordings of 800 healthy Finnish children (aged 3 weeks - 19 years) for finding the spatiospectral components that would maximally differentiate subjects from each other. 10-fold cross-validation and 2-4 spectral estimates per participant were used for addressing the accuracy of the model, by calculating L1-distances between the test participants in the low-dimensional latent space Γ</flowPara></flowRoot>      </g>
+             id="flowPara9137">BRRR was applied on 19-channel nREM sleep EEG recordings of 800 healthy Finnish children (aged 3 weeks - 19 years) for finding the spatiospectral components that would maximally differentiate subjects from each other. 10-fold cross-validation and 2-4 spectral estimates per participant were used for addressing the accuracy of the model, by calculating L1-distances between the test participants projected on the low-dimensional latent space (see Figure 3). </flowPara></flowRoot>        <flowRoot
+           xml:space="preserve"
+           id="flowRoot29332"
+           style="font-style:normal;font-weight:normal;font-size:8px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+           transform="matrix(0.31690453,0,0,0.29552278,-199.01376,171.92307)"><flowRegion
+             id="flowRegion29334"
+             style="font-size:8px"><rect
+               id="rect29336"
+               width="201.41064"
+               height="34.707108"
+               x="905"
+               y="442.51971"
+               style="font-size:8px" /></flowRegion><flowPara
+             id="flowPara29338"><flowSpan
+               style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold'"
+               id="flowSpan29340">Figure 2. </flowSpan><flowSpan
+               id="flowSpan29348"
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:8px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'">Bayesian network of the latent-noise regression model. Adapted from [1].</flowSpan></flowPara></flowRoot>        <flowRoot
+           xml:space="preserve"
+           id="flowRoot29332-6"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;line-height:1;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+           transform="matrix(0.31690453,0,0,0.29552278,-271.91048,166.17531)"><flowRegion
+             id="flowRegion29334-3"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:1;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"><rect
+               id="rect29336-9"
+               width="217.67398"
+               height="123.09545"
+               x="905"
+               y="442.51971"
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:1;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'" /></flowRegion><flowPara
+             id="flowPara29338-3"><flowSpan
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:1;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"
+               id="flowSpan29340-3"><flowSpan
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8px;line-height:1;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold'"
+   id="flowSpan29382">Figure 1.</flowSpan><flowSpan
+   style="font-size:8px;line-height:1"
+   id="flowSpan29392"> Within- and between-subject differences in PSD estimates of 1-minute N1 and N2 sleep sequences. Figures </flowSpan><flowSpan
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8px;line-height:1;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold'"
+   id="flowSpan29384">a)</flowSpan><flowSpan
+   style="font-size:8px;line-height:1"
+   id="flowSpan29394"> and </flowSpan><flowSpan
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8px;line-height:1;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold'"
+   id="flowSpan29386">b)</flowSpan><flowSpan
+   style="font-size:8px;line-height:1"
+   id="flowSpan29396"> are from the same under 6mo subject; Figure </flowSpan><flowSpan
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8px;line-height:1;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold'"
+   id="flowSpan29388">c)</flowSpan><flowSpan
+   style="font-size:8px;line-height:1"
+   id="flowSpan29398"> depicts PSD estimates of a slightly older participant, and </flowSpan><flowSpan
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8px;line-height:1;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold'"
+   id="flowSpan29390">d)</flowSpan><flowSpan
+   style="font-size:8px;line-height:1"
+   id="flowSpan29400"> of a ~7-year-old subject</flowSpan>.</flowSpan></flowPara></flowRoot>        <flowRoot
+           xml:space="preserve"
+           id="flowRoot29332-7"
+           style="font-style:normal;font-weight:normal;font-size:8px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+           transform="matrix(0.31690453,0,0,0.29552278,-127.20198,177.21086)"><flowRegion
+             id="flowRegion29334-8"
+             style="font-size:8px"><rect
+               id="rect29336-6"
+               width="227.41064"
+               height="30.707092"
+               x="905"
+               y="442.51971"
+               style="font-size:8px" /></flowRegion><flowPara
+             id="flowPara29338-37"
+             style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold'">Figure 3. <flowSpan
+   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"
+   id="flowSpan29442">Schematic illustration of the model validation procedure</flowSpan>. <flowSpan
+   style="-inkscape-font-specification:'Nimbus Sans';font-family:'Nimbus Sans';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal"
+   id="flowSpan31019">The first two components are visualized on the axis. </flowSpan></flowPara></flowRoot>        <rect
+           style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#ffccaa;stroke-width:1.03698993;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect29479"
+           width="110.28191"
+           height="66.807793"
+           x="126.47753"
+           y="318.85071" />
+      </g>
       <text
          xml:space="preserve"
          style="font-style:normal;font-weight:normal;font-size:2.44821572px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.30602697"
@@ -48002,7 +48106,19 @@
            sodipodi:role="line"
            id="tspan9139"
            x="312.33798"
-           y="170.2655"
+           y="170.30466"
+           style="stroke-width:0.30602697" /></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.6723237px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.30602697"
+         x="280.68292"
+         y="203.05838"
+         id="text29446"
+         transform="scale(1.0355444,0.9656756)"><tspan
+           sodipodi:role="line"
+           id="tspan29444"
+           x="280.68292"
+           y="206.36624"
            style="stroke-width:0.30602697" /></text>
     </g>
     <rect
@@ -48010,11 +48126,11 @@
        id="rect14904"
        width="1.7056683"
        height="1.0407592"
-       x="83.317192"
-       y="150.57993" />
+       x="83.052612"
+       y="152.69659" />
     <g
        id="g5125-3-3-9"
-       transform="matrix(0.83489919,0,0,0.89530605,50.139307,51.514284)">
+       transform="matrix(0.83489919,0,0,0.89530605,-0.82630191,62.424119)">
       <g
          id="g8972-3"
          transform="translate(2.8521407,-68.561285)">
@@ -48037,12 +48153,12 @@
              id="flowRegion5021-3-3-8"
              style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"><rect
                id="rect5023-5-5-5"
-               width="621.29022"
-               height="144.92554"
+               width="410.40295"
+               height="237.33134"
                x="57.857143"
                y="838.23395"
                style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'" /></flowRegion><flowPara
-             id="flowPara14956">The low-dimensional BRRR MODEL COULD EXPLAIN INDIVIDUAL VARIATION tms. The test subjects could be separated from each other with &gt; 73% average accuracy using 12 spatiospectral components, and up to 96% with subjects over 7 years old. The components explaining the most variation correlated moderately with age, possibly reflecting individual trajectories in brain maturation. The latent space components were generally not consistent over participants’ data from N1 and N2 sleep stages, but restricting analysis to the oldest subjects (age &gt; 7 years) yielded within-subject accuracy of 65%</flowPara></flowRoot>        <text
+             id="flowPara14956">The low-dimensional BRRR model could explain up to 95% of the variation in the data. The test subjects could be separated from each other with &gt; 73% average accuracy using 12 spatiospectral components, and up to 96% with subjects over 7 years old. The components explaining the most variation correlated moderately with age, possibly reflecting individual trajectories in brain maturation. The latent space components were generally not consistent over participants’ data from N1 and N2 sleep stages, but restricting analysis to the oldest subjects (age &gt; 7 years) yielded within-subject accuracy of 65%</flowPara></flowRoot>        <text
            xml:space="preserve"
            style="font-style:normal;font-weight:normal;font-size:2.44821572px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.30602697"
            x="198.05968"
@@ -48052,7 +48168,7 @@
              sodipodi:role="line"
              id="tspan14960"
              x="198.05968"
-             y="222.5054"
+             y="222.54456"
              style="stroke-width:0.30602697" /></text>
       </g>
       <text
@@ -48065,7 +48181,7 @@
            sodipodi:role="line"
            id="tspan9139-6"
            x="312.33798"
-           y="170.2655"
+           y="170.30466"
            style="stroke-width:0.30602697" /></text>
       <text
          xml:space="preserve"
@@ -48077,7 +48193,7 @@
            sodipodi:role="line"
            id="tspan14952"
            x="50.420273"
-           y="140.03827"
+           y="140.07742"
            style="stroke-width:0.30602697" /></text>
       <flowRoot
          xml:space="preserve"
@@ -48096,7 +48212,7 @@
        xml:space="preserve"
        id="flowRoot9740"
        style="font-style:normal;font-weight:normal;font-size:8px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-       transform="matrix(0.26458333,0,0,0.26458333,-2.9934187,-0.56126601)"><flowRegion
+       transform="matrix(0.26458333,0,0,0.26458333,67.979665,-38.697536)"><flowRegion
          id="flowRegion9742"><rect
            id="rect9744"
            width="145.664"
@@ -48106,51 +48222,79 @@
          id="flowPara9750"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Nimbus Roman';-inkscape-font-specification:'Nimbus Roman, Bold'">Y = (XΨ + Ω)Γ + E</flowPara></flowRoot>    <g
        id="g5125-3-3-9-0"
-       transform="matrix(0.83489919,0,0,0.89530605,-39.235596,182.5898)">
+       transform="matrix(0.83489919,0,0,0.89530605,-0.71736002,186.99693)">
       <g
          id="g8972-3-6"
          transform="translate(2.8521407,-68.561285)">
+        <g
+           id="g29227"
+           transform="translate(20.839936,18.806954)">
+          <g
+             id="g29318"
+             transform="translate(2.8010667,-101.2441)">
+            <text
+               xml:space="preserve"
+               style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';letter-spacing:0px;word-spacing:0px;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+               x="11.863059"
+               y="219.57643"
+               id="text4979-6-6-9-4"><tspan
+                 sodipodi:role="line"
+                 id="tspan4977-7-7-0-6"
+                 x="11.863059"
+                 y="219.57643"
+                 style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:4.08035946px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';fill:#ff6600;stroke-width:0.26458332">REFERENCES</tspan></text>
+            <flowRoot
+               xml:space="preserve"
+               id="flowRoot5019-5-5-8-2"
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.25309944px;line-height:1.25;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+               transform="matrix(0.26458333,0,0,0.26458333,-3.9444313,0.93575485)"><flowRegion
+                 id="flowRegion5021-3-3-8-5"
+                 style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.25309944px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"><rect
+                   id="rect5023-5-5-5-8"
+                   width="769.50409"
+                   height="336.05551"
+                   x="57.857143"
+                   y="838.23395"
+                   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.25309944px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'" /></flowRegion><flowPara
+                 id="flowPara29247">[1] Gillberg, J., Marttinen, P., Pirinen, M., Kangas, A. J., Soininen, P., Ali, M., Havulinna, A. S., Järvelin, M.-R., Ala-Korpela, M., Kaski, S., et al. (2016). Multiple output regression with latent noise. <flowSpan
+   id="flowSpan29299"
+   style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Italic'">Journal of Machine Learning Research</flowSpan></flowPara><flowPara
+                 id="flowPara29255">[2] Leppäaho, E., Renvall, H., Salmela, E., Kere, J., Salmelin, R., and Kaski, S. (2019). Discovering heritable modes of meg spectral power. <flowSpan
+   id="flowSpan29297"
+   style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Italic'">Human brain mapping</flowSpan>, 40(5):1391–1402.</flowPara><flowPara
+                 id="flowPara29261">[3] Eisermann, M., Kaminska, A., Moutard, M.-L., Soufflet, C., and Plouin, P. (2013). Normal eeg in childhood: from neonates to adolescents. Neurophysiologie Clinique/Clinical <flowSpan
+   id="flowSpan29293"
+   style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Italic'">Neurophysiology</flowSpan>, 43(1):35–65.</flowPara><flowPara
+                 id="flowPara29267">[4] Buckelmüller, J., Landolt, H.-P., Stassen, H., and Achermann, P. (2006). Trait-like individual differences in the human sleep electroencephalogram. <flowSpan
+   id="flowSpan29291"
+   style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Italic'">Neuroscience</flowSpan>, 138(1):351–356.</flowPara><flowPara
+                 id="flowPara29269" /></flowRoot>          </g>
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-weight:normal;font-size:12.24107933px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.30602697"
+             x="195.83389"
+             y="207.44086"
+             id="text29273"
+             transform="scale(1.0355444,0.9656756)"><tspan
+               sodipodi:role="line"
+               id="tspan29271"
+               x="195.83389"
+               y="218.46706"
+               style="stroke-width:0.30602697" /></text>
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-weight:normal;font-size:12.24107933px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.30602697"
+             x="2.433022"
+             y="249.75473"
+             id="text29277"
+             transform="scale(1.0355444,0.9656756)"><tspan
+               sodipodi:role="line"
+               id="tspan29275"
+               x="2.433022"
+               y="260.78094"
+               style="stroke-width:0.30602697" /></text>
+        </g>
         <text
-           xml:space="preserve"
-           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';letter-spacing:0px;word-spacing:0px;fill:#ff6600;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-           x="14.552083"
-           y="214.97917"
-           id="text4979-6-6-9-4"><tspan
-             sodipodi:role="line"
-             id="tspan4977-7-7-0-6"
-             x="14.552083"
-             y="214.97917"
-             style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:6.3499999px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Bold';fill:#ff6600;stroke-width:0.26458332">REFERENCES</tspan></text>
-        <flowRoot
-           xml:space="preserve"
-           id="flowRoot5019-5-5-8-2"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;line-height:1.25;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-           transform="matrix(0.26458333,0,0,0.26458333,-1.2554073,-3.6615006)"><flowRegion
-             id="flowRegion5021-3-3-8-5"
-             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'"><rect
-               id="rect5023-5-5-5-8"
-               width="769.50409"
-               height="336.05551"
-               x="57.857143"
-               y="838.23395"
-               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.66666698px;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans'" /></flowRegion><flowPara
-             id="flowPara9839">Gillberg, J., Marttinen, P., Pirinen, M., Kangas, A. J., Soininen, P., Ali, M., Havulinna, A. S., Järvelin, M.-R., Ala-Korpela, M., Kaski, S., et al. (2016). <flowSpan
-   style="-inkscape-font-specification:'Nimbus Sans Bold';font-family:'Nimbus Sans';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal"
-   id="flowSpan9910">Multiple output regression with latent noise</flowSpan>. <flowSpan
-   style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Italic'"
-   id="flowSpan9847">Journal of Machine Learning Research</flowSpan></flowPara><flowPara
-             id="flowPara9871">Leppäaho, E., Renvall, H., Salmela, E., Kere, J., Salmelin, R., and Kaski, S. (2019). <flowSpan
-   style="-inkscape-font-specification:'Nimbus Sans Bold';font-family:'Nimbus Sans';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal"
-   id="flowSpan9912">Discovering heritable modes of meg spectral power</flowSpan>. <flowSpan
-   style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Italic'"
-   id="flowSpan9859">Human brain mapping</flowSpan>, 40(5):1391–1402.</flowPara><flowPara
-             id="flowPara9902">Eisermann, M., Kaminska, A., Moutard, M.-L., Soufflet, C., and Plouin, P. (2013). Normal eeg in childhood: from neonates to adolescents. <flowSpan
-   style="-inkscape-font-specification:'Nimbus Sans Italic';font-family:'Nimbus Sans';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal"
-   id="flowSpan9908">Neurophysiologie Clinique/Clinical Neurophysiology</flowSpan>, 43(1):35–65.</flowPara><flowPara
-             id="flowPara9886">Buckelmüller, J., Landolt, H.-P., Stassen, H., and Achermann, P. (2006). Trait-like individual differences in the human sleep electroencephalogram. <flowSpan
-   style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Nimbus Sans';-inkscape-font-specification:'Nimbus Sans Italic'"
-   id="flowSpan9892">Neuroscience</flowSpan>, 138(1):351–356.</flowPara><flowPara
-             id="flowPara9861" /></flowRoot>        <text
            xml:space="preserve"
            style="font-style:normal;font-weight:normal;font-size:2.44821572px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.30602697"
            x="198.05968"
@@ -48160,19 +48304,19 @@
              sodipodi:role="line"
              id="tspan14960-8"
              x="198.05968"
-             y="222.5054"
+             y="222.54456"
              style="stroke-width:0.30602697" /></text>
         <flowRoot
            xml:space="preserve"
            id="flowRoot9827"
-           style="fill:black;fill-opacity:1;stroke:none;font-family:sans-serif;font-style:normal;font-weight:normal;font-size:8px;line-height:1.25;letter-spacing:0px;word-spacing:0px"><flowRegion
+           style="font-style:normal;font-weight:normal;font-size:8px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"><flowRegion
              id="flowRegion9829"><rect
                id="rect9831"
                width="27.577164"
                height="16.970562"
                x="231.22392"
                y="1283.74" /></flowRegion><flowPara
-             id="flowPara9833"></flowPara></flowRoot>      </g>
+             id="flowPara9833" /></flowRoot>      </g>
       <text
          xml:space="preserve"
          style="font-style:normal;font-weight:normal;font-size:2.44821572px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.30602697"
@@ -48183,7 +48327,7 @@
            sodipodi:role="line"
            id="tspan9139-6-7"
            x="312.33798"
-           y="170.2655"
+           y="170.30466"
            style="stroke-width:0.30602697" /></text>
       <text
          xml:space="preserve"
@@ -48195,7 +48339,7 @@
            sodipodi:role="line"
            id="tspan14952-4"
            x="50.420273"
-           y="140.03827"
+           y="140.07742"
            style="stroke-width:0.30602697" /></text>
       <flowRoot
          xml:space="preserve"
@@ -48210,5 +48354,53 @@
              y="782.40131" /></flowRegion><flowPara
            id="flowPara8981-9" /><flowPara
            id="flowPara8983-9" /></flowRoot>    </g>
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot29175"
+       style="fill:black;fill-opacity:1;stroke:none;font-family:sans-serif;font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;letter-spacing:0px;word-spacing:0px"><flowRegion
+         id="flowRegion29177"><rect
+           id="rect29179"
+           width="216.37466"
+           height="245.36604"
+           x="457.49808"
+           y="706.03381" /></flowRegion><flowPara
+         id="flowPara29181"></flowPara></flowRoot>    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:2.46944451px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="11.509375"
+       y="42.735424"
+       id="text30999"><tspan
+         sodipodi:role="line"
+         id="tspan30997"
+         x="11.509375"
+         y="42.735424"
+         style="font-size:2.46944451px;stroke-width:0.26458332"><tspan
+   style="font-size:2.46944451px;baseline-shift:super"
+   id="tspan31001">1</tspan>Department of Neuroscience and Biomedical Engineering, Aalto University, Helsinki, Finland</tspan><tspan
+         sodipodi:role="line"
+         x="11.509375"
+         y="45.822231"
+         style="font-size:2.46944451px;stroke-width:0.26458332"
+         id="tspan31003"><tspan
+   style="font-size:2.46944451px;baseline-shift:super"
+   id="tspan31005">2</tspan>BioMag Laboratory, HUS Medical Imaging Center, University of Helsinki, Aalto University, and Helsinki University Hospital, Helsinki, Finland</tspan><tspan
+         sodipodi:role="line"
+         x="11.509375"
+         y="48.909035"
+         style="font-size:2.46944451px;stroke-width:0.26458332"
+         id="tspan31007"><tspan
+   style="font-size:2.46944451px;baseline-shift:super"
+   id="tspan31009">3</tspan>KNF? vai baba center?</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="218.01666"
+       y="65.489594"
+       id="text31017"><tspan
+         sodipodi:role="line"
+         id="tspan31015"
+         x="218.01666"
+         y="68.349487"
+         style="stroke-width:0.26458332" /></text>
   </g>
 </svg>
