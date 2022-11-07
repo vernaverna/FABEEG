@@ -86,7 +86,7 @@ raw2 = change_metadata(raw2)
 
 
 # Bandpass filtering 
-raw2.filter(0.5,70)
+raw2.filter(1,40)
 raw2 = raw2.notch_filter(50, picks=['eeg', 'eog'])
 
 
@@ -94,15 +94,18 @@ raw2 = raw2.notch_filter(50, picks=['eeg', 'eog'])
 raw2.rename_channels(lambda x: x.upper())  # capitalize the ch names
 raw2.set_eeg_reference('average')
 info = mne.pick_info(raw2.info, mne.pick_types(raw2.info, eeg=True))
-raw2_ref = mne.set_bipolar_reference(raw2, anode=['FP1', 'F7', 'T3', 'T5',
-                                                   'FP2', 'F8', 'T4', 'T6',
-                                                   'FP1', 'F3', 'C3', 'P3',
-                                                   'FP2', 'F4', 'C4', 'P4', 'FZ', 'PZ'], 
-                                      cathode=['F7', 'T3', 'T5', 'O1', 
-                                               'F8', 'T4', 'T6', 'O2',
-                                               'F3', 'C3', 'P3', 'O1',
-                                               'F4', 'C4', 'P4', 'O2', 'CZ', 'PZ'])
 
+raw2.plot(duration=30.0)
+# raw2_ref = mne.set_bipolar_reference(raw2, anode=['FP1', 'F7', 'T3', 'T5',
+#                                                    'FP2', 'F8', 'T4', 'T6',
+#                                                    'FP1', 'F3', 'C3', 'P3',
+#                                                    'FP2', 'F4', 'C4', 'P4', 'FZ', 'PZ'], 
+#                                       cathode=['F7', 'T3', 'T5', 'O1', 
+#                                                'F8', 'T4', 'T6', 'O2',
+#                                                'F3', 'C3', 'P3', 'O1',
+#                                                'F4', 'C4', 'P4', 'O2', 'CZ', 'PZ'])
+
+plt.savefig("raw_example.svg")
 
 # Define ROIs 
 #TODO: Confirm these!!! 
@@ -126,7 +129,7 @@ raw2.plot(events=events, start=270, duration=50, color='gray',
 
 # Create epoch from events
 epochs = mne.Epochs(raw2, events, event_id=event_dict, tmin=0.0, tmax=30, baseline=(0,0)) 
-epochs['sleep N1'].plot_psd(picks='eeg') #visualize
+epochs['sleep N1'].plot_psd(fmax=40, picks='eeg') #visualize
 epochs['sleep N1'].plot_psd_topomap() #plots also topomaps
 
 

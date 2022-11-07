@@ -114,7 +114,7 @@ comment2 = 'Subj: {}, Age: {}, Sex: {}, Sleep: N2'.format(str(subj_info.iloc[0,0
 
 
 
-# Create events of 30 s  
+# Create events of 30 s  #TODO: move to earlier stage?
 events_n1 = mne.make_fixed_length_events(raw, id=1, start=0, stop=300.0, duration=30, overlap=0) 
 events_n2 = mne.make_fixed_length_events(raw, id=2, start=300.0, stop=900.0, duration=30, overlap=0)
 events = np.append(events_n1, events_n2, axis=0) #this is clumsy, but did not come up with anything else

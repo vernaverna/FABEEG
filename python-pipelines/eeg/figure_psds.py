@@ -13,10 +13,13 @@ from config_eeg import subjects, fname
 cond1 = 'restEO'
 cond2 = 'restEC'
 
+subjects = [x.strip('sub-') for x in subjects]
+
 # Load the PSDs for each subject
 psds = [read_hdf5(fname.psds(subject=subject))
         for subject in tqdm(subjects)]
 #psds = [read_hdf5(fname.psds(subject='S001'))]
+
 
 # Create the grand-average (GA) PSD
 ga_psds = {

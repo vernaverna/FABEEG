@@ -36,17 +36,19 @@ for filt_fname, ica_fname, clean_fname in all_fnames:
     #task = task_from_fname(filt_fname)
 
     raw_filt = read_raw_fif(filt_fname, preload=True)
+    raw_filt.crop(tmax=300) #only N1 data?
     
     #TODO: move these to first preprocessing step. Need to clean up the pipeline a bit
     raw_filt.set_channel_types({'EKG':'ecg', 'EMG': 'emg', 'Pietso':'eog', 'Effort':'resp',
-                                'EMG sin':'emg', 'EMG dex':'emg', 'DigIn':'misc', 'Photic':'misc'})
+                                    'EMG sin':'emg', 'EMG dex':'emg', 'DigIn':'misc', 'Photic':'misc'})
+    
     # Sensor locations not provided with data - use standard layout
     ten_twenty_montage = channels.make_standard_montage('standard_1020')
     raw_filt.set_montage(ten_twenty_montage)
     
-    #eog_evoked = create_ecg_epochs(raw_filt).average()
-    #eog_evoked.apply_baseline(baseline=(None, -0.2))
-    #eog_evoked.plot_image(combine='mean')
+    eog_evoked = create_eog_epochs(raw_filt).average()
+    eog_evoked.apply_baseline(baseline=(None, -0.2))
+    #ecg_evoked.plot_image(combine='mean')
 
     # Run a detection algorithm for the onsets of eye blinks (EOG).
     try:
