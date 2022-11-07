@@ -10,7 +10,7 @@
 #' @param a4.shape dito
 #' @param a4.rate dito
 #' @param a4.lower.bound dito
-#' @param brr.factor.relevance.cutoff  dito
+#' @param brr.factor.relevance.cutoff  dito TRY TO MODIFY!
 #' @param alpha0 dito
 #' @param alpha1 dito
 #' @param a.sigma If a.sigma and b.sigma are given (non-NA), variances

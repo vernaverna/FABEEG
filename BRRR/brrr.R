@@ -41,7 +41,7 @@ averagePsi <- function(res) {
 }
 
 
-compute.factorwise.variance <- function(data, Psi, Gamma) {
+compute.factorwise.variance <- function(data, Psi, Gamma) { #TODO: needs checking
   
   
   #how about eigenvalue decomposition ???
@@ -287,10 +287,10 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   #                                                Gamma=averageGamma(mcmc.output))
   #
   # Psi = t(ginv(averagePsi(mcmc.output)) or just averagePsi(mcmc.output)? Depends?
-  #factor_variance <- compute.factorwise.variance(data=data, Psi=t(ginv(averagePsi(mcmc.output))),
-  #                                               Gamma=t(ginv(averageGamma(mcmc.output))))
-  #mcmc.output$factor_variance <- factor_variance #total variation explained =sum
-  #print(factor_variance)
+  factor_variance <- compute.factorwise.variance(data=data, Psi=t(ginv(averagePsi(mcmc.output))),
+                                                 Gamma=t(ginv(averageGamma(mcmc.output))))
+  mcmc.output$factor_variance <- factor_variance #total variation explained =sum
+  print(factor_variance)
 
   
   return(mcmc.output)

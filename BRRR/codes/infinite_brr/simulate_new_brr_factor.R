@@ -2,14 +2,14 @@
 
 #' creates a new row for Gamma
 #'
-#' @param star.deltas  ?
-#' @param local.shrinkage.nu ?
-#' @param a4 ?
+#' @param star.deltas hierarchical priors for global shrinkage parameter tau
+#' @param local.shrinkage.nu hierarchical priors (rate parameters) for local shrinkage parameter psi?
+#' @param a4 rate parameter for gamma prior distribution used to build deltas 
 #' @param n.targets number of targets
 #' @param n.covariates number of covariates
 #'
-#' @return
-#' @export
+#' @return list containing simulated draws from prior(?) distributions
+#' @export 
 #'
 
 simulate.new.brr.factor <- function(star.deltas, local.shrinkage.nu, a4, n.pheno, n.snps) {

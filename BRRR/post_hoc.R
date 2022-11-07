@@ -106,16 +106,16 @@ cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2"
 
 lat_map_mini=lat_map[c(1:8, 592:599), ] #make highlight points
 
-ggplot(data=as.data.frame(lat_map), 
-       aes(lat_map[,1], lat_map[,2], shape=spectra)) + 
-  geom_point(alpha=0.2) + geom_point(data=lat_map_mini, 
-                                     aes(lat_map_mini[,1], lat_map_mini[,2], shape=spectra, colour=subject),
-                                     size=3) +
-  ggtitle("Subjects in latent mapping ") + scale_colour_manual(values=cbbPalette)+
-  xlab("Component #1") + ylab("Component #2") + xlim(-45,55) + ylim(-25,30) +
-  theme(legend.position="none") + theme_bw()
-
-
+p <- ggplot(data=as.data.frame(lat_map), 
+        aes(lat_map[,1], lat_map[,2], shape=spectra)) + 
+        geom_point(alpha=0.2) + geom_point(data=lat_map_mini, 
+                                           aes(lat_map_mini[,1], lat_map_mini[,2], shape=spectra, colour=subject),
+                                           size=4) +
+        ggtitle("Subjects in latent mapping ") + scale_colour_manual(values=cbbPalette)+
+        xlab("Component #1") + ylab("Component #2") + xlim(-42,48) + ylim(-20,25) +
+        theme(legend.position="none") + theme_bw()
+ggsave("latmap_over1_N2.pdf", width=7.4, height=5.2)
+ggsave("latmap_over1_N2.svg", width=7.4, height=5.2)
 # trying 3D plots
 
 library("scatterplot3d")

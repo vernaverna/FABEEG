@@ -301,16 +301,17 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
 
 do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subject') {
   
-  library(foreach)    # install.packages('foreach') options(repos = c(CRAN = “http://cran.rstudio.com”))
+  library(foreach)    # install.packages('foreach') options(repos = c(CRAN = "http://cran.rstudio.com"))
   library(doParallel) # install.packages('doParallel')
   registerDoParallel(makeCluster(4)) # Use 4 cores for parallel CV
   
   Ds <- vector(mode = "list", length = n_folds) #list containing results from each CV fold
   names(Ds) <- c(paste0('fold_', seq(1:n_folds)) )
   
-  subjects <- unique(names(x))
+  
+  subjects <- unique(names(data$x))
   cvId <- c()
-  S <- ncol(X) #number of UNIQUE subjects - leaving subjects out, not data points 
+  S <- ncol(data$X) #number of UNIQUE subjects - leaving subjects out, not data points 
   
   
   while (length(cvId) < S) cvId <- c(cvId, sample(1:n_folds))
@@ -394,14 +395,14 @@ Ns <- seq(80, 780, by=100)
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N1A","N1B","N2C"), validation_set = "N2C")
-  # Y = n2_data[[1]]
-  # X = n2_data[[3]]
-  # x = n2_data[[2]]
-  # ages = n2_data[[4]]
+  n2_data <- prepare_data(spectra = c("N1A","N2B","N2C"), validation_set = "N2C")
+  Y = n2_data[[1]]
+  X = n2_data[[3]]
+  x = n2_data[[2]]
+  ages = n2_data[[4]]
   # 
-  # Y2 = n2_data[[5]] #validation set data
-  # Z = n2_data[[6]]
+  Y2 = n2_data[[5]] #validation set data
+  Z = n2_data[[6]]
   # 
   
   # The model is trained using two sets of N2 data, and the within-sample performance is evaluated using
@@ -454,7 +455,7 @@ print(mean(accs))
 ## Training with all data
 source("brrr.R")
 K=12
-res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=0.01) 
+res <- brrr(X=X,Y=Y,K=K,Z=Z,n.iter=1000,thin=5,init="LDA",fam=x, omg=0.01) 
 res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
 res$scaling <- ginv(averageGamma(res))
 
@@ -520,7 +521,7 @@ subj_number <- factor(c(x,seq(1,nsubj)))
 
 ggplot(data=as.data.frame(lat_map), aes(lat_map[,4], lat_map[,6], shape=condition, col=factor(sex))) + 
   geom_point(aes(size=age)) + ggtitle("Subjects in latent mapping ") + 
-  xlab("Component #4") + ylab("Component #6")
+  xlab("Component #1") + ylab("Component #2")
 
 
 
