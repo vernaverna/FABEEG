@@ -28,8 +28,8 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
   ages = read.csv('data/new_age_df.csv')
   ages <- ages[,-1]
   
-  use_all=T #should we use all subjects in training?
-  age_gap=c(7,19) #exclude some of the younger children?
+  use_all=F #should we use all subjects in training?
+  age_gap=c(0,19) #exclude some of the younger children?
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -375,7 +375,7 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
     }
     
     
-    #Ds[[fold]] <- list(D, res) #append results
+    Ds[[fold]] <- list(D, res$model$ptve) #append results
     
     
   }
@@ -390,12 +390,14 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
 ### TRAINING / RUNS ###
 
 
-Ns <- seq(80, 780, by=100)
+Ns <- seq(25, 780, by=25)
+accuracies <- c()
+ptve <-c()
 
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N1A","N2B","N2C"), validation_set = "N2C")
+  n2_data <- prepare_data(spectra = c("N1A","N2B","N2C"), validation_set = "N2C", n_inds=n)
   Y = n2_data[[1]]
   X = n2_data[[3]]
   x = n2_data[[2]]
@@ -409,21 +411,29 @@ for(n in Ns){
   # MSE, PTVE and accuracy (L1 distances in the projection)
   source("brrr.R")
   
-  CV_results = do_CV(data=n2_data, n_folds=5, K=12, iter=1000, validation_scheme='subject')
+  CV_results = do_CV(data=n2_data, n_folds=10, K=12, iter=500, validation_scheme='subject')
   
-  CV_scores <- lapply(CV_results, `[[`, 2) #unlisting stuff; looks ugly
-  #CV_ptves <- lapply(CV_results, `[[`, 2)
+  CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
+  CV_scores <- lapply(CV_scores, `[[`, 2)
+  
+  CV_ptves <- lapply(CV_results, `[[`, 2) #get ptves
   #CV_2 <- lapply(CV_ptves, `[[`, 1)
   #CV_ptve <- lapply(CV_2, `[[`, 3)
   
-  n=lapply(CV_scores, sapply, mean)
-  accs <- unlist(lapply(n, `[[`, 1))
+  accs <- unlist(lapply(CV_scores, `[[`, 1))
   print("Average CV accuracy:")
   print(mean(accs))
   
-  #print("Average train-PTVE:")
-  #print( mean(unlist(CV_ptve)) )
+  ptvs = unlist(lapply(CV_ptves, `[[`, 1))
+  print("Average train-PTVE:")
+  print( mean(ptvs) )
+  
+  accuracies = c(mean(accs), accuracies)
+  ptve = c(mean(ptvs), ptve)
 }
+
+
+
 
 
 # loop thru results and do unseen_data validation
