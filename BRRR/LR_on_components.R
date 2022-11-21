@@ -14,7 +14,7 @@ library("car")
 library("dplyr")
 library("factoextra")
 
-load("results/full/over7_2N2_BRRR_K12.RData") 
+load("results/full/all_2N2_BRRR_K12.RData") 
 comp <- res$scaling
 Y <- res$data$phenotypes
 X <- res$data$genotypes
@@ -57,7 +57,7 @@ influence(fit) # regression diagnostics
 ggplot(data=lat_map,aes(V1, age)) +
   geom_point() +
   geom_smooth(method='lm') +
-  theme_minimal() + ylim(7,20) +
+  theme_minimal() + #ylim(7,20) +
   labs(x='V1', y='Age (years)', title='Linear Regression Plot') 
 
 

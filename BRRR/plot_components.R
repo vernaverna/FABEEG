@@ -5,7 +5,7 @@
 
 #TODO: add miniheads? (nope) + same individual, different data??
 
-data <- "raw" # datatype
+data <- "EEG_ind" # datatype
 
 if(data == "EEG_ind") { #TODO: fix repetition
   fname <- paste0("results/full/over7_2N1_BRRR_K12.RData")
@@ -83,7 +83,7 @@ coords = coords * 200
 ####
 ####
 
-filename <- paste0("figures/FLE15021", data, ".pdf") # pdf file for saving plots
+filename <- paste0("figures/over7_2N1", data, ".pdf") # pdf file for saving plots
 pdf(file=filename,width=20,height=30)
 plotLabels <- paste0("K",1:ncol(net$Y)) # plot lables
 if(data=='raw'){
