@@ -214,14 +214,51 @@ install.packages("cluster")
 #       0.8468616,0.8499344,0.8528079,0.8554512,0.8575301,0.8595379,0.8612431,0.8628522,
 #       0.8643616,0.8657661,0.8670517,0.868357,0.8694523,0.870628,0.871647)
 
-P<-c(80,180,280,380,480,580,680,780)
-Accuracy<-c(0.3375,0.5592593,0.5396825,0.552924,0.537326,0.5421456,0.5395425,0.4837607) #for the different Ns; K=12
-PTVE <-c(0.7839801,0.7560055,0.7771796,0.7729471,0.772513275,0.7694992,0.768224,0.7740776)
+#P<-c(80,180,280,380,480,580,680,780)
+#Accuracy<-c(0.3375,0.5592593,0.5396825,0.552924,0.537326,0.5421456,0.5395425,0.4837607) #for the different Ns; K=12
+#PTVE <-c(0.7839801,0.7560055,0.7771796,0.7729471,0.772513275,0.7694992,0.768224,0.7740776)
 
+
+N <- c(25,50,75,100,125,150,175,200,225,250,275,300,325,350,375,400,425,450,500,
+       525,550,575,600,625,650,675,700,725,750,775)
+
+Accuracy <- c(0.9332828, 0.9553710, 0.9573718, 0.9435989, 0.9569748, 0.9534091, 0.9565517,
+                0.9527778, 0.9676667, 0.9683794, 0.9697368, 0.9601307, 0.9595238, 0.9673077, 0.9500000, 0.9589286, 
+                0.9800000, 0.9666667, 0.948, 0.9486574746, 0.949090909, 0.95834845735, 0.955, 0.9439836, 0.94,
+                0.95397278, 0.9405761, 0.9400000, 0.9379186, 0.9414286)
+
+PTVE <- c(0.7846727, 0.7859299, 0.7835422, 0.7823817, 0.7839232, 0.7808549, 0.7862589, 
+           0.7775405, 0.7692275, 0.7748056, 0.7664903, 0.7835569, 0.7865601, 0.7963672, 0.8057717, 
+           0.7987842, 0.8044759, 0.7971333, 0.78344429, 0.782090264, 0.786921311, 0.78569198685,
+           0.7866622681, 0.7876764, 0.78786028, 0.78486544, 0.7887568, 0.7889648, 0.7876293, 0.7887033)
+
+pdf(file=paste0(getwd(),'/figures/acc_ptve_match_allsubj_2N2_N1.pdf'))
+
+plot(Accuracy~N, type='l', col='firebrick', ylim=c(0.10, 1),
+     ylab="", lwd=3, bty='n')
+lines(PTVE~N, col='cornflowerblue', lwd=3, bty='n')
+grid(nx = NA,
+     ny = NULL,
+     lty = 2, col = "gray", lwd = 0.8)
+
+legend('bottomleft', legend = c('Accuracy', 'PTVE'),  
+       col=c('firebrick', 'cornflowerblue'), pch=19, bty = "n", 
+       pt.cex = 1.8, 
+       cex = 1.2, 
+       text.col = "black", 
+       horiz = F , inset = c(0.07, 0.07) )
+dev.off()
+
+
+
+
+
+
+
+######## IDK ##############
 
 library(reshape2)
-K <- c(1:12)
-data=as.data.frame(cbind(K, N1, N2))
+data=as.data.frame(cbind(N, N1, N2))
 melt(data, id.vars = "K", measure.vars = c("N1", "N2"))
 colnames(data) <- c("K", "model", "correlation")
 
@@ -233,20 +270,8 @@ ggplot(data=data, aes(x=K, y=correlation, color=model) ) + geom_point(size=4) +
     nudge_x = 0.1, nudge_y = 0.05, 
     check_overlap = T
   ) + 
- # xlim(0, 12) +
+  # xlim(0, 12) +
   theme_minimal()
 
-plot(Accuracy~P, type='l', col='darkorange', ylim=c(0.30, 0.8),
-     ylab="", lwd=3, bty='n')
-lines(PTVE~P, col='darkcyan', lwd=3, bty='n')
-grid(nx = NA,
-     ny = NULL,
-     lty = 2, col = "gray", lwd = 0.8)
 
-legend('bottomright', legend = c('Accuracy', 'PTVE'),  
-       col=c('darkorange', 'darkcyan'), pch=19, bty = "n", 
-       pt.cex = 1.8, 
-       cex = 1.2, 
-       text.col = "black", 
-       horiz = F , inset = c(0.07, 0.07) )
 

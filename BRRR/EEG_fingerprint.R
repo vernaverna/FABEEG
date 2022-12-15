@@ -48,7 +48,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
       load(loadfile)
       
       if(use_all==F){
-        set.seed(11)
+        set.seed(111)
         #load("/projects/FABEEG/BRRR/ref_subjects.RData")
         #individuals=obs
         individuals = sample(individuals, n_inds)
@@ -78,7 +78,6 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
           if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
             #if(age_data$Cap == Cap){
             tmp <- t(Y[[s]]) #transposed
-            #tmp <- exp(log10(tmp)) #ADDED EXP
             tmp <- log10(tmp)
             if(any(is.na(tmp))){ #browser()
               corrupted = c(corrupted, s)
@@ -247,7 +246,7 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
   for(testidx in 1:ncol(Xt)){ 
     for(m in 1:ncol(Xt)){     
       group_members <- rownames(lat_map)[m]   
-      idxs = which(row.names(lat_map) %in% group_members) #    
+      idxs = which(row.names(lat_map) %in% group_members) #should be at least 2!    
       #group_mean <- colMeans(lat_map[idxs,1:pK])
       if(within_sample){
         
@@ -261,7 +260,7 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
       } else {
         
         if(length(idxs)>2){
-          other_data <- colMeans(lat_map[idxs, pK])
+          other_data <- colMeans(lat_map[idxs, pK]) 
         } else {
           other_data <- lat_map[idxs, pK]
         }
@@ -281,7 +280,10 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
   accuracy = sum(diag(PROJ))/nrow(D)
   print(paste("Model accuracy:", accuracy)) #alright this is how I like it ;)
   
-  return(list(D, accuracy))
+  rankings <- apply(D, 2, rank)
+  avg_rank = sum(diag(rankings))/nrow(rankings)
+  
+  return(list(D, accuracy, avg_rank))
   
 }
 
@@ -324,6 +326,7 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
     Y <- data$Y #extract these here to avoid racing problems
     X <- data$X
     x <- data$x
+    Y2 <- data$Y2
     
     testsubj <- subjects[cvId==fold] #extract testsubj
     train_Y <- Y[which(!rownames(Y)%in%testsubj),]
@@ -352,13 +355,15 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
                       Xt=test_X)
       
     } else if(validation_scheme=='unseen_data'){ #validate on the test spectra
-      test_Y <- Y2[which(!rownames(Y2)%in%testsubj),]
-      test_X <- train_X[1:nrow(test_Y),]
+      test_Y <- Y2[which(rownames(Y2)%in%testsubj),] #used to be ! before rownames
+      test2_Y <- Y[which(rownames(Y)%in%testsubj),]
+      #test_X <- train_X[1:nrow(test_Y),]
+      test_X <- X[which(rownames(X)%in%testsubj) , which(colnames(X)%in%testsubj) ]
       lat_map2 <- test_Y%*%W
-      lat_map <- train_Y%*%W
+      lat_map <- test2_Y%*%W #used to be train_Y
       
       #is not actually within-sample but oh well--- works now
-      D <- validation(within_sample = F, dis=dis, pK=c(1:2), lat_map=lat_map, lat_map2=lat_map2,  
+      D <- validation(within_sample = F, dis=dis, pK=c(1:K), lat_map=lat_map, lat_map2=lat_map2,  
                       Xt=test_X)
       
       #calculate test MSE & PTVE
@@ -390,14 +395,15 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
 ### TRAINING / RUNS ###
 
 
-Ns <- seq(25, 780, by=25)
+Ns <- seq(480, 780, by=30)
 accuracies <- c()
 ptve <-c()
+rank <- c()
 
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N1A","N2B","N2C"), validation_set = "N2C", n_inds=n)
+  n2_data <- prepare_data(spectra = c("N1A","N1B"), validation_set = "N1B", n_inds=n)
   Y = n2_data[[1]]
   X = n2_data[[3]]
   x = n2_data[[2]]
@@ -411,9 +417,10 @@ for(n in Ns){
   # MSE, PTVE and accuracy (L1 distances in the projection)
   source("brrr.R")
   
-  CV_results = do_CV(data=n2_data, n_folds=10, K=12, iter=500, validation_scheme='subject')
+  CV_results = do_CV(data=n2_data, n_folds=10, K=12, iter=500, validation_scheme='unseen_data')
   
   CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
+  CV_ranks <- lapply(CV_scores, `[[`, 3)
   CV_scores <- lapply(CV_scores, `[[`, 2)
   
   CV_ptves <- lapply(CV_results, `[[`, 2) #get ptves
@@ -428,8 +435,15 @@ for(n in Ns){
   print("Average train-PTVE:")
   print( mean(ptvs) )
   
-  accuracies = c(mean(accs), accuracies)
-  ptve = c(mean(ptvs), ptve)
+  ranks = unlist(lapply(CV_ranks, `[[`, 1))
+  print("Average self-identification ranks:")
+  print( mean(ranks) )
+  
+  accuracies = c(accuracies,mean(accs))
+  ptve = c(ptve,mean(ptvs))
+  rank = c(rank,(mean(ranks))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/K12_all_N1AB.RData'))
+  write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N=",n,".csv"))
 }
 
 
