@@ -53,7 +53,7 @@ for subj in subjects:
         age_group = int(age_df.loc[age_df['File'] == subj]['Age group'])
         evoked_spectra = mne.read_evokeds(fname.evoked(subject=subj)) #accidentallly in psds: moved to evoked later
 
-        evoked_N1, evoked_N2 = evoked_spectra[3], evoked_spectra[4]
+        evoked_N1, evoked_N2 = evoked_spectra[1], evoked_spectra[4]
 
         group_spectra_n1[age_group].append(evoked_N1)
         group_spectra_n2[age_group].append(evoked_N2)
@@ -102,7 +102,7 @@ for i in range(1, len(group_spectra_n1)+1):
     # psd_avg_n1 = np.log10(group_evoked_avg_n1.data).mean(axis=0) #global average
     # psd_avg_n2 = np.log10(group_evoked_avg_n2.data).mean(axis=0)
 
-    ax.plot(freqs, psd_avg_n1, color=colors[i-1], linestyle='-', label='N2b Sleep')
+    ax.plot(freqs, psd_avg_n1, color=colors[i-1], linestyle='-', label='N1b Sleep')
     ax.plot(freqs, psd_avg_n2, color=colors[10//i], linestyle='-', label='N2c Sleep') 
 
     agebin = 'Age: ' + str(bin_labs[i-1]) + '-' + str(bin_labs[i]) + ' years'
@@ -156,7 +156,7 @@ caps = ['ROI Visual', 'ROI Temporal', 'ROI Frontal']
 roi_figs=[]
 log_n1_spect = {1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9:[], 10: []}
 
-for roi in picks_list[0]:
+for roi in picks_list[1]:
     evokeds = []
     captions=[]
    
@@ -186,6 +186,62 @@ for roi in picks_list[0]:
     roi_figs.append(g)
 
 roi_figs = sum(roi_figs, []) #hacky way to get a 1D list of figures
+
+
+#Global average but otherwise the same?
+glob_figs=[]
+log_n1_spect = {1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9:[], 10: []}
+log_n2_spect = {1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9:[], 10: []}
+
+
+evokeds_n1 = []
+evokeds_n2 = []
+captions=[]
+   
+for i in range(1, len(group_spectra_n1)+1):
+    if i < 12:
+        spectra_n1 = [evk.copy() for evk in group_spectra_n1[i]]
+        spectra_n2 = [evk.copy() for evk in group_spectra_n2[i]]
+        
+        inf = spectra_n1[1].info
+        log_group_spectra = [np.log10(evk.data) for evk in spectra_n1]
+        log_evkds = [mne.EvokedArray(data, info=inf) for data in log_group_spectra]
+        
+        
+        log_group_spectra2 = [np.log10(evk.data) for evk in spectra_n2]
+        log_evkds2 = [mne.EvokedArray(data, info=inf) for data in log_group_spectra2]
+        
+        log_n1_spect[i] = log_evkds
+        log_n2_spect[i] = log_evkds2
+        
+        evkd_group = mne.grand_average(log_evkds)
+        evkd_group2 = mne.grand_average(log_evkds2)
+        freqs = evkd_group.times
+        comment= 'Age: '+str(round(bin_labs[i-1],2)) + '-' + str(round(bin_labs[i],2)) + ' y'
+        captions.append(comment)
+        evokeds_n1.append(evkd_group.data.mean(0))
+        evokeds_n2.append(evkd_group2.data.mean(0))
+
+
+#TODO: combine these to a single data frame
+# https://seaborn.pydata.org/generated/seaborn.relplot.html
+evk_df = pd.DataFrame(evokeds_n1).T
+evk_df.columns = captions
+evk_df.index = freqs
+
+evk_df2 = pd.DataFrame(evokeds_n2).T
+evk_df2.columns = captions
+evk_df2.index = freqs
+
+g = sns.relplot(data=evk_df, kind="line", palette=colors[0:10])
+g.fig.suptitle("N1 Global average")
+glob_figs.append(g)
+
+
+
+f = sns.relplot(data=evk_df2, kind="line", palette=colors[0:10])
+f.fig.suptitle("N2 Global average")
+glob_figs.append(f)
 
 
 # In order to use plot_compare_evokeds, change the group spectra dict keys
