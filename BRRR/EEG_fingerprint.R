@@ -29,7 +29,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
   ages <- ages[,-1]
   
   use_all=F #should we use all subjects in training?
-  age_gap=c(0,19) #exclude some of the younger children?
+  age_gap=c(7,19) #exclude some of the younger children?
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -403,7 +403,7 @@ rank <- c()
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N1A","N1B"), validation_set = "N1B", n_inds=n)
+  n2_data <- prepare_data(spectra = c("N2A","N1B","N2B","N1A"), validation_set = "N1B", n_inds=n)
   Y = n2_data[[1]]
   X = n2_data[[3]]
   x = n2_data[[2]]
@@ -441,8 +441,8 @@ for(n in Ns){
   
   accuracies = c(accuracies,mean(accs))
   ptve = c(ptve,mean(ptvs))
-  rank = c(rank,(mean(ranks))
-  save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/K12_all_N1AB.RData'))
+  rank = c(rank,mean(ranks))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/K12_all_N2ACD.RData'))
   write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N=",n,".csv"))
 }
 
