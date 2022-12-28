@@ -203,9 +203,16 @@ for i in range(1, len(group_spectra_n1)+1):
         spectra_n1 = [evk.copy() for evk in group_spectra_n1[i]]
         spectra_n2 = [evk.copy() for evk in group_spectra_n2[i]]
         
+        to_discard1= [i for i, e in enumerate(spectra_n1) if np.sum(e.data)==0.0 or (np.isnan(e.data)).all()]
+        to_discard2= [i for i, e in enumerate(spectra_n2) if np.sum(e.data)==0.0 or (np.isnan(e.data)).all()]
+        
+        for index in sorted(to_discard2, reverse=True):
+            del spectra_n2[index]
+        
         inf = spectra_n1[1].info
         log_group_spectra = [np.log10(evk.data) for evk in spectra_n1]
         log_evkds = [mne.EvokedArray(data, info=inf) for data in log_group_spectra]
+        
         
         
         log_group_spectra2 = [np.log10(evk.data) for evk in spectra_n2]
@@ -225,24 +232,35 @@ for i in range(1, len(group_spectra_n1)+1):
 
 #TODO: combine these to a single data frame
 # https://seaborn.pydata.org/generated/seaborn.relplot.html
-evk_df = pd.DataFrame(evokeds_n1).T
-evk_df.columns = captions
-evk_df.index = freqs
+evk_df1 = pd.DataFrame(evokeds_n1).T
+evk_df1.columns = captions
+evk_df1.index = freqs
 
 evk_df2 = pd.DataFrame(evokeds_n2).T
 evk_df2.columns = captions
 evk_df2.index = freqs
 
-g = sns.relplot(data=evk_df, kind="line", palette=colors[0:10])
+frames=[evk_df1, evk_df2]
+
+evk_df = pd.concat(frames, keys=['N1', 'N2'])
+evk_df.reset_index(inplace=True)
+evk_df = evk_df.rename(columns={'level_0': 'Sleep', 'level_1': 'Frequency'})
+
+g = sns.relplot(data=evk_df1, kind="line", palette=colors[0:10])
 g.fig.suptitle("N1 Global average")
 glob_figs.append(g)
-
 
 
 f = sns.relplot(data=evk_df2, kind="line", palette=colors[0:10])
 f.fig.suptitle("N2 Global average")
 glob_figs.append(f)
 
+#list(evk_df.columns)
+h = sns.relplot(data=evk_df, x="Frequency", y="Age: 11.42-18.6 y", hue="Sleep",
+                kind='line')
+h.fig.suptitle("Group global averages, Age: 11.42-18.6 y")
+(h.set_axis_labels("Frequency (Hz)", "log PSD"))
+glob_figs.append(h)
 
 # In order to use plot_compare_evokeds, change the group spectra dict keys
 # to string
@@ -250,13 +268,13 @@ glob_figs.append(f)
 # keys_n_values = group_spectra_n1.items()
 # group_spect_n1 = {str(key): value for key, value in keys_n_values}
 
-keys_n_values = log_n1_spect.items()
-log_n1_spect = {str(key): value for key, value in keys_n_values}
+keys_n_values = log_n2_spect.items()
+log_n2_spect = {str(key): value for key, value in keys_n_values}
 
-fig = mne.viz.plot_compare_evokeds(log_n1_spect, combine='mean', picks=roi, 
-   cmap='viridis', ylim=dict(eeg=[-1.4e+07,-9.0e+06]), 
+fig = mne.viz.plot_compare_evokeds(log_n2_spect, combine='mean',  
+   cmap='viridis', ylim=dict(eeg=[-1.4e+07,-9.0e+06]), ci=False,
    show_sensors='upper right', legend=True,
-   title='N2a sleep spectra of age groups')
+   title='N2 sleep spectra of age groups')
 
 
 #TODO: make a channel-wise slider!
