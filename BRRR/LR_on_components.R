@@ -14,7 +14,7 @@ library("car")
 library("dplyr")
 library("factoextra")
 
-load("results/full/all_2N2_BRRR_K12.RData") 
+load("results/full/over7_2N2_BRRR_K12.RData") 
 comp <- res$scaling
 Y <- res$data$phenotypes
 X <- res$data$genotypes
@@ -41,6 +41,7 @@ lat_map['subject'] = subj[1:nsubj]
 
 #Regression
 fit <- lm(age~V1+V2+V3+V4+V5+V6+V7+V8+V9+V10+V11+V12,data=lat_map)
+fit2 <- lm(age~V1, data=lat_map)
 summary(fit)
 #all are significant... kinda makes sense.
 
@@ -51,7 +52,7 @@ residuals(fit) # residuals
 anova(fit) # anova table
 vcov(fit) # covariance matrix for model parameters
 influence(fit) # regression diagnostics
-
+plot(fitted(fit), resid(fit))
 
 #Plots... or nah?
 ggplot(data=lat_map,aes(V1, age)) +
