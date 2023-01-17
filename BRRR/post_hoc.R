@@ -242,12 +242,12 @@ plot(Accuracy~N, type='l', col='firebrick', ylim=c(0.10, 1),
      ylab="", lwd=3, bty='n')
 lines(PTVE~N, col='cornflowerblue', lwd=3, bty='n')
 par(new = TRUE) 
-plot(Rank~N, pch = 18, col = 'olivedrab',  axes = FALSE, xlab = "", ylab = "")
-axis(side = 4, at = pretty(range(Rank))) 
+#plot(Rank~N, pch = 18, col = 'olivedrab',  axes = FALSE, xlab = "", ylab = "")
+#axis(side = 4, at = pretty(range(Rank))) 
 grid(nx = NA,
      ny = NULL,
      lty = 2, col = "gray", lwd = 0.8)
-legend('bottomright', legend = c('Accuracy', 'PTVE', 'Rank'),  
+legend('bottomright', legend = c('Accuracy', 'PTVE'), #'Rank'  
        col=c('firebrick', 'cornflowerblue', 'olivedrab'), pch=19, bty = "n", 
        pt.cex = 1.8, 
        cex = 1.2, 

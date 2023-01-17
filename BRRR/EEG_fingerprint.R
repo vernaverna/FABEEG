@@ -48,7 +48,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
       load(loadfile)
       
       if(use_all==F){
-        set.seed(111)
+        set.seed(191)
         #load("/projects/FABEEG/BRRR/ref_subjects.RData")
         #individuals=obs
         individuals = sample(individuals, n_inds)
@@ -403,7 +403,7 @@ rank <- c()
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N2A","N1B","N1A"), validation_set = "N1B", n_inds=n)
+  n2_data <- prepare_data(spectra = c("N2A","N2B","N1B","N1A"), validation_set = "N1B", n_inds=n)
   Y = n2_data[[1]]
   X = n2_data[[3]]
   x = n2_data[[2]]
@@ -442,7 +442,7 @@ for(n in Ns){
   accuracies = c(accuracies,mean(accs))
   ptve = c(ptve,mean(ptvs))
   rank = c(rank,mean(ranks))
-  save(CV_results, file=paste0('results/', 10, 'foldCV/K12_all_N2ACD.RData'))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/K12_all_N2AB.RData'))
   write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N=",n,".csv"))
 }
 
@@ -488,7 +488,7 @@ K <- c(1:K)
 plot(K,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
 
 K=12
-save(res, file = paste0("results/full/over13_2N1_BRRR_K",K, ".RData") )
+save(res, file = paste0("results/full/alldata_2N2_BRRR_K",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)

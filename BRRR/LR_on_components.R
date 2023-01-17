@@ -14,7 +14,7 @@ library("car")
 library("dplyr")
 library("factoextra")
 
-load("results/full/over7_2N2_BRRR_K12.RData") 
+load("results/full/all_2N2_BRRR_K12.RData") 
 comp <- res$scaling
 Y <- res$data$phenotypes
 X <- res$data$genotypes
@@ -38,6 +38,12 @@ lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, 2)
 lat_map['cap'] = rep(ages[which(ages$File%in%subj),]$Cap, 2)
 lat_map['subject'] = subj[1:nsubj]
 
+
+#Check some correlations
+cor.test(lat_map$V1, as.numeric(lat_map$sex=='F')) #nyce
+
+cor.test(lat_map$V1, as.numeric(lat_map$cap=='FT'))
+cor.test(lat_map$age, as.numeric(lat_map$cap=='FT')) #kinda the point.. eh?
 
 #Regression
 fit <- lm(age~V1+V2+V3+V4+V5+V6+V7+V8+V9+V10+V11+V12,data=lat_map)
@@ -64,4 +70,31 @@ ggplot(data=lat_map,aes(V1, age)) +
 
 #TODO: glmer with gender as a random effect?
 
+#TODO: RECONSTRUCTION ERROR and its correlates? inspired by mr. Kimmo Alakulju
 
+dist_func <- function(dis='L2', x, y){
+  if(dis=='L2'){
+    return( sqrt(sum(x-y)**2 ))
+  } else if(dis=='cos'){
+    return( sum(x*y) / (sqrt(sum(x**2))*sqrt(sum(y**2))) )
+  } else {
+    print("dumb")
+  }
+}
+
+Yhat <- lat_space %*% t(comp)
+I=nrow(Yhat)
+M=nsubj
+
+rec_error <- vector(mode='list', length=I)
+names(rec_error) <- dimnames(lat_space)[[1]]#[1:M]
+
+for(i in 1:I){ #M
+  #v1 <- dist_func(dis="L2",Y[i,], Yhat[i,])
+  #v2 <- dist_func(dis="L2",Y[(i+M),], Yhat[(i+M),])
+  #rec_error[[i]] <- mean(c(v1,v2))
+  rec_error[[i]] <- dist_func(dis="L2",Y[i,], Yhat[i,])
+} 
+
+cor.test(unlist(rec_error), lat_map$age)
+cor.test(unlist(rec_error), as.numeric(lat_map$sex=='F'))
