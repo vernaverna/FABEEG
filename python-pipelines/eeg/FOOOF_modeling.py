@@ -23,11 +23,14 @@ from config_eeg import get_all_fnames, fname, bads, age_df
 
 subjects = np.genfromtxt('EEG_subjects.txt', dtype=None,encoding="utf8")
 spectra_n1a = []
+spectra_n2a = []
+
+individuals = []
 
 for subj in subjects:
     
     try:
-        subj_psds = fname.psds(subject=args.subject)
+        subj_psds = fname.psds(subject=subj)
     
         f = h5py.File(subj_psds, "r") 
         list(f.keys()) #name of the dataset 
@@ -43,22 +46,37 @@ for subj in subjects:
         
         #info = np.array(group['key_info']
         f.close()
+        
+        spectra_n1a.append(data_n1)
+        spectra_n2a.append(data_n2)
+        individuals.append(subj)
+        
+    except:
+        print(f'Did not find psds -file of {subj}!')
 
 
+#TODO: what channels are we checking? Or are we interested just in GA?
+
+#Calculate also global averages per each subject
+spectra_n1a_GA = [np.mean(subj_dat, axis=0) for subj_dat in spectra_n1a]
+spectra_n2a_GA = [np.mean(subj_dat, axis=0) for subj_dat in spectra_n2a]
 
 
+# Trying FOOOF on one subject, different inputs
+fm = FOOOF(max_n_peaks=8, aperiodic_mode='knee')
+fm.print_settings(description=True)
+
+freq_range = [2, 40]
+#spectrum = spectra_n1a_GA[57]
+#fm.report(freqs, spectrum, freq_range)
+
+for i in range(0,19):
+    spectrum = spectra_n2a[5][i,:]
+
+    fm.report(freqs, spectrum, freq_range)
 
 
-#Then, fit the FOOF model on a group level?
-# i prolly want to do some ind lvl too, just to check.
-
-
-
-
-
-
-
-
+#Then, fit the FOOF model on a group of spectra?
 
 
 
