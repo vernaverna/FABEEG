@@ -268,13 +268,13 @@ glob_figs.append(h)
 # keys_n_values = group_spectra_n1.items()
 # group_spect_n1 = {str(key): value for key, value in keys_n_values}
 
-keys_n_values = log_n2_spect.items()
-log_n2_spect = {str(key): value for key, value in keys_n_values}
+keys_n_values = log_n1_spect.items()
+log_n1_spect = {str(key): value for key, value in keys_n_values}
 
-fig = mne.viz.plot_compare_evokeds(log_n2_spect, combine='mean',  
+fig = mne.viz.plot_compare_evokeds(log_n1_spect, combine='mean',  
    cmap='viridis', ylim=dict(eeg=[-1.4e+07,-9.0e+06]), ci=False,
-   show_sensors='upper right', legend=True,
-   title='N2 sleep spectra of age groups')
+   show_sensors=False, legend=True,
+   title='N1 sleep spectra of age groups')
 
 
 #TODO: make a channel-wise slider!
