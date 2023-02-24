@@ -8,8 +8,9 @@
 data <- "EEG_ind" # datatype
 
 if(data == "EEG_ind") { #TODO: fix repetition
-  fname <- paste0("results/full/over7_2N1_BRRR_K12.RData")
-  load(fname)
+  #fname <- paste0("results/full/over7_2N1_BRRR_K12.RData")
+  file = paste0("results/full/alldata_ageZ_2N21N1_BRRR_K12.RData")
+  load(file)
   datafile <- paste0("data/N2Aspectrum.RData") #only to get frequencies
   load(datafile)
 
@@ -83,7 +84,7 @@ coords = coords * 200
 ####
 ####
 
-filename <- paste0("figures/over7_2N1", data, ".pdf") # pdf file for saving plots
+filename <- paste0("figures/all_2N2_1N1_ageZ", data, ".pdf") # pdf file for saving plots
 pdf(file=filename,width=20,height=30)
 plotLabels <- paste0("K",1:ncol(net$Y)) # plot lables
 if(data=='raw'){

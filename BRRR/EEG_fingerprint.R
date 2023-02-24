@@ -202,7 +202,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
   reorder_idx <- match(rownames(Y_val), Z1$File)
   Z1 <- Z1[reorder_idx,]
 
-  Z = matrix(c(Z1$Age, Z1$Age))
+  Z = matrix(c(Z1$Age, Z1$Age, Z1$Age))
   
   data <- list(Y1, x, X, ages, Y_val, Z=Z)
   names(data) <- c("Y", "x", "X", "ages", "Y2", "Z")
@@ -488,7 +488,7 @@ K <- c(1:K)
 plot(K,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
 
 K=12
-save(res, file = paste0("results/full/alldata_2N2_BRRR_K",K, ".RData") )
+save(res, file = paste0("results/full/alldata_ageZ_2N21N1_BRRR_K",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
