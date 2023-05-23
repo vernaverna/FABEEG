@@ -26,7 +26,7 @@ args = parser.parse_args()
 age_df = pd.read_csv('ages.csv')
 
 #Function to change the metadata & pick common channels
-def change_metadata(raw): 
+def change_metadata(raw): #TODO: mv to step 1 / config_eeg even
 
     #For testdata only, remove . in channel-names
     raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names, FIXME
@@ -51,9 +51,7 @@ def change_metadata(raw):
     allowed_chs = []
     with open('shared_channels.txt') as f:
          allowed_chs = f.read().splitlines()
-    
-    #TODO: add column to age_df indicating measurement cap; proxy by Ft channels? 
-    
+        
     if ('FT9' or 'FT10') in raw.info['ch_names']:
         cap_status = 'FT'
     else:
