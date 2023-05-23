@@ -2,6 +2,10 @@
 Perform bandpass filtering and notch filtering to get rid of cHPI and powerline
 frequencies.
 """
+# Some relevant files are in the parent folder.
+#import sys
+#sys.path.append('../../python-pipelines')
+
 import argparse
 from collections import defaultdict
 
@@ -75,7 +79,7 @@ for raw_fname, filt_fname in zip(raw_fnames, filt_fnames):
 
             
             report.save(fname.report_html(subject=args.subject),
-                        overwrite=True, open_browser=True)
+                        overwrite=True, open_browser=False)
     
     except FileNotFoundError:
         print(f'could not open raw data file from {args.subject}')
