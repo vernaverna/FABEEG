@@ -5,7 +5,7 @@ pipeline.
 
 # Some relevant files are in the parent folder.
 import sys
-sys.path.append('../')
+sys.path.append('../python-pipelines')
 
 from fnames import FileNames
 import os
