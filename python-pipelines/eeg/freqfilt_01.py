@@ -12,7 +12,7 @@ from collections import defaultdict
 from mne.io import read_raw_edf
 from mne import open_report
 
-from config_eeg import get_all_fnames, fname, bads, fmin, fmax, fnotch
+from config_eeg import get_all_fnames, change_metadata, fname, bads, fmin, fmax, fnotch
 
 # Deal with command line arguments
 parser = argparse.ArgumentParser(description=__doc__)
@@ -33,7 +33,8 @@ for raw_fname, filt_fname in zip(raw_fnames, filt_fnames):
     try:
         raw = read_raw_edf(raw_fname, preload=True)
    
-        # Remove MEG channels. This is the EEG pipeline after all.
+        # Change channel names
+        raw, _= change_metadata(raw=raw) 
         raw.pick_types(meg=False, eeg=True, eog=True, stim=True)
     
         # Mark bad channels that were manually annotated earlier.
@@ -64,7 +65,7 @@ for raw_fname, filt_fname in zip(raw_fnames, filt_fnames):
         figures.append(filt.compute_psd(picks=['eeg']).plot(show=False))
         
         #add raw segment figure
-        raw1 = raw.pick_types(eeg=True, eog=False, stim=False).crop(tmin=260,tmax=320).load_data()
+        raw1 = raw.copy().pick_types(eeg=True, eog=False, stim=False).crop(tmin=260,tmax=320).load_data()
     
         # Write HTML report with the quality control figures
         #TODO: looks stupid because of reference. consider raw data insrtead?
