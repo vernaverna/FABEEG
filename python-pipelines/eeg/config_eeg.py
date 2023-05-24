@@ -9,6 +9,7 @@ sys.path.append('../../python-pipelines')
 
 from fnames import FileNames
 import os
+import mne
 import pandas as pd
 import numpy as np
 
@@ -167,3 +168,89 @@ def task_from_fname(fname):
         return f'{task}_run{run}'
     else:
         return task
+
+#Function to change the metadata & pick common channels
+def change_metadata(raw):
+    """   
+    Change the metadata & pick common channels from subjects raw data
+    
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        Raw eeg data (FIF)
+
+    Returns
+    -------
+    raw : mne.io.Raw
+        Raw eeg data (FIF) with modified metadata
+    cap_status : str
+        'FT' or '-', infdicating if larger cap was used
+
+    """
+    
+    #For testdata only, remove . in channel-names
+    raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names, FIXME
+    raw.rename_channels(lambda x: x.upper())  # capitalize the ch names
+    
+    # Get reference channel; either Pz or Cz
+    ch_info_df = raw.describe(data_frame=True)
+    cz_deviation = abs(ch_info_df.iloc[17, 6]-ch_info_df.iloc[17, 4]) #Q3-Q1
+    pz_deviation = abs(ch_info_df.iloc[18, 6]-ch_info_df.iloc[18, 4])
+    
+    if cz_deviation < pz_deviation: #which channel has lower deviation ~> zero signal
+        reference = 'CZ'
+    else:
+        reference = 'PZ'
+    
+    #Set the reference as well
+    #raw.set_eeg_reference(ref_channels=[reference])
+    raw.set_eeg_reference('average')
+
+    
+    #Drop channels that are not in the shared_channels.txt .file
+    allowed_chs = []
+    with open('shared_channels.txt') as f:
+         allowed_chs = f.read().splitlines()
+        
+    if ('FT9' or 'FT10') in raw.info['ch_names']:
+        cap_status = 'FT'
+    else:
+        cap_status = '-'
+    
+    for ch_name in raw.info['ch_names']:
+        if ch_name not in allowed_chs:
+            raw.drop_channels(ch_name)
+
+    # Drop photic & pietso (for now)
+    raw.drop_channels("PHOTIC")
+    #raw.drop_channels("PIETSO") keep pietso just in case?
+    raw.drop_channels("EKG")
+    
+    # TODO: Reset sensor types ? 
+    
+    # Sensor locations not provided with data - use standard layout
+    ten_twenty_montage = mne.channels.make_standard_montage('standard_1020')
+    ten_twenty_montage.ch_names = [CH_NAME.upper() for CH_NAME in ten_twenty_montage.ch_names]
+
+    raw = raw.copy().set_montage(ten_twenty_montage, on_missing='ignore') #for pietso
+    
+    return raw, cap_status
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

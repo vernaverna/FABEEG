@@ -25,57 +25,6 @@ args = parser.parse_args()
 
 age_df = pd.read_csv('ages.csv')
 
-#Function to change the metadata & pick common channels
-def change_metadata(raw): #TODO: mv to step 1 / config_eeg even
-
-    #For testdata only, remove . in channel-names
-    raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names, FIXME
-    raw.rename_channels(lambda x: x.upper())  # capitalize the ch names
-    
-    # Get reference channel; either Pz or Cz
-    ch_info_df = raw.describe(data_frame=True)
-    cz_deviation = abs(ch_info_df.iloc[17, 6]-ch_info_df.iloc[17, 4]) #Q3-Q1
-    pz_deviation = abs(ch_info_df.iloc[18, 6]-ch_info_df.iloc[18, 4])
-    
-    if cz_deviation < pz_deviation: #which channel has lower deviation ~> zero signal
-        reference = 'CZ'
-    else:
-        reference = 'PZ'
-    
-    #Set the reference as well
-    #raw.set_eeg_reference(ref_channels=[reference])
-    raw.set_eeg_reference('average')
-
-    
-    #Drop channels that are not in the shared_channels.txt .file
-    allowed_chs = []
-    with open('shared_channels.txt') as f:
-         allowed_chs = f.read().splitlines()
-        
-    if ('FT9' or 'FT10') in raw.info['ch_names']:
-        cap_status = 'FT'
-    else:
-        cap_status = '-'
-    
-    for ch_name in raw.info['ch_names']:
-        if ch_name not in allowed_chs:
-            raw.drop_channels(ch_name)
-
-    # Drop photic & pietso (for now)
-    raw.drop_channels("PHOTIC")
-    raw.drop_channels("PIETSO")
-    raw.drop_channels("EKG")
-    
-    # TODO: Reset sensor types ?
-    
-    # Sensor locations not provided with data - use standard layout
-    ten_twenty_montage = mne.channels.make_standard_montage('standard_1020')
-    ten_twenty_montage.ch_names = [CH_NAME.upper() for CH_NAME in ten_twenty_montage.ch_names]
-
-    raw = raw.copy().set_montage(ten_twenty_montage)
-    
-    return raw, cap_status
-
 
 
 # Up to now, we have always skipped bad channels. To make sure we can average
@@ -88,7 +37,7 @@ def change_metadata(raw): #TODO: mv to step 1 / config_eeg even
 psds = dict()
 raw = read_raw_fif(fname.filt(subject=args.subject), preload=True)
 #Add metadata to testdata
-raw, cap_info = change_metadata(raw)
+#raw, cap_info = change_metadata(raw)
 #raw.interpolate_bads() # Only works if location is known
 
 
@@ -98,8 +47,8 @@ layout = find_layout(info)
 subj_info = age_df.loc[age_df['File']==args.subject]
 
 #Add cap_info to age_df
-age_df.at[subj_info.index, 'Cap'] = cap_info
-age_df.to_csv('ages.csv', index=False)
+#age_df.at[subj_info.index, 'Cap'] = cap_info
+#age_df.to_csv('ages.csv', index=False)
 
 
 
