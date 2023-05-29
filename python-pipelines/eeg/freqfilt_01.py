@@ -35,7 +35,7 @@ for raw_fname, filt_fname in zip(raw_fnames, filt_fnames):
    
         # Change channel names
         raw, _= change_metadata(raw=raw) 
-        raw.pick_types(meg=False, eeg=True, eog=True, stim=True)
+        raw.pick_types(eeg=True, eog=True, ecg=True)
     
         # Mark bad channels that were manually annotated earlier.
         
@@ -51,10 +51,10 @@ for raw_fname, filt_fname in zip(raw_fnames, filt_fnames):
         figures.append(raw.compute_psd(picks=['eeg']).plot(show=False))
     
         # Remove 50Hz power line noise (and the first harmonic: 100Hz)
-        filt = raw.notch_filter(fnotch, picks=['eeg', 'eog'])
+        #filt = raw.notch_filter(fnotch, picks=['eeg', 'ecg', 'eog'])
     
         # Apply bandpass filter 
-        filt = raw.filter(fmin, fmax, picks=['eeg', 'eog'])
+        filt = raw.filter(fmin, fmax, picks=['eeg', 'ecg', 'eog'])
     
         # Save the filtered data
         filt_fname.parent.mkdir(parents=True, exist_ok=True)
@@ -65,7 +65,7 @@ for raw_fname, filt_fname in zip(raw_fnames, filt_fnames):
         figures.append(filt.compute_psd(picks=['eeg']).plot(show=False))
         
         #add raw segment figure
-        raw1 = raw.copy().pick_types(eeg=True, eog=False, stim=False).crop(tmin=260,tmax=320).load_data()
+        raw1 = raw.copy().pick_types(eeg=True, eog=True, ecg=True).crop(tmin=260,tmax=320).load_data()
     
         # Write HTML report with the quality control figures
         #TODO: looks stupid because of reference. consider raw data insrtead?

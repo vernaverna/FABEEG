@@ -172,7 +172,7 @@ def task_from_fname(fname):
 #Function to change the metadata & pick common channels
 def change_metadata(raw):
     """   
-    Change the metadata & pick common channels from subjects raw data
+    Change the metadata, set correct channel types & pick common channels from subjects' raw data
     
     Parameters
     ----------
@@ -202,10 +202,6 @@ def change_metadata(raw):
     else:
         reference = 'PZ'
     
-    #Set the reference as well
-    #raw.set_eeg_reference(ref_channels=[reference])
-    raw.set_eeg_reference('average')
-
     
     #Drop channels that are not in the shared_channels.txt .file
     allowed_chs = []
@@ -221,18 +217,25 @@ def change_metadata(raw):
         if ch_name not in allowed_chs:
             raw.drop_channels(ch_name)
 
-    # Drop photic & pietso (for now)
+    # Drop photic
     raw.drop_channels("PHOTIC")
-    #raw.drop_channels("PIETSO") keep pietso just in case?
-    raw.drop_channels("EKG")
+    #raw.drop_channels("PIETSO") # or keep pietso just in case?
+    #raw.drop_channels("EKG")
     
-    # TODO: Reset sensor types ? 
+    # Reset sensor types 
+    mapping = dict( [(ch_name, 'ecg') if ch_name=='EKG' else (ch_name, 'eog') if ch_name=='PIETSO' 
+                     else (ch_name, 'eeg') for ch_name in raw.info['ch_names']] )
+    raw.set_channel_types(mapping)
     
     # Sensor locations not provided with data - use standard layout
     ten_twenty_montage = mne.channels.make_standard_montage('standard_1020')
     ten_twenty_montage.ch_names = [CH_NAME.upper() for CH_NAME in ten_twenty_montage.ch_names]
 
-    raw = raw.copy().set_montage(ten_twenty_montage, on_missing='ignore') #for pietso
+    raw = raw.copy().set_montage(ten_twenty_montage, on_missing='ignore') #for non-eeg chs?
+    
+    #Set the reference as well
+    #raw.set_eeg_reference(ref_channels=[reference])
+    raw.set_eeg_reference('average')
     
     return raw, cap_status
 
