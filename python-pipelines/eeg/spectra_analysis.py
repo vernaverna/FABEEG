@@ -291,3 +291,61 @@ with open_report('Average_spectra.h5') as report:
 # TODO: Compute group-averaged spectras
 
 # TODO: Plot results (distributions; violinplots etc)
+
+##############################################################
+############# LEGACY #########################################
+
+
+# def callback(ax, ch_idx):
+#      """Create a larger PSD plot for when one of the tiny PSD plots is
+#         clicked."""
+#      ax.plot(psds['freqs'], psds['PSD N1 (1)'][ch_idx], color='C0',
+#              label='sleep N1')
+#      ax.plot(psds['freqs'], psds['PSD N2 (2)'][ch_idx], color='C1',
+#              label='sleep N2')
+
+#      ax.legend()
+#      ax.set_xlabel('Frequency')
+#      ax.set_ylabel('PSD')
+
+
+# # Make the big topo figure
+# # TODO: label naming!!!!!
+# fig = plt.figure(figsize=(14, 9))
+
+# for ax, ch_idx in iter_topography(info1, layout, on_pick=callback, fig=fig,
+#                        axis_facecolor='white', fig_facecolor='white',
+#                        axis_spinecolor='white'):
+
+#     handles = [
+#         ax.plot(psds['freqs'], psds['PSD N1 (1)'][ch_idx], color='C0', label='sleep N1'),
+#         ax.plot(psds['freqs'], psds['PSD N2 (2)'][ch_idx], color='C1', label='sleep N2')
+#     ]
+    
+# #fig.legend("N1 sleep", "N2 sleep")
+# #fig.show()
+
+
+# # Added to manually save the channel-wise plots
+# # NOTE: dropping freqs over 20.5 Hz to have more informative figs, hence the selection [0:x] 
+# # TODO: remove reference, get 18 figs?
+
+# figs2 = []
+# captions = []
+# for ch_idx in range(len(info.ch_names)):
+#     fig2 = plt.figure(figsize=(10,7))
+    
+#     plt.plot(psds['freqs'], psds['sleep N1 (1)'][ch_idx].T, color='C0',
+#                                             label='sleep N1')
+#     plt.plot(psds['freqs'], psds['sleep N2 (2)'][ch_idx].T, color='C1',
+#                                             label='sleep N2')
+#     plt.yscale('log')
+#     plt.legend()
+#     captions.append((info.ch_names[ch_idx]))
+#     plt.xlabel('Frequency')
+#     plt.ylabel('PSD')
+
+        
+        
+#     figs2.append(fig2)
+#     plt.close(fig2)

@@ -27,13 +27,8 @@ args = parser.parse_args()
 
 age_df = pd.read_csv('ages.csv', index_col=1)
 
-
-
-# Up to now, we have always skipped bad channels. To make sure we can average
-# the PSDs later, each recording needs to have the same channels defined. So,
-# we call `interpolate_bads()` to replace all channels marked "bads" by an
-# interpolation of the surrounding channels. This ensures that each PSD object
-# has a signal designed for all channels, hence they are all compatible.
+# calculate 1-min estimates or longer segmnets?
+long_psd = False
 
 # Initialize PSDS
 psds = dict()
@@ -65,23 +60,30 @@ info1.set_montage(raw.get_montage())
 # maybe some 
 
 # Create events of 30 s 
-events_n1 = mne.make_fixed_length_events(raw, id=1, start=0, stop=300.0, duration=10, overlap=5) 
-events_n2 = mne.make_fixed_length_events(raw, id=2, start=300.0, stop=900.0, duration=10, overlap=5)
+events_n1 = mne.make_fixed_length_events(raw, id=1, start=0, stop=300.0, duration=30, overlap=0) 
+events_n2 = mne.make_fixed_length_events(raw, id=2, start=300.0, stop=900.0, duration=30, overlap=0)
 events = np.append(events_n1, events_n2, axis=0) #this is clumsy, but did not come up with anything else
 event_dict = {'sleep N1':1, 'sleep N2':2}
 
 
 # Create epochs from events
-epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=0.0, tmax=30, baseline=(0,0)) 
+epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=0.0, tmax=30, baseline=(0,3)) 
 
+#TODO: want global N1 & N2, as well as 1-min/30s slices? globs for plotting. 
 
-time_indices = {'PSD N1 (1)' : range(6,19), # make into 1 min slice -> needs 12 seqments 
-                'PSD N1 (2)' : range(20,33),
-                'PSD N2 (1)' : range(2,15),
-                'PSD N2 (2)' : range(30,43),
-                'PSD N2 (3)' : range(10,12),
-                'PSD N2 (4)' : range(12,14)}
+if long_psd:
+    time_indices = {'PSD N1' : range(1,10), #match data set size
+                    'PSD N2' : range(1,10)}
 
+else:
+    time_indices = {'PSD N1a' : range(1,5),
+                    'PSD N1b' : range(5,9),
+                    'PSD N2a' : range(1,5),
+                    'PSD N2b' : range(5,9),
+                    'PSD N2c' : range(9,14),
+                    'PSD N2d' : range(14,19)}
+
+del raw
 
 # Create evoked responses, but as spectra
 evokeds = dict()
@@ -97,70 +99,18 @@ for key in time_indices.keys():
         comment = f'Subj: {args.subject}, Age: { ag }, Sex: { se }, Sleep: N2'
     
     evokeds[key] = mne.EvokedArray(spectra.mean(axis=0), info=info1, comment=comment)
-    psds[key] = np.log10(spectra.mean(axis=0))
+    psds[key] = 10*np.log10(spectra.mean(axis=0)) #get decibels
     
 # Add some metadata to the file we are writing
 psds['info'] = info1
 psds['freqs'] = freqs
 
-write_hdf5(fname.psds(subject=args.subject), psds, overwrite=True)  # save psd
-
-del raw
-
-
-def callback(ax, ch_idx):
-     """Create a larger PSD plot for when one of the tiny PSD plots is
-        clicked."""
-     ax.plot(psds['freqs'], psds['PSD N1 (1)'][ch_idx], color='C0',
-             label='sleep N1')
-     ax.plot(psds['freqs'], psds['PSD N2 (2)'][ch_idx], color='C1',
-             label='sleep N2')
-
-     ax.legend()
-     ax.set_xlabel('Frequency')
-     ax.set_ylabel('PSD')
+if long_psd:
+    print("TODO: make a nested dictionary -> dataframe -> pickle")
+else:
+    write_hdf5(fname.psds(subject=args.subject), psds, overwrite=True)  # save psd
 
 
-# Make the big topo figure
-# TODO: label naming!!!!!
-fig = plt.figure(figsize=(14, 9))
-
-for ax, ch_idx in iter_topography(info1, layout, on_pick=callback, fig=fig,
-                       axis_facecolor='white', fig_facecolor='white',
-                       axis_spinecolor='white'):
-
-    handles = [
-        ax.plot(psds['freqs'], psds['PSD N1 (1)'][ch_idx], color='C0', label='sleep N1'),
-        ax.plot(psds['freqs'], psds['PSD N2 (2)'][ch_idx], color='C1', label='sleep N2')
-    ]
-    
-#fig.legend("N1 sleep", "N2 sleep")
-#fig.show()
-
-
-# Added to manually save the channel-wise plots
-# NOTE: dropping freqs over 20.5 Hz to have more informative figs, hence the selection [0:x] 
-# TODO: remove reference, get 18 figs?
-
-figs2 = []
-captions = []
-for ch_idx in range(len(info.ch_names)):
-    fig2 = plt.figure(figsize=(10,7))
-    
-    plt.plot(psds['freqs'], psds['sleep N1 (1)'][ch_idx].T, color='C0',
-                                            label='sleep N1')
-    plt.plot(psds['freqs'], psds['sleep N2 (2)'][ch_idx].T, color='C1',
-                                            label='sleep N2')
-    plt.yscale('log')
-    plt.legend()
-    captions.append((info.ch_names[ch_idx]))
-    plt.xlabel('Frequency')
-    plt.ylabel('PSD')
-
-        
-        
-    figs2.append(fig2)
-    plt.close(fig2)
 
 
 # # Save resultus to report

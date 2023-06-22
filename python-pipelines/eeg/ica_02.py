@@ -45,32 +45,33 @@ for filt_fname, ica_fname, clean_fname in all_fnames:
     bads_ecg, scores_ecg = ica.find_bads_ecg(raw_filt) 
     
     if args.remove_eog=='True':
-        eog_evoked = create_eog_epochs(raw_filt).average()
-        eog_evoked.apply_baseline(baseline=(None, -0.2))
-        bads_eog, scores_eog = ica.find_bads_eog(eog_evoked)
+        eog_evoked = create_eog_epochs(raw_filt, ch_name=eog_channel).average()
+        #eog_evoked.apply_baseline(baseline=(None, -0.2))
+        bads_eog, scores_eog = ica.find_bads_eog(raw_filt)
    
     else:
         bads_eog = []
     # Mark the ECG/EOG components for removal
     bads = bads_ecg + bads_eog
     ica.exclude = bads
-    ica.save(ica_fname, overwrite=True)
-
+    
     # Remove the EC/OG artifact components from the signal.
     raw_ica = ica.apply(raw_filt.copy())
     raw_ica.save(clean_fname, overwrite=True)
-
-    # Put a whole lot of quality control figures in the HTML report.
     
-    with open_report(fname.report(subject=args.subject)) as report:
-        report.add_ica(
-        ica=ica,
-        title="ICA cleaning",
-        picks=bads,  # only plot the first two components
-        inst=raw_filt,
-        ecg_evoked=ecg_evoked,
-        ecg_scores=scores_ecg,
-        )
+    if len(bads) > 0: 
+        # Put a whole lot of quality control figures in the HTML report.
+        ica.save(ica_fname, overwrite=True)
 
-        report.save(fname.report_html(subject=args.subject),
-                    overwrite=True, open_browser=True)
+        with open_report(fname.report(subject=args.subject)) as report:
+            report.add_ica(
+            ica=ica,
+            title="ICA cleaning",
+            picks=bads,  # only plot the first two components
+            inst=raw_filt,
+            ecg_evoked=ecg_evoked,
+            ecg_scores=scores_ecg,
+            )
+    
+            report.save(fname.report_html(subject=args.subject),
+                        overwrite=True, open_browser=True)
