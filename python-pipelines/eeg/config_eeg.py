@@ -45,7 +45,7 @@ age_df = pd.read_csv('ages.csv')
 #age_df.to_csv('ages.csv', index=False)
 
 # Subjects removed from the EEG analysis because of some problem
-bad_subjects = []
+bad_subjects = ['derivatives']
 
 # Analysis is performed on these subjects
 subjects = [subject for subject in all_subjects if subject not in bad_subjects]

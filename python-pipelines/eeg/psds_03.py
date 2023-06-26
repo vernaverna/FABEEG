@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('subject', help='The subject to process')
 args = parser.parse_args()
 
-age_df = pd.read_csv('ages.csv', index_col=1)
+age_df = pd.read_csv('ages.csv', index_col=0)
 
 # calculate 1-min estimates or longer segmnets?
 long_psd = False
@@ -38,19 +38,28 @@ raw.pick_types(eeg=True)
 # Add a PSD plot to the report.
 info = pick_info(raw.info, pick_types(raw.info, eeg=True))
 layout = find_layout(info)
-subj_info = age_df.loc[args.subject]
+try:
+    subj_info = age_df.loc[age_df['File']==args.subject]
+    
+    #Add cap_info to age_df
+    #age_df.at[subj_info.index, 'Cap'] = cap_info
+    #age_df.to_csv('ages.csv', index=False)
+    
+    #Making evoked arrays: comments + new info structure 
+    ag = subj_info['Age']
+    se = subj_info['Sex']
 
-#Add cap_info to age_df
-#age_df.at[subj_info.index, 'Cap'] = cap_info
-#age_df.to_csv('ages.csv', index=False)
+except:
+    print('No metadata from subject {args.subject}!')
+    ag = '?'
+    se = '?'
+    subj_info = pd.DataFrame({'File': [args.subject], 'Sex': ['nan'], 'Age': ['nan'], 'Cap': ['nan']})
+    age_df=pd.concat([age_df,subj_info], ignore_index=True)
+    
+    #update datafrAME
+    age_df.to_csv('ages.csv')
 
-
-
-#Making evoked arrays: comments + new info structure 
-ag = subj_info['Age']
-se = subj_info['Sex']
 sfreq = raw.info['sfreq']
-
 f_freq = n_fft/sfreq #frequency resolution
 info1 = mne.create_info(info['ch_names'], ch_types=["eeg"]*19, sfreq=f_freq)
 info1.set_montage(raw.get_montage())
