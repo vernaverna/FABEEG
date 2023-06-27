@@ -3,7 +3,7 @@
 
 while read LINE; do
     #echo ${LINE}
-    python3 psds_03.py $LINE 
+    python3 ica_02.py $LINE False 
 done < EEG_subjects.txt
 
 

@@ -31,27 +31,31 @@ age_df = age_df.drop(columns=['Unnamed: 0'])
 PSD_dict = {}
 
 for i in range(len(subjects)):
-    subj=subjects[i]
-    
+    subj=subjects[i]  
     try:
         subj_info = age_df.loc[subj].to_dict()
         for cond in conditions: #loop thru conditions
-            psds_dict=psds[i]      
-            subj_info[cond] = psds_dict[cond]
+            psds_dict=psds[i]
             
+            try:
+                subj_info[cond] = psds_dict[cond]
+            except KeyError:
+                subj_info[cond] = np.array([]) #some have empty N2 sequences
+                
         PSD_dict[subj] = subj_info
         freqs = psds_dict['freqs']
-    except:
-        print(f'New PSD data missing from subject {subj}')
-
+        info = psds_dict['info']
     
+    except KeyError:
+        print(f'PSD data missing from subject {subj}')
+
 PSD_df = pd.DataFrame.from_dict(PSD_dict, orient='index')
 
 # save the big dataframe to pickle for later use
 PSD_df.to_pickle('PSD_dataframe_.pkl')
+chs = info['ch_names']
 
-
-#%%
+#%% PLOTTING FUNCTIONS
 
 def plot_glob_intra_individual(PSD_df, subject, freqs):
     """
@@ -105,10 +109,39 @@ def plot_glob_intra_individual(PSD_df, subject, freqs):
     return fig, metadata
 
 
+
+def plot_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
+    """
+    
+    Parameters
+    ----------
+    PSD_df : TYPE
+        DESCRIPTION.
+    freqs : TYPE
+        DESCRIPTION.
+    sleep : str. optional
+        which sleep stage to plot?. The default is 'PSD N1a'.
+
+    Returns
+    -------
+    fig : plt figure
+
+    """
+    plot_df = PSD_df[['Sex', 'Age', 'Cap', sleep]]
+    
+    
+    fig = jotain
+    
+    return fig
+    
+    
+
 subj=subjects[44]
 
 fig, metadata = plot_glob_intra_individual(PSD_df, subj, freqs)
 plt.title(f'Global average PSDs, {subj} ({metadata})')
+
+
 
 
 #data = np.mean([stc.data for stc in stcs], axis=0)
