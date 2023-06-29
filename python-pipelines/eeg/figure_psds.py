@@ -6,13 +6,14 @@ Plot the power spectral densities on individual level.
 """
 import mne
 from mne.io import read_info
+from mne import find_layout
 from h5io import read_hdf5
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-
+from mne.viz import iter_topography
 from config_eeg import subjects, fname
 
 #assuming shorter data seqments
@@ -26,6 +27,7 @@ psds = [read_hdf5(fname.psds(subject=subject))
 # also the supplimentary data 
 age_df = pd.read_csv('ages.csv', index_col=1)
 age_df = age_df.drop(columns=['Unnamed: 0'])
+age_df = age_df[~age_df.index.duplicated(keep='first')]
 
 # Create holder dict 
 PSD_dict = {}
@@ -40,7 +42,7 @@ for i in range(len(subjects)):
             try:
                 subj_info[cond] = psds_dict[cond]
             except KeyError:
-                subj_info[cond] = np.array([]) #some have empty N2 sequences
+                subj_info[cond] = np.nan #some have empty N2 sequences
                 
         PSD_dict[subj] = subj_info
         freqs = psds_dict['freqs']
@@ -110,31 +112,98 @@ def plot_glob_intra_individual(PSD_df, subject, freqs):
 
 
 
-def plot_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
+def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
     """
     
     Parameters
     ----------
-    PSD_df : TYPE
-        DESCRIPTION.
-    freqs : TYPE
-        DESCRIPTION.
+    PSD_df : pandas DataFrmae
+        PSD data frame
+    freqs : frequencies 
+        needed fot x-axis
     sleep : str. optional
         which sleep stage to plot?. The default is 'PSD N1a'.
 
     Returns
     -------
-    fig : plt figure
-
+    cohort_n_mean: list of mean and SD data per age group
     """
     plot_df = PSD_df[['Sex', 'Age', 'Cap', sleep]]
     
+    #create age groups: even-sized bins #TODO: move this to outer layer?
+    bin_labels = ['1','2','3','4','5','6','7','8','9','10']
+    bins, bin_labs = pd.qcut(plot_df['Age'], q=10, retbins=True, labels=bin_labels)
+    bin_names = [str( round(bin_labs[i-1],2)) + '-' + str(round(bin_labs[i],2)) for i in range(1,len(bin_labs))]
     
-    fig = jotain
+    bins, bin_labs = pd.qcut(plot_df['Age'], q=10, retbins=True, labels=bin_names)
     
-    return fig
+    plot_df['Age group'] = bins
     
     
+    cohrt_groups = plot_df.groupby('Age group')
+    
+    group_ch_means = []
+    group_ch_sd = []
+    names = [] 
+    for name, cohort_df in cohrt_groups:
+        cohort_data = cohort_df[sleep]
+        cohort_data.dropna(inplace=True) #get rid of nan -values
+        Arr = np.array([i for i in cohort_data]) #nsubj x n_chs x n_freq
+        mean_data = np.nanmean(Arr, axis=0) #get mean data over all subjects within cohort
+        sd_data= np.nanstd(Arr, axis=0)
+        group_ch_means.append(mean_data)
+        group_ch_sd.append(sd_data)
+        names.append(name)
+    
+    cohort_n_mean1 = zip(names, group_ch_means, group_ch_sd)
+    cohort_n_mean = [(name, psd_data, sd_data) for name, psd_data, sd_data in cohort_n_mean1]
+    
+    return cohort_n_mean
+    
+
+
+
+#%%% Plots
+
+cohort_n_mean =  sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a')
+
+def my_callback1(ax, ch_idx):
+    """
+    This block of code is executed once you click on one of the channel axes
+    in the plot. To work with the viz internals, this function should only take
+    two parameters, the axis and the channel or data index.
+    """
+    
+    # Set colormap for visuals 
+    cm = plt.get_cmap('viridis')
+    colors = [cm(x) for x in np.linspace(0, 1, len(cohort_n_mean))] 
+
+    i=0
+    for name, mean_data, sd_data in cohort_n_mean:
+        ax.plot(freqs, mean_data[ch_idx], color=colors[i], label=name) #for all the group averages
+        lower =  mean_data[ch_idx]-sd_data[ch_idx]
+        upper =  mean_data[ch_idx]+sd_data[ch_idx]
+        ax.fill_between(freqs, lower, upper, color=colors[i], alpha=.15)
+        ax.set_xlabel('Frequency (Hz)')
+        ax.set_ylabel('Power (dB)')
+        ax.legend(loc="upper right")
+        i=i+1
+
+
+template = mne.io.read_raw_fif(fname.filt(subject=subj), preload=True)
+#loop through all channels and create an axis for them
+for ax, idx in iter_topography(template.info, 
+                               fig_facecolor='white',
+                               axis_facecolor='white',
+                               axis_spinecolor='white',
+                               on_pick=my_callback1):
+    ax.plot(cohort_n_mean[0][1][idx], color='green') #just to show some general output for the big figure
+    
+plt.gcf().suptitle(f'Power spectral densities in {sleep}')
+plt.show()
+
+
+### single-subject plots
 
 subj=subjects[44]
 
@@ -142,32 +211,3 @@ fig, metadata = plot_glob_intra_individual(PSD_df, subj, freqs)
 plt.title(f'Global average PSDs, {subj} ({metadata})')
 
 
-
-
-#data = np.mean([stc.data for stc in stcs], axis=0)
-# Function that creates the tiny PSD plots used to create the big topo figure.
-def show_func(ax, ch_idx, tmin, tmax, vmin, vmax, ylim):
-    ax.plot(ga_psds['freqs'], ga_psds[cond1][ch_idx], color='C0')
-    ax.plot(ga_psds['freqs'], ga_psds[cond2][ch_idx], color='C1')
-
-# Function that creates a larger PSD plot for when one of the tiny PSD plots is
-# clicked.
-def click_func(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, x_label, y_label):
-    ax.plot(ga_psds['freqs'], ga_psds[cond1][ch_idx], color='C0', label=cond1)
-    ax.plot(ga_psds['freqs'], ga_psds[cond2][ch_idx], color='C1', label=cond2)
-    ax.legend()
-    ax.set_xlabel('Frequency')
-    ax.set_ylabel('PSD')
-
-# Load the channel locations in order to position the tiny PSD plots in the big
-# topo figure.
-info = read_info(fname.raw(subject="S001", task='restEC', run=1)) #ERROR no fif but edf file instead?
-info = mne.pick_info(info, mne.pick_types(info, meg=False, eeg=True, eog=False))
-times = [1, 2]
-layout = mne.find_layout(info)
-
-# Make the big topo figure
-fig = mne.viz.topo._plot_topo(info, times, show_func, click_func, layout,
-                              axis_facecolor='white', fig_facecolor='white')
-fig.set_size_inches(14, 9)  # Make the figure window larger
-plt.savefig(fname.figure_psds)
