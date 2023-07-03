@@ -133,7 +133,7 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
     #create age groups: even-sized bins #TODO: move this to outer layer?
     bin_labels = ['1','2','3','4','5','6','7','8','9','10']
     bins, bin_labs = pd.qcut(plot_df['Age'], q=10, retbins=True, labels=bin_labels)
-    bin_names = [str( round(bin_labs[i-1],2)) + '-' + str(round(bin_labs[i],2)) for i in range(1,len(bin_labs))]
+    bin_names = [str( round(bin_labs[i-1],1)) + ' – ' + str(round(bin_labs[i],1)) for i in range(1,len(bin_labs))]
     
     bins, bin_labs = pd.qcut(plot_df['Age'], q=10, retbins=True, labels=bin_names)
     
@@ -164,8 +164,8 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
 
 
 #%%% Plots
-
-cohort_n_mean =  sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a')
+sleep='PSD N2c'
+cohort_n_mean =  sd_mean_inter_age_groups(PSD_df, freqs, sleep=sleep)
 
 def my_callback1(ax, ch_idx):
     """
@@ -181,12 +181,15 @@ def my_callback1(ax, ch_idx):
     i=0
     for name, mean_data, sd_data in cohort_n_mean:
         ax.plot(freqs, mean_data[ch_idx], color=colors[i], label=name) #for all the group averages
-        lower =  mean_data[ch_idx]-sd_data[ch_idx]
-        upper =  mean_data[ch_idx]+sd_data[ch_idx]
-        ax.fill_between(freqs, lower, upper, color=colors[i], alpha=.15)
+        #lower =  mean_data[ch_idx]-sd_data[ch_idx]
+        #upper =  mean_data[ch_idx]+sd_data[ch_idx]
+        #ax.fill_between(freqs, lower, upper, color=colors[i], alpha=.15)
         ax.set_xlabel('Frequency (Hz)')
         ax.set_ylabel('Power (dB)')
-        ax.legend(loc="upper right")
+        ax.legend(loc="upper right", title='Age (in years)')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        #ax.set_title(sleep) #overrides channel name :(
         i=i+1
 
 
