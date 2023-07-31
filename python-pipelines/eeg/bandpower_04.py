@@ -29,8 +29,7 @@ def bandpower(psd, f, fmin, fmax):
 
 
 # Relative or absolute band power?
-relative = False
-
+relative = True
 
 # Deal with command line arguments
 parser = argparse.ArgumentParser(description=__doc__)
@@ -40,28 +39,28 @@ args = parser.parse_args()
 
 # Try to open psds; 
 # TODO: if not successful, write the missing psd into a txt file
-#no_psds = []
 
 try:
     subj_psds = fname.psds(subject=args.subject)
 
     f = h5py.File(subj_psds, "r") 
-    list(f.keys()) #name of the dataset 
     group = f['h5io']
     freqs = np.array(group['key_freqs'])
-    data_n1 = np.array(group['key_sleep N1 (1)'])
-    data_n1_2 = np.array(group['key_sleep N1 (2)'])
-    data_n2 = np.array(group['key_sleep N2 (1)'])
-    data_n2_2 = np.array(group['key_sleep N2 (2)'])
-    data_n2_3 = np.array(group['key_sleep N2 (3)'])
-    data_n2_4 = np.array(group['key_sleep N2 (4)'])
-    data_n2_5 = np.array(group['key_sleep N2 (5)'])    
+    data_n1 = np.array(group['key_PSD N1a'])
+    data_n1_2 = np.array(group['key_PSD N1b'])
+    data_n2 = np.array(group['key_PSD N2a'])
+    data_n2_2 = np.array(group['key_PSD N2b'])
+    data_n2_3 = np.array(group['key_PSD N2c'])
+    data_n2_4 = np.array(group['key_PSD N2d'])
     
     #info = np.array(group['key_info']
     f.close()
     
     #Create a directory to save the .csv files
-    parent_dir = "/projects/FABEEG/Data2R/absolute_spectra_1min/"
+    if not relative:
+        parent_dir = "/projects/FABEEG/Data2R/absolute_spectra_1min/"
+    else:
+        parent_dir = "/projects/FABEEG/Data2R/relative_spectra_1min/"
     subj_dir = parent_dir + args.subject
     Path(subj_dir).mkdir(parents=True, exist_ok=True)
     
@@ -70,8 +69,8 @@ try:
     # i.e. sum of spectral power over all bands is 100 for each channel and subject
     # TODO: make sure that this is the desired approach!
     
-    dataset = {'n1':data_n1, 'n1_2':data_n1_2,'n2':data_n2, 'n2_2':data_n2_2, 'n2_3':data_n2_3,
-               'n2_4':data_n2_4, 'n2_5':data_n2_5}
+    dataset = {'N1a':data_n1, 'N1b':data_n1_2,'N2a':data_n2, 
+               'N2b':data_n2_2, 'N2c':data_n2_3, 'N2d':data_n2_4}
     
     for data_obj in list(dataset.keys()): #calculate bandpower for all PSDs 
         data_bandpower = []
@@ -97,10 +96,9 @@ try:
    
     
 except:
-    print("Did not find psds -file!")
-    #no_psds.append(args.subject)
+    print(f'Did not find psds -file from {args.subject}!')
+    bad_fname = args.subject
 
-#with open('corrupted_PSDs.txt', 'w') as f:
-#    for bad_fname in no_psds:
-#        f.write(bad_fname)
-#        f.write('\n')
+    with open('corrupted_PSDs.txt', 'a') as f:
+        f.write(bad_fname)
+        f.write('\n')

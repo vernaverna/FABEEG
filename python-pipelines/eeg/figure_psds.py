@@ -164,7 +164,7 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
 
 
 #%%% Plots
-sleep='PSD N2c'
+sleep='PSD N1b'
 cohort_n_mean =  sd_mean_inter_age_groups(PSD_df, freqs, sleep=sleep)
 
 def my_callback1(ax, ch_idx):
@@ -208,7 +208,7 @@ plt.show()
 
 ### single-subject plots
 
-subj=subjects[44]
+subj=subjects[5]
 
 fig, metadata = plot_glob_intra_individual(PSD_df, subj, freqs)
 plt.title(f'Global average PSDs, {subj} ({metadata})')

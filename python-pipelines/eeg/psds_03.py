@@ -101,15 +101,22 @@ for key in time_indices.keys():
     if 'N1' in key:
         spectra, freqs = psd_array_welch(epochs['sleep N1'][time_indices[key]].get_data(), 
                                          sfreq=sfreq, fmin=1, fmax=fmax, n_fft=n_fft)
+        
         comment = f'Subj: {args.subject}, Age: { ag }, Sex: { se }, Sleep: N1'
+        
+        evokeds[key] = mne.EvokedArray(spectra.mean(axis=0), info=info1, comment=comment)
+        psds[key] = 10*np.log10(spectra.mean(axis=0)) #get decibels
+        
     else:
         try:
             spectra, freqs = psd_array_welch(epochs['sleep N2'][time_indices[key]].get_data(), 
                                              sfreq=sfreq, fmin=1, fmax=fmax, n_fft=n_fft)
             
+            comment = f'Subj: {args.subject}, Age: { ag }, Sex: { se }, Sleep: N2'
+            
             evokeds[key] = mne.EvokedArray(spectra.mean(axis=0), info=info1, comment=comment)
             psds[key] = 10*np.log10(spectra.mean(axis=0)) #get decibels
-            comment = f'Subj: {args.subject}, Age: { ag }, Sex: { se }, Sleep: N2'
+        
         except IndexError as e:
             print('Not enough data for last segment!')
 
