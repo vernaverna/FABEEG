@@ -22,7 +22,7 @@ f_bands = [(0,1), (1,3), (3,5.2), (5.2,7.6), (7.6,10.2), (10.2, 13), (13,16),
 
 # Helper function to calculate bandpower for each sensor
 def bandpower(psd, f, fmin, fmax): 
-    min_index = np.argmax(f > fmin) - 1
+    min_index = max(0, np.argmax(f > fmin) - 1)
     max_index = np.argmax(f > fmax) -1
     
     return np.trapz(psd[:,min_index: max_index], f[min_index: max_index], axis=1)
@@ -85,8 +85,10 @@ try:
         #TODO: handle possible divisions by zero! BETTER
         #normalizes data
         if relative:
-            if abs_power > 0e-5:
+            if all (abs_power < -1e-5):
                 data_bandpower = np.array(data_bandpower)/abs_power #did not scale with 100 yet
+            else:
+                print('Division by zero, did not calculate bandpower!')
         else:
             data_bandpower = np.array(data_bandpower)
         
