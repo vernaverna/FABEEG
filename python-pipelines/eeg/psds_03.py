@@ -119,7 +119,7 @@ for key in time_indices.keys():
         
         except IndexError as e:
             print('Not enough data for last segment!')
-
+            continue
     
 
     
@@ -132,6 +132,10 @@ if long_psd:
 else:
     write_hdf5(fname.psds(subject=args.subject), psds, overwrite=True)  # save psd
 
+#ELE12390
+#FLE131126
+#ELE12390
+#FLE131126
 
 
 

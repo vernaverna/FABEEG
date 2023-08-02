@@ -15,7 +15,7 @@ from config_eeg import get_all_fnames, fname, bads, age_df
 
 
 # Define the frequency bands (heuristic approach as in BRRR)
-f_bands = [(0,1), (1,3), (3,5.2), (5.2,7.6), (7.6,10.2), (10.2, 13), (13,16),
+f_bands = [(1,3), (3,5.2), (5.2,7.6), (7.6,10.2), (10.2, 13), (13,16),
            (16,19.2), (19.2,22.6), (22.6,26.2), (26.2,30), (30,34), (34,38.2), (38.2,42.6)]
 
 #TODO: change these!
@@ -37,41 +37,43 @@ parser.add_argument('subject', help='The subject to process')
 args = parser.parse_args()
 
 
+#Create a directory to save the .csv files
+if not relative:
+    parent_dir = "/projects/FABEEG/Data2R/absolute_spectra_1min/"
+else:
+    parent_dir = "/projects/FABEEG/Data2R/relative_spectra_1min/"
+subj_dir = parent_dir + args.subject
+Path(subj_dir).mkdir(parents=True, exist_ok=True)
+
 # Try to open psds; 
-# TODO: if not successful, write the missing psd into a txt file
+# if not successful, write the missing psd into a txt file
 
 try:
     subj_psds = fname.psds(subject=args.subject)
 
     f = h5py.File(subj_psds, "r") 
     group = f['h5io']
-    freqs = np.array(group['key_freqs'])
-    data_n1 = np.array(group['key_PSD N1a'])
-    data_n1_2 = np.array(group['key_PSD N1b'])
-    data_n2 = np.array(group['key_PSD N2a'])
-    data_n2_2 = np.array(group['key_PSD N2b'])
-    data_n2_3 = np.array(group['key_PSD N2c'])
-    data_n2_4 = np.array(group['key_PSD N2d'])
-    
     #info = np.array(group['key_info']
-    f.close()
-    
-    #Create a directory to save the .csv files
-    if not relative:
-        parent_dir = "/projects/FABEEG/Data2R/absolute_spectra_1min/"
-    else:
-        parent_dir = "/projects/FABEEG/Data2R/relative_spectra_1min/"
-    subj_dir = parent_dir + args.subject
-    Path(subj_dir).mkdir(parents=True, exist_ok=True)
-    
+    freqs = np.array(group['key_freqs'])    
+    keys = [key for key in group.keys()]
+        
+    #hold the data 
+    dataset = {}
+        
+    for data_key in keys[:-2]: #loop through all psds
+        data = np.array(group[data_key])
+        seq_identifier = data_key.split(' ')[1] #to get N1a, N2b etc
+        
+        dataset[seq_identifier] = data
+     
+        
+    f.close() #close file
+ 
     # Calculate the average relative band power (RBP):
     # RBP = 100*ABP/sum(ABP)
     # i.e. sum of spectral power over all bands is 100 for each channel and subject
-    # TODO: make sure that this is the desired approach!
-    
-    dataset = {'N1a':data_n1, 'N1b':data_n1_2,'N2a':data_n2, 
-               'N2b':data_n2_2, 'N2c':data_n2_3, 'N2d':data_n2_4}
-    
+    # TODO: make sure that this is the desired approach?
+
     for data_obj in list(dataset.keys()): #calculate bandpower for all PSDs 
         data_bandpower = []
         
@@ -82,7 +84,6 @@ try:
              
         #sums over the absolute power of all freq. bands; channel-wise info
         abs_power = np.sum(data_bandpower, axis=0)
-        #TODO: handle possible divisions by zero! BETTER
         #normalizes data
         if relative:
             if all (abs_power < -1e-5):
@@ -92,10 +93,10 @@ try:
         else:
             data_bandpower = np.array(data_bandpower)
         
-        
-    
         np.savetxt(subj_dir+'/'+data_obj+'.csv', data_bandpower, delimiter=',') #save spectra in separate files
-   
+
+    
+        
     
 except:
     print(f'Did not find psds -file from {args.subject}!')

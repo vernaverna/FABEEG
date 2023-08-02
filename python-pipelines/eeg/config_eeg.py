@@ -89,7 +89,7 @@ fname.add('ica', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_ica.h5')
 
 # PSD files
 fname.add('psds', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_psds.h5')
-fname.add('psds', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_psds.fif')
+fname.add('psds_fif', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_psds.fif')
 fname.add('evoked', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_evoked.fif')
 
 
