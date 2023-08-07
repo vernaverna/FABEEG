@@ -19,11 +19,12 @@ data_path = '/net/theta/fishpool/projects/FABEEG/childEEG_data/'
 raw_path = '/net/theta/fishpool/projects/FABEEG/FABEEG/'
 output_path = op.join(data_path, 'bids')
 
-# Subject name
-subj_file = op.join(data_path, 'subj_table.txt')
-subjects_in = pd.read_csv(subj_file, header=None)
-subjects_in = list(subjects_in.iloc[:,0])
+# Subject names
+subjects_in = []
 
+for file in os.listdir(raw_path):
+    if file.endswith(".edf"):
+        subjects_in.append(file)
 
 subjects_in = [x.strip('.edf') for x in subjects_in] #remove file ending
 
@@ -66,7 +67,7 @@ def create_BIDS(filename, subject_in, subject_out, event_id):
 
         #events_data = mne.find_events(raw, min_duration=2/1000.)
 
-        bids_path = BIDSPath(subject=subject_out,  
+        bids_path = BIDSPath(subject=subject_out, task='sleep', 
                          root=output_path)
     
         write_raw_bids(raw, 
