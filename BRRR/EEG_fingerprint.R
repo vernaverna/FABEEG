@@ -6,9 +6,6 @@ library("cvms")
 
 
 
-
-## TODO: use less individuals! try with old and young kids as well
-
 #' Function for preparing the EEG spectra for analysis
 #' 
 #' @param spectra list, tells which spectra are used for the model: e.g. c('N1C', 'N2B')
@@ -22,14 +19,15 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
   
   # Choosing the channels and frequencies
   chs <- 1:19
-  omitFreq = c(0,60) 
+  omitFreq = c(0,60) #so takes in all
   
   #extract the age groups
   ages = read.csv('data/new_age_df.csv')
   ages <- ages[,-1]
+  ages[ages==" "] <- NA #replace empty strings with NA-values
   
-  use_all=F #should we use all subjects in training?
-  age_gap=c(0,19) #exclude some of the younger children?
+  use_all=T #should we use all subjects in training?
+  age_gap=c(0,19) #ages to include
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -41,10 +39,10 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
   for(i in 1:length(spectra)){
     # Reading data into workspace
     spec = spectra[i]
-    loadfile <- paste0("data/",spec,"spectrum.RData")
+    loadfile <- paste0("data/new_",spec,"spectrum.RData")
     
     # Check if the file exists
-    if(file.exists(loadfile)) {
+    if(file.exists(loadfile)){
       load(loadfile)
       
       if(use_all==F){
@@ -63,7 +61,8 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
       
       
       # Searching the names/identifiers of the subjects
-      subjects <- unlist(individuals)
+      #subjects <- unlist(individuals)
+      subjects <- names(individuals)
       S <- length(subjects)
       A <- vector("list",length=S)
       names(A) <- subjects
@@ -75,17 +74,26 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
         
         if(s %in% ages$File){ #temporal solution to get over the filename hassle
           age_data = ages[ages$File==s,]
-          if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
-            #if(age_data$Cap == Cap){
-            tmp <- t(Y[[s]]) #transposed
-            tmp <- log10(tmp)
-            if(any(is.na(tmp))){ #browser()
+          if(!is.na(age_data$Age)){
+            if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
+              #if(age_data$Cap == Cap){
+              tmp <- t(Y[[s]]) #transposed
+              tmp <- log10(tmp) #TODO: is this necessary?
+              if(any(is.na(tmp))){ #browser()
+                corrupted = c(corrupted, s)
+              } 
+              A[[s]] <- tmp[frequencies,chs] 
+            } else {
               corrupted = c(corrupted, s)
-            } 
+            }
+            
+          } else { #include the non-aged anyway?
+            tmp <- t(Y[[s]]) #transposed
+            tmp <- log10(tmp) #TODO: is this necessary?
             A[[s]] <- tmp[frequencies,chs] 
-          } else {
-            corrupted = c(corrupted, s)
+            
           }
+
         } else {
           corrupted = c(corrupted, s)
         } 
@@ -105,7 +113,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
     
     
     # The number of classes and storing the subjects
-    M <- length(obs) #nclasses#alright this is how I like it ;)
+    M <- length(obs) #nclasses #alright this is how I like it ;)
     S <- length(obs) #nsubj
     
     print("Data dimension per subject:")
@@ -403,7 +411,7 @@ rank <- c()
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N2A","N2B","N1B","N1A"), validation_set = "N1B", n_inds=n)
+  n2_data <- prepare_data(spectra = c("N1B","N1A", "N2B"), validation_set = "N2B", n_inds=792)
   Y = n2_data[[1]]
   X = n2_data[[3]]
   x = n2_data[[2]]
@@ -417,7 +425,7 @@ for(n in Ns){
   # MSE, PTVE and accuracy (L1 distances in the projection)
   source("brrr.R")
   
-  CV_results = do_CV(data=n2_data, n_folds=10, K=12, iter=500, validation_scheme='unseen_data')
+  CV_results = do_CV(data=n2_data, n_folds=10, K=12, iter=500, validation_scheme='subject')
   
   CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
   CV_ranks <- lapply(CV_scores, `[[`, 3)
@@ -442,7 +450,7 @@ for(n in Ns){
   accuracies = c(accuracies,mean(accs))
   ptve = c(ptve,mean(ptvs))
   rank = c(rank,mean(ranks))
-  save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/K12_all_N2AB.RData'))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/NEW_K12_all_N1AB.RData'))
   write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N=",n,".csv"))
 }
 
@@ -479,7 +487,7 @@ print(mean(accs))
 ## Training with all data
 source("brrr.R")
 K=12
-res <- brrr(X=X,Y=Y,K=K,Z=Z,n.iter=1000,thin=5,init="LDA",fam=x, omg=0.01) 
+res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=0.01) 
 res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
 res$scaling <- ginv(averageGamma(res))
 
@@ -536,14 +544,14 @@ subj <- names(x)
 nsubj <- length(unique(subj))
 # adding together N2 mappings  plus some covariates
 lat_map = as.data.frame(rbind(lat_map2[1:nsubj,], lat_map))
-lat_map['condition'] = c(rep('test', nsubj), rep('train', 2*nsubj))
+lat_map['condition'] = c(rep('test', nsubj), rep('train', 1*nsubj))
 lat_map['age'] = rep(ages[which(ages$File%in%subj),]$Age, 3) #get age data
 lat_map['group'] = rep(round(ages[which(ages$File%in%subj),]$Age, 0), 3) #get age data
 lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, 3)
 
 subj_number <- factor(c(x,seq(1,nsubj)))
 
-ggplot(data=as.data.frame(lat_map), aes(lat_map[,4], lat_map[,6], shape=condition, col=factor(sex))) + 
+ggplot(data=as.data.frame(lat_map), aes(lat_map[,1], lat_map[,2], shape=condition, col=factor(sex))) + 
   geom_point(aes(size=age)) + ggtitle("Subjects in latent mapping ") + 
   xlab("Component #1") + ylab("Component #2")
 
