@@ -411,7 +411,7 @@ rank <- c()
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N1B","N1A", "N2B"), validation_set = "N2B", n_inds=792)
+  n2_data <- prepare_data(spectra = c("N1A","N1B", "N2B"), validation_set = "N2B", n_inds=792)
   Y = n2_data[[1]]
   X = n2_data[[3]]
   x = n2_data[[2]]
@@ -496,7 +496,7 @@ K <- c(1:K)
 plot(K,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
 
 K=12
-save(res, file = paste0("results/full/alldata_ageZ_2N21N1_BRRR_K",K, ".RData") )
+save(res, file = paste0("results/full/NEW_alldata_2N1_BRRR_K",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)

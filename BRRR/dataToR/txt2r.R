@@ -23,21 +23,24 @@ for(t in 1:length(types)) {
   samples <- rep(NA,length(files))
   
   for(j in 1:length(files)) {
-    file <- files[2]
+    j=6
+    file <- files[j]
     #takes MEG matrices per subject for temporary storage
-    X <- t(read.table(paste0(datapath,files[j]),sep=",",header=F))
-    subj <- type
-    #subj <- sub("N2c.csv", "", subj)
-    Y[[subj]] <- X #*1e11
-    #Y[[length(Y)+1]] <- X*1e11
-    individuals[[type]] <- file #Old naming
+    if(!is.na(file)){
+      X <- t(read.table(paste0(datapath,files[j]),sep=",",header=F))
+      subj <- type
+      #subj <- sub("N2c.csv", "", subj)
+      Y[[subj]] <- X #*1e11
+      #Y[[length(Y)+1]] <- X*1e11
+      individuals[[type]] <- file #Old naming  
+    }
   }
   
 }
 subjects <- names(individuals)
 names(Y) <- subjects
 freq <- read.csv(paste0(getwd(),"/BRRR/data/f.txt"),header=F)
-fname <- paste0(getwd(), "/BRRR/data/new_N1Bspectrum.RData") #name whichever spectra you may use 
+fname <- paste0(getwd(), "/BRRR/data/new_N2Dspectrum.RData") #name whichever spectra you may use 
 save(Y, subjects, individuals, freq, file=fname) #saving data
 
 

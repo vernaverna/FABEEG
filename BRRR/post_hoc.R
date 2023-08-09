@@ -11,11 +11,11 @@ library("corrplot")
 
 ## Test component simlarities ##
 
-load("results/full/over7_2N2_BRRR_K12.RData") #try with the best ptve models tho!
-comp1 <- res$scaling
-res2 <- load("results/full/over7_2N1_BRRR_K12.RData")
+#load("results/full/over7_2N2_BRRR_K12.RData") #try with the best ptve models tho!
+#comp1 <- res$scaling
+load("results/full/NEW_alldata_2N1_BRRR_K12.RData")
 comp2 <- res$scaling
-rm(res)
+#rm(res)
 
 cossim <- function(x,y){ #calculate cossimilarity between vectors
   return( sum(x*y) / (sqrt(sum(x**2))*sqrt(sum(y**2))) )
@@ -47,13 +47,19 @@ corrplot(P, method = "color", col=col(200), type = "lower",
          title="Correlations between global PSDs of one subject",
          addCoef.col = "black", mar=c(0,0,1,0))
 
-  ## WORKING WITH FULL DATA MODEL ##  
-load("results/full/over1_ind_2N2_BRRR_12.RData")
+
+
+####################################
+##  WORKING WITH FULL DATA MODEL  ##  
+####################################
+
+load("results/full/NEW_alldata_2N1_BRRR_12.RData")
 Y <- res$data$phenotypes
 X <- res$data$genotypes
 subj <- row.names(X)
 ages = read.csv('data/new_age_df.csv')
 ages <- ages[,-1]
+ages[ages==" "] <- NA #replace empty strings with NA-values
 ages = ages[ages$File %in% unique(subj)==TRUE, ] #to get rid of some extra subjects that should not be there
 
 
@@ -86,10 +92,17 @@ visNetwork(net,onlyPdf=TRUE,levelplot=TRUE)
 
 ## 2. COMPONENT PLOTTING ##
 
+#trying also t-SNE on lat_space
+library("Rtsne")
+D <- normalize_input(lat_space)
+tsne <- Rtsne(D, check_duplicates = FALSE) 
+
 nsubj <- length(unique(subj))
 # adding together N2 mappings  plus some covariates
 lat_map = as.data.frame(rbind(lat_space))
-lat_map['spectra'] = c(rep('N2A', nsubj), rep('N2B', nsubj))
+lat_map['X1'] = tsne$Y[,1]
+lat_map['X2'] = tsne$Y[,2]
+lat_map['spectra'] = c(rep('N1B', nsubj), rep('N1A', nsubj))
 lat_map['age'] = rep(ages[which(ages$File%in%subj),]$Age, 2) #get age data
 lat_map['group'] = rep(round(ages[which(ages$File%in%subj),]$Age, 0), 2) #get age data
 lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, 2)
@@ -103,16 +116,16 @@ gender <- ifelse(lat_map$sex == "F",1,0)
 #get colorblind-friendly palette
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
-
-lat_map_mini=lat_map[c(1:8, 592:599), ] #make highlight points
+random_picks <- sample(c(1:792), 8)
+lat_map_mini=lat_map[c(random_picks, random_picks+nsubj), ] #make highlight points
 
 p <- ggplot(data=as.data.frame(lat_map), 
-        aes(lat_map[,1], lat_map[,2], shape=spectra)) + 
+        aes(x=X1, y=X2, shape=spectra)) + 
         geom_point(alpha=0.2) + geom_point(data=lat_map_mini, 
-                                           aes(lat_map_mini[,1], lat_map_mini[,2], shape=spectra, colour=subject),
+                                           aes(x=X1, y=X2, shape=spectra, colour=subject),
                                            size=4) +
         ggtitle("Subjects in latent mapping ") + scale_colour_manual(values=cbbPalette)+
-        xlab("Component #1") + ylab("Component #2") + xlim(-42,48) + ylim(-20,25) +
+        xlab("t-SNE #1") + ylab("t-SNE #2") + #xlim(-42,48) + ylim(-20,25) +
         theme(legend.position="none") + theme_bw()
 ggsave("latmap_over1_N2.pdf", width=7.4, height=5.2)
 ggsave("latmap_over1_N2.svg", width=7.4, height=5.2)
@@ -128,9 +141,9 @@ colors <- colors[factor(lat_map$group)]
 
 scatterplot3d(lat_map[,3:5], pch=shapes, color=colors, angle=20)
 
-#trying t-SNE
 
-library("Rtsne")
+
+############
 age_col = round(ages[which(ages$File%in%subj),]$Age, 0)
 sex_col = ages[which(ages$File%in%subj),]$Sex
 
