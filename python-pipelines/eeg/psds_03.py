@@ -138,7 +138,6 @@ else:
 #FLE131126
 
 
-
 # # Save resultus to report
 # with open_report(fname.report(subject=args.subject)) as report:
 #     report.add_figs_to_section(fig, 'PSDs', section='PSDs', replace=True, 

@@ -5,6 +5,7 @@ Plot the power spectral densities on individual level.
 @author: heikkiv
 """
 import mne
+import os
 from mne.io import read_info
 from mne import find_layout
 from h5io import read_hdf5
@@ -14,11 +15,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from mne.viz import iter_topography
-from config_eeg import subjects, fname
+from config_eeg import fname
+
+data_dir = '/net/theta/fishpool/projects/FABEEG/childEEG_data/bids/derivatives/'
 
 #assuming shorter data seqments
 conditions = ['PSD N1a', 'PSD N1b', 'PSD N2a', 'PSD N2b', 'PSD N2c', 'PSD N2d']
-subjects = [x.strip('sub-') for x in subjects]
+
+all_subjects = os.listdir(data_dir)
+subjects = [x.strip('sub-') for x in all_subjects]
 
 # Load the PSDs for each subject
 psds = [read_hdf5(fname.psds(subject=subject))
@@ -94,19 +99,30 @@ def plot_glob_intra_individual(PSD_df, subject, freqs):
     plot_df['Freq. (Hz)'] = freqs
     plot_df = pd.melt(plot_df, ['Freq. (Hz)'], var_name='segment', value_name='Power')
     plot_df['sleep'] = ['N1' if '1' in plot_df['segment'][i] else 'N2' for i in range(len(plot_df))]
+    
+    N1_df = plot_df.loc[plot_df['sleep']=='N1']
+    N2_df = plot_df.loc[plot_df['sleep']=='N2']
     #plot_df = plot_df.set_index('freq')
     
     
     
-    # set up figure aesthetics
-    cm = plt.get_cmap('viridis')
-    colors = [cm(x) for x in np.linspace(0, 1, len(conditions))] 
-    palette = {conditions[i]:colors[i] for i in range(len(colors))}
-    dashes = [(conditions[i],[]) if '2' in conditions[i] else (conditions[i],[6,2]) for i in range(len(colors)) ]
-    dashes=dict(dashes)
+    # set up figure aesthetics - use two palettes rather than one?
+    #cm = sns.color_palette("crest", 6)
+    cm_1 = sns.color_palette("dark:orangered", 2)
+    cm_2 = sns.color_palette("dark:#5A9_r", 4)
+    #colors = [cm(x) for x in np.linspace(0, 1, len(conditions))] 
+    #palette = {conditions[i]:colors[i] for i in range(len(colors))}
+    #dashes = [(conditions[i],[]) if '2' in conditions[i] else (conditions[i],[6,2]) for i in range(len(colors)) ]
+    #dashes=dict(dashes)
     
-    fig = sns.lineplot(x='Freq. (Hz)', y='Power', hue='segment', style='sleep', 
-                       palette='viridis', data=plot_df)
+    fig, ax = plt.subplots(figsize=(8,6)) 
+    sns.lineplot(x='Freq. (Hz)', y='Power', hue='segment', #style='sleep', 
+            palette=cm_1, data=N1_df)
+    sns.lineplot(x='Freq. (Hz)', y='Power', hue='segment', #style='sleep', 
+            palette=cm_2, data=N2_df, linestyle='dashed')
+    
+    # fig = sns.lineplot(data=plot_df, x='Freq. (Hz)', y='Power', hue='segment', 
+    #                    style='sleep',  palette=cm)
     
     return fig, metadata
 
