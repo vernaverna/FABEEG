@@ -127,7 +127,6 @@ def plot_glob_intra_individual(PSD_df, subject, freqs):
     return fig, metadata
 
 
-
 def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
     """
     
