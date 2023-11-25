@@ -14,7 +14,7 @@ library("cvms")
 #' @param group_by_spectra boolean, classify spectra rather than individuals?
 #' 
 # ex = N1 or N2, depending which data is read in
-prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra = F){
+prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra = F, seed=191){
   
   
   # Choosing the channels and frequencies
@@ -46,13 +46,16 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
       load(loadfile)
       
       if(use_all==F){
-        set.seed(191)
+        set.seed(seed)
         #load("/projects/FABEEG/BRRR/ref_subjects.RData")
         #individuals=obs
         individuals = sample(individuals, n_inds)
-        Y = Y[names(Y) %in% individuals]
+        Y = Y[names(Y) %in% names(individuals)]
         
       }
+      set.seed(seed) #for reproducibility.
+      individuals = sample(individuals, length(individuals)) #shuffle the data, just in case.
+      Y = Y[names(Y) %in% names(individuals)]
       
       # Omits frequencies
       frequencies <- which(freq[,2] >= omitFreq[1] & freq[,2] <= omitFreq[2])
@@ -411,7 +414,7 @@ rank <- c()
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N1A","N1B", "N2B"), validation_set = "N2B", n_inds=792)
+  n2_data <- prepare_data(spectra = c("N1A","N1B", "N2C"), validation_set = "N2C", n_inds=772)
   Y = n2_data[[1]]
   X = n2_data[[3]]
   x = n2_data[[2]]
@@ -425,7 +428,7 @@ for(n in Ns){
   # MSE, PTVE and accuracy (L1 distances in the projection)
   source("brrr.R")
   
-  CV_results = do_CV(data=n2_data, n_folds=10, K=12, iter=500, validation_scheme='subject')
+  CV_results = do_CV(data=n2_data, n_folds=10, K=100, iter=500, validation_scheme='unseen_data')
   
   CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
   CV_ranks <- lapply(CV_scores, `[[`, 3)
@@ -450,7 +453,7 @@ for(n in Ns){
   accuracies = c(accuracies,mean(accs))
   ptve = c(ptve,mean(ptvs))
   rank = c(rank,mean(ranks))
-  save(CV_results, file=paste0('results/', 10, 'foldCV/NEW_K12_all_N1AB.RData'))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/NEW_K12_all_N2AB.RData'))
   write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N=",n,".csv"))
 }
 
@@ -496,7 +499,7 @@ K <- c(1:K)
 plot(K,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
 
 K=12
-save(res, file = paste0("results/full/NEW_alldata_2N1_BRRR_K",K, ".RData") )
+save(res, file = paste0("results/full/NEW_alldata_2N2_BRRR_K",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)

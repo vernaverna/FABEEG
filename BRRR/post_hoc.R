@@ -123,11 +123,14 @@ p <- ggplot(data=as.data.frame(lat_map),
         aes(x=X1, y=X2, shape=spectra)) + 
         geom_point(alpha=0.2) + geom_point(data=lat_map_mini, 
                                            aes(x=X1, y=X2, shape=spectra, colour=subject),
-                                           size=4) +
+                                           size=5) +
         ggtitle("Subjects in latent mapping ") + scale_colour_manual(values=cbbPalette)+
         xlab("t-SNE #1") + ylab("t-SNE #2") + #xlim(-42,48) + ylim(-20,25) +
-        theme(legend.position="none") + theme_bw()
-ggsave("latmap_over1_N2.pdf", width=7.4, height=5.2)
+        theme(legend.position="none") + theme_bw() + 
+        theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p
+ggsave("figures/NEW_latmap_all_N1_optionD.pdf", width=7.4, height=5.2)
 ggsave("latmap_over1_N2.svg", width=7.4, height=5.2)
 # trying 3D plots
 
