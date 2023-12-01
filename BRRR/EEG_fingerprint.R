@@ -248,6 +248,8 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
       return(sqrt( sum(x-y)**2) )
     } else if(dis=='cos'){
       return( sum(x*y) / (sqrt(sum(x**2))*sqrt(sum(y**2))) )
+    } else if(dis=='corr'){
+      return(cor(x,y,method="pearson"))
     } else {
       browser(text="wrong distance measure!")
     }
@@ -283,7 +285,12 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
   PROJ <- D*0 #initialize 'projection' matrix
   
   for(r in 1:nrow(D)){ #assign age groups based on minimal distance in lat. space
-    index <- which.min(D[r,])
+    if(dis!='corr'){
+      index <- which.min(D[r,])
+    } else {
+      index <- which.max(D[r,])
+    }
+    
     PROJ[r,index] <- 1+PROJ[r,index]
   }
   colnames(PROJ) <- c(paste0("class",rownames(D)))
@@ -414,7 +421,7 @@ rank <- c()
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N1A","N1B", "N2C"), validation_set = "N2C", n_inds=772)
+  n2_data <- prepare_data(spectra = c("N1A","N1B","N2C"), validation_set = "N2C", n_inds=782)
   Y = n2_data[[1]]
   X = n2_data[[3]]
   x = n2_data[[2]]
@@ -489,46 +496,49 @@ print(mean(accs))
 
 ## Training with all data
 source("brrr.R")
-K=12
+K=50
 res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=0.01) 
 res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
 res$scaling <- ginv(averageGamma(res))
 
 ptve = res$factor_variance/sum(res$factor_variance)
-K <- c(1:K)
-plot(K,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
+Ks <- c(1:K)
+plot(Ks,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
 
-K=12
-save(res, file = paste0("results/full/NEW_alldata_2N2_BRRR_K",K, ".RData") )
+save(res, file = paste0("results/full/NEW_alldata_2N1_BRRR_K",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
 
-D1 <- validation(within_sample = T, dis='L1', pK=c(1:K), lat_map=lat_map, lat_map2=NULL, Xt=X)
+D1 <- validation(within_sample = F, dis='L1', pK=c(1:K), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
 
 #baseline: calculate distances on all data
 lat_map <- Y 
-D <- validation(within_sample = F, dis='L2', pK=c(1:K), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
+lat_map2 <- Y2
+D <- validation(within_sample = F, dis='corr', pK=c(1:247), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
 
-# Ks <- c(6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30)
-# 
-# source("brrr.R")
-# 
-# 
-# for(k in Ks){
-#   res <- brrr(X=X,Y=Y,K=20,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model 
-#   
-#   res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
-#   res$scaling <- ginv(averageGamma(res))
-#   W <- res$scaling
-#   
-#   lat_map <- Y%*%W
-#   lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
-#   
-#   
-#   D <- validation(within_sample = T, dis='L1', pK=k, lat_map=lat_map, lat_map2=NULL, Xt=X)
-#   save(res, file = paste0("results/full/over1_ind_2N2_BRRR_",k, ".RData") )
-# }
+
+### Loop over different number of components
+Ks <- seq(from=2,to=248, by=4)
+ptves <- c()
+ 
+source("brrr.R")
+for(k in Ks){
+  res <- brrr(X=X,Y=Y,K=k,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model
+
+  res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
+  res$scaling <- ginv(averageGamma(res))
+  W <- res$scaling
+
+  lat_map <- Y%*%W
+  lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
+  
+  ptves = c(ptves, res$model$ptve)
+  #D <- validation(within_sample = T, dis='L1', pK=k, lat_map=lat_map, lat_map2=NULL, Xt=X)
+  if((k%%10)==0){
+    save(res, file = paste0("results/full/all_2N1_BRRR_",k, ".RData") )
+  } 
+}
 
 
 

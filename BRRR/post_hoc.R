@@ -53,7 +53,7 @@ corrplot(P, method = "color", col=col(200), type = "lower",
 ##  WORKING WITH FULL DATA MODEL  ##  
 ####################################
 
-load("results/full/NEW_alldata_2N1_BRRR_12.RData")
+load("results/full/NEW_alldata_2N1_BRRR_K12.RData")
 Y <- res$data$phenotypes
 X <- res$data$genotypes
 subj <- row.names(X)
@@ -61,7 +61,7 @@ ages = read.csv('data/new_age_df.csv')
 ages <- ages[,-1]
 ages[ages==" "] <- NA #replace empty strings with NA-values
 ages = ages[ages$File %in% unique(subj)==TRUE, ] #to get rid of some extra subjects that should not be there
-
+ages['Sex'] <- as.factor(ages$Sex)
 
 
 inv_G <- res$scaling #inv(average(Gamma))
@@ -98,15 +98,16 @@ D <- normalize_input(lat_space)
 tsne <- Rtsne(D, check_duplicates = FALSE) 
 
 nsubj <- length(unique(subj))
+reps = 1
 # adding together N2 mappings  plus some covariates
 lat_map = as.data.frame(rbind(lat_space))
 lat_map['X1'] = tsne$Y[,1]
 lat_map['X2'] = tsne$Y[,2]
 lat_map['spectra'] = c(rep('N1B', nsubj), rep('N1A', nsubj))
-lat_map['age'] = rep(ages[which(ages$File%in%subj),]$Age, 2) #get age data
-lat_map['group'] = rep(round(ages[which(ages$File%in%subj),]$Age, 0), 2) #get age data
-lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, 2)
-lat_map['cap'] = rep(ages[which(ages$File%in%subj),]$Cap, 2)
+lat_map['age'] = rep(ages[which(ages$File%in%subj),]$Age, reps) #get age data
+lat_map['group'] = rep(round(ages[which(ages$File%in%subj),]$Age, 0), reps) #get age data
+lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, reps)
+lat_map['cap'] = rep(ages[which(ages$File%in%subj),]$Cap, reps)
 lat_map['subject'] = subj[1:nsubj]
 
 gender <- ifelse(lat_map$sex == "F",1,0)
@@ -117,9 +118,10 @@ gender <- ifelse(lat_map$sex == "F",1,0)
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 random_picks <- sample(c(1:792), 8)
-lat_map_mini=lat_map[c(random_picks, random_picks+nsubj), ] #make highlight points
+#lat_map_mini=lat_map[c(random_picks, random_picks+nsubj), ] #make highlight points
+lat_map_mini=lat_map[c(random_picks),]
 
-p <- ggplot(data=as.data.frame(lat_map), 
+p <- ggplot(data=lat_map, 
         aes(x=X1, y=X2, shape=spectra)) + 
         geom_point(alpha=0.2) + geom_point(data=lat_map_mini, 
                                            aes(x=X1, y=X2, shape=spectra, colour=subject),
