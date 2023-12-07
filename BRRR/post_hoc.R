@@ -74,6 +74,57 @@ Y_hat <- X%*%p_P%*%p_G
 lat_space <- Y%*%inv_G #obs x latent components
 lat_proj <- Y%*%inv_PG #has same dimensions as X
 
+nsubj <- length(unique(subj)) # Make into a data frame
+reps = 2
+lat_map = as.data.frame(rbind(lat_space))
+lat_map['spectra'] = c(rep('N1A', nsubj), rep('N1B', nsubj))
+lat_map['age'] = rep(ages[which(ages$File%in%subj),]$Age, reps) #get age data
+lat_map['group'] = rep(round(ages[which(ages$File%in%subj),]$Age, 0), reps) #get age data
+lat_map['sex'] = rep(ages[which(ages$File%in%subj),]$Sex, reps)
+lat_map['cap'] = rep(ages[which(ages$File%in%subj),]$Cap, reps)
+lat_map['subject'] = subj[1:nsubj]
+
+
+###########################################
+#  Comparing components with N1 model     #
+###########################################
+
+dist_func <- function(x, y, dis='L1'){
+  if(dis=='L1'){
+    return(sum(abs(x-y)))
+  } else if(dis=='L2'){
+    return(sqrt( sum(x-y)**2) )
+  } else if(dis=='cos'){
+    return( sum(x*y) / (sqrt(sum(x**2))*sqrt(sum(y**2))) )
+  } else if(dis=='corr'){
+    return(cor(x,y,method="pearson"))
+  } else {
+    browser(text="wrong distance measure!")
+  }
+}
+
+
+KS <- c(10, 30, 50, 90, 130, 170)
+lat_spaces <- vector(mode='list', length = 6)
+for(i in 1:length(KS)){
+  k <- KS[i]
+  load(paste0("results/full/all_2N1_BRRR_", k, ".RData") )
+  p_G <- res$model$brr$context$Gamma #posterior Gamma
+  lat_spaces[[i]] <- p_G
+}
+
+# Compute the distances between sets of components
+n_comp=10
+dis_mat <- matrix(,nrow=n_comp, ncol=length(lat_spaces)-1)
+for(j in 1:(length(lat_spaces)-1)){
+  x=lat_spaces[[j]][1:n_comp,]
+  y=lat_spaces[[j+1]][1:n_comp,]
+  for(k in 1:n_comp){
+    dis_mat[k,j] <- dist_func(x[k,], y[k,], dis='corr')
+  }
+}
+
+
 
 
 source("visNetwork.R")

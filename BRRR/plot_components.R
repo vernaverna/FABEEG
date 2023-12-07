@@ -6,10 +6,11 @@
 #TODO: add miniheads? (nope) + same individual, different data??
 
 data <- "EEG_ind" # datatype
+fname='all_2N1_BRRR_110'
 
 if(data == "EEG_ind") { #TODO: fix repetition
   #fname <- paste0("results/full/over7_2N1_BRRR_K12.RData")
-  file = paste0("results/full/NEW_alldata_2N1_BRRR_K12.RData")
+  file = paste0("results/full/",fname,".RData")
   load(file)
   datafile <- paste0("data/N1Aspectrum.RData") #only to get frequencies
   load(datafile)
@@ -84,7 +85,7 @@ coords = coords * 200
 ####
 ####
 
-filename <- paste0("figures/NEW_all_2N1_", data, ".pdf") # pdf file for saving plots
+filename <- paste0("figures/NEW_",fname, data, ".pdf") # pdf file for saving plots
 pdf(file=filename,width=20,height=30)
 plotLabels <- paste0("K",1:ncol(net$Y)) # plot lables
 if(data=='raw'){

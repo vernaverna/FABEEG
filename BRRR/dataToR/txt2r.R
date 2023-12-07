@@ -2,7 +2,8 @@
 setwd("/projects/FABEEG")
 
 set.seed(121)
-savepath <- paste0(getwd(), "/Data2R/relative_spectra_1min/") #folder that contains spectra
+input_data <- 'PSD' #'spectra' 
+savepath <- paste0(getwd(), "/Data2R/relative_", input_data,"_1min/") #folder that contains spectra
 types <- list.files(savepath) #gives the number of groups/families/individuals
 
 #for testing purposes, let us work only with a subset of individuals
@@ -39,8 +40,13 @@ for(t in 1:length(types)) {
 }
 subjects <- names(individuals)
 names(Y) <- subjects
-freq <- read.csv(paste0(getwd(),"/BRRR/data/f.txt"),header=F)
-fname <- paste0(getwd(), "/BRRR/data/new_N2Dspectrum.RData") #name whichever spectra you may use 
+if(input_data!='PSD'){
+  freq <- read.csv(paste0(getwd(),"/BRRR/data/f.txt"),header=F)
+} else{
+  freq <- read.csv(paste0(getwd(),"/BRRR/data/PSD_freqs.csv"),header=F)  
+}
+
+fname <- paste0(getwd(), "/BRRR/data/new_N2D",input_data,".RData") #name whichever spectra you may use 
 save(Y, subjects, individuals, freq, file=fname) #saving data
 
 

@@ -12,9 +12,10 @@ library("cvms")
 #' @param validation_set which spectra to use in validation, e.g. 'N2C'
 #' @param n_inds is using only a subset of data, how many individuals to use?
 #' @param group_by_spectra boolean, classify spectra rather than individuals?
+#' @param data_type either 'spectra' or 'PSD'
 #' 
 # ex = N1 or N2, depending which data is read in
-prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra = F, seed=191){
+prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra = F, data_type='spectra',seed=191){
   
   
   # Choosing the channels and frequencies
@@ -39,12 +40,12 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
   for(i in 1:length(spectra)){
     # Reading data into workspace
     spec = spectra[i]
-    loadfile <- paste0("data/new_",spec,"spectrum.RData")
+    loadfile <- paste0("data/new_",spec, data_type,".RData")
     
     # Check if the file exists
     if(file.exists(loadfile)){
       load(loadfile)
-      
+      freq <- freq$V1
       if(use_all==F){
         set.seed(seed)
         #load("/projects/FABEEG/BRRR/ref_subjects.RData")
@@ -58,9 +59,13 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
       Y = Y[names(Y) %in% names(individuals)]
       
       # Omits frequencies
-      frequencies <- which(freq[,2] >= omitFreq[1] & freq[,2] <= omitFreq[2])
-      freq <- freq[frequencies, ]
-      
+      if(data_type=='spectra'){
+        frequencies <- which(freq[,2] >= omitFreq[1] & freq[,2] <= omitFreq[2])
+        freq <- freq[frequencies, ]        
+      } else {
+        frequencies=1:length(freq)
+      }
+
       
       
       # Searching the names/identifiers of the subjects
@@ -81,6 +86,9 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
             if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
               #if(age_data$Cap == Cap){
               tmp <- t(Y[[s]]) #transposed
+              if(data_type!= 'spectra'){
+                tmp <- Y[[s]]
+              }
               tmp <- log10(tmp) #TODO: is this necessary?
               if(any(is.na(tmp))){ #browser()
                 corrupted = c(corrupted, s)
@@ -92,6 +100,9 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
             
           } else { #include the non-aged anyway?
             tmp <- t(Y[[s]]) #transposed
+            if(data_type!='spectra'){
+              tmp <- Y[[s]]
+            }
             tmp <- log10(tmp) #TODO: is this necessary?
             A[[s]] <- tmp[frequencies,chs] 
             
@@ -421,7 +432,8 @@ rank <- c()
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N1A","N1B","N2C"), validation_set = "N2C", n_inds=782)
+  n2_data <- prepare_data(spectra = c("N1A","N1B","N2C"), validation_set = "N2C", 
+                          n_inds=782, data_type='PSD')
   Y = n2_data[[1]]
   X = n2_data[[3]]
   x = n2_data[[2]]
@@ -496,7 +508,7 @@ print(mean(accs))
 
 ## Training with all data
 source("brrr.R")
-K=50
+K=12
 res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=0.01) 
 res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
 res$scaling <- ginv(averageGamma(res))
@@ -505,7 +517,7 @@ ptve = res$factor_variance/sum(res$factor_variance)
 Ks <- c(1:K)
 plot(Ks,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
 
-save(res, file = paste0("results/full/NEW_alldata_2N1_BRRR_K",K, ".RData") )
+save(res, file = paste0("results/full/NEW_PSD_alldata_2N1_BRRR_K",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
@@ -522,7 +534,7 @@ D <- validation(within_sample = F, dis='corr', pK=c(1:247), lat_map=lat_map, lat
 Ks <- seq(from=2,to=248, by=4)
 ptves <- c()
  
-source("brrr.R")
+source("brrr.R") 
 for(k in Ks){
   res <- brrr(X=X,Y=Y,K=k,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model
 
@@ -536,12 +548,17 @@ for(k in Ks){
   ptves = c(ptves, res$model$ptve)
   #D <- validation(within_sample = T, dis='L1', pK=k, lat_map=lat_map, lat_map2=NULL, Xt=X)
   if((k%%10)==0){
-    save(res, file = paste0("results/full/all_2N1_BRRR_",k, ".RData") )
+    save(res, file = paste0("results/full/all_2N1_BRRR_K",k, ".RData") )
   } 
 }
 
-
-
+svg("figures/N1_all_latspace_dim_K.svg")
+plot(Ks,ptves, 'l', col='firebrick', ylab="ptve %", bty="n", lwd=2)
+dev.off()
+# grid(nx = NULL, ny = NULL,
+#      lty = 2,      # Grid line type
+#      col = "gray", # Grid line color
+#      lwd = 1)      # Grid line width
 
 #### VISUALIZATIONS ####
 
