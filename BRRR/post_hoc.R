@@ -11,9 +11,9 @@ library("corrplot")
 
 ## Test component simlarities ##
 
-#load("results/full/over7_2N2_BRRR_K12.RData") #try with the best ptve models tho!
-#comp1 <- res$scaling
-load("results/full/NEW_alldata_2N1_BRRR_K12.RData")
+load("results/full/all_2N2_BRRR_12.RData") #try with the best ptve models tho!
+comp1 <- res$scaling
+load("results/full/all_2N1_BRRR_12.RData")
 comp2 <- res$scaling
 #rm(res)
 
@@ -32,12 +32,17 @@ for(i in 1:ncol(comp1)){
     M[i,j] <- cossim(comp1[,i], comp2[,j])
   }
 }
-rownames(M) <- c(paste0('A_K', c(1:12))) #rows=res1
-colnames(M) <- c(paste0('B_K', c(1:12)))
+rownames(M) <- c(paste0('K ', c(1:12))) #rows=res1
+colnames(M) <- c(paste0('K ', c(1:12)))
 
+
+svg("figures/all_component_cossim_N1N2.svg")
 #maybe better to use abs values with gradient palette
-heatmap(abs(M),  Colv = NA, Rowv = NA, col=brewer.pal(8,"BuPu"), 
-        xlab="model B",ylab="model A",main="Heatmap of cosine distances") 
+vir_pal <- colorRampPalette(brewer.pal())
+heatmap(M,  Colv = NA, Rowv = NA, col=vir_pal, 
+        xlab="N2 model",ylab="N1 model",main="Heatmap of cosine distances") 
+dev.off()
+
 
 P=cor(Ys, method = 'spearman')
 rownames(P) <- plotLabels

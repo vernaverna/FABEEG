@@ -15,7 +15,7 @@ library("cvms")
 #' @param data_type either 'spectra' or 'PSD'
 #' 
 # ex = N1 or N2, depending which data is read in
-prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra = F, data_type='spectra',seed=191){
+prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra = F, data_type='spectrum',seed=191){
   
   
   # Choosing the channels and frequencies
@@ -45,7 +45,6 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
     # Check if the file exists
     if(file.exists(loadfile)){
       load(loadfile)
-      freq <- freq$V1
       if(use_all==F){
         set.seed(seed)
         #load("/projects/FABEEG/BRRR/ref_subjects.RData")
@@ -59,10 +58,11 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
       Y = Y[names(Y) %in% names(individuals)]
       
       # Omits frequencies
-      if(data_type=='spectra'){
+      if(data_type=='spectrum'){
         frequencies <- which(freq[,2] >= omitFreq[1] & freq[,2] <= omitFreq[2])
         freq <- freq[frequencies, ]        
       } else {
+        freq <- freq$V1
         frequencies=1:length(freq)
       }
 
@@ -86,7 +86,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
             if(age_data$Age >= age_gap[1] && age_data$Age <= age_gap[2]){
               #if(age_data$Cap == Cap){
               tmp <- t(Y[[s]]) #transposed
-              if(data_type!= 'spectra'){
+              if(data_type!= 'spectrum'){
                 tmp <- Y[[s]]
               }
               tmp <- log10(tmp) #TODO: is this necessary?
@@ -100,7 +100,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
             
           } else { #include the non-aged anyway?
             tmp <- t(Y[[s]]) #transposed
-            if(data_type!='spectra'){
+            if(data_type!='spectrum'){
               tmp <- Y[[s]]
             }
             tmp <- log10(tmp) #TODO: is this necessary?
@@ -250,6 +250,12 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
   #distance matrix# 
   D <- matrix(NA, ncol(Xt), ncol(Xt), dimnames=list(colnames(Xt), c(paste0('other', colnames(Xt)) )) )  
   
+  # permute lat_map to have same row_names as Xt - safety measure
+  if(!is.null(lat_map2)){
+    reorder_val_idx <- match(colnames(Xt), rownames(lat_map2))
+    lat_map2 <- lat_map2[reorder_val_idx,]    
+  }
+
   
   # Helper function to calculate distance betewen 2 vectors
   dist_func <- function(x, y){
@@ -270,20 +276,21 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
   for(testidx in 1:ncol(Xt)){ 
     for(m in 1:ncol(Xt)){     
       group_members <- rownames(lat_map)[m]   
-      idxs = which(row.names(lat_map) %in% group_members) #should be at least 2!    
+      idxs = which(row.names(lat_map) %in% group_members) #should be at least 2!
+      #idxs2 = which(row.names(lat_map2) %in% group_members)
       #group_mean <- colMeans(lat_map[idxs,1:pK])
       if(within_sample){
         
-        if(length(idxs == 3)){
+        if(length(idxs) == 3){
           other_data <- colMeans(lat_map[tail(idxs,2), pK])
         } else {
           other_data <- lat_map[tail(idxs,1), pK] 
         }
         D[testidx,m] <- dist_func(lat_map[testidx,pK],other_data)
         
-      } else {
+      } else { #OOS validation
         
-        if(length(idxs)>2){
+        if(length(idxs)>1){
           other_data <- colMeans(lat_map[idxs, pK]) 
         } else {
           other_data <- lat_map[idxs, pK]
@@ -332,10 +339,9 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
 
 do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subject') {
   
-  library(foreach)    # install.packages('foreach') options(repos = c(CRAN = "http://cran.rstudio.com"))
-  library(doParallel) # install.packages('doParallel')
-  registerDoParallel(makeCluster(4)) # Use 4 cores for parallel CV
-  
+  #library(foreach)    # install.packages('foreach') options(repos = c(CRAN = "http://cran.rstudio.com"))
+  #library(doParallel) # install.packages('doParallel')
+  #registerDoParallel(makeCluster(4)) # Use 4 cores for parallel CV
   Ds <- vector(mode = "list", length = n_folds) #list containing results from each CV fold
   names(Ds) <- c(paste0('fold_', seq(1:n_folds)) )
   
@@ -350,7 +356,7 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
   cvId <- cvId[1:S]
   #cvId <- c(cvId, cvId)
   
-  results <- foreach(fold=1:n_folds, .export=c("validation")) %dopar% {
+  for(fold in 1:n_folds){
     
     Y <- data$Y #extract these here to avoid racing problems
     X <- data$X
@@ -394,7 +400,6 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
       #is not actually within-sample but oh well--- works now
       D <- validation(within_sample = F, dis=dis, pK=c(1:K), lat_map=lat_map, lat_map2=lat_map2,  
                       Xt=test_X)
-      
       #calculate test MSE & PTVE
       # PRED <- test_X%*%averagePsi(res)%*%averageGamma(res)
       # test_MSE <- mean((test_Y-PRED)^2)
@@ -405,15 +410,13 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
       # print(paste0("Test MSE: \n", test_MSE))
       # print(paste0("Test PTVE: \n", test_PTVE))
       # 
-      
     }
     
-    
-    Ds[[fold]] <- list(D, res$model$ptve) #append results
-    
+    Ds[[fold]] <- list(D, res$model$ptve, res) #append results
     
   }
-    
+   
+  return(Ds) 
 }
     
     
@@ -432,8 +435,8 @@ rank <- c()
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N1A","N1B","N2C"), validation_set = "N2C", 
-                          n_inds=782, data_type='PSD')
+  n2_data <- prepare_data(spectra = c("N2A", "N2B", "N2C"), validation_set = "N2C", 
+                          n_inds=792, data_type='spectrum')
   Y = n2_data[[1]]
   X = n2_data[[3]]
   x = n2_data[[2]]
@@ -447,10 +450,10 @@ for(n in Ns){
   # MSE, PTVE and accuracy (L1 distances in the projection)
   source("brrr.R")
   
-  CV_results = do_CV(data=n2_data, n_folds=10, K=100, iter=500, validation_scheme='unseen_data')
+  CV_results = do_CV(data=n2_data, n_folds=10, K=12, iter=1000, validation_scheme='subject')
   
   CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
-  CV_ranks <- lapply(CV_scores, `[[`, 3)
+  #CV_ranks <- lapply(CV_scores, `[[`, 3)
   CV_scores <- lapply(CV_scores, `[[`, 2)
   
   CV_ptves <- lapply(CV_results, `[[`, 2) #get ptves
@@ -465,25 +468,24 @@ for(n in Ns){
   print("Average train-PTVE:")
   print( mean(ptvs) )
   
-  ranks = unlist(lapply(CV_ranks, `[[`, 1))
-  print("Average self-identification ranks:")
-  print( mean(ranks) )
+  # ranks = unlist(lapply(CV_ranks, `[[`, 1))
+  # print("Average self-identification ranks:")
+  # print( mean(ranks) )
+  
+  # rank = c(rank,mean(ranks))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/NEW_K12_o7_3N2.RData'))
+  write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N1_all.csv"))
   
   accuracies = c(accuracies,mean(accs))
   ptve = c(ptve,mean(ptvs))
-  rank = c(rank,mean(ranks))
-  save(CV_results, file=paste0('results/', 10, 'foldCV/NEW_K12_all_N2AB.RData'))
-  write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N=",n,".csv"))
 }
-
-
 
 
 
 # loop thru results and do unseen_data validation
 accs = c()
 for(f in 1:length(CV_results)){
-  res <- CV_results[[f]][[2]]
+  res <- CV_results[[f]][[3]]
   res$scaling <- ginv(averageGamma(res))
   Xt <- res$data$genotypes
   lat_map <- res$data$phenotypes
@@ -508,16 +510,16 @@ print(mean(accs))
 
 ## Training with all data
 source("brrr.R")
-K=12
+K=6
 res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=0.01) 
 res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
 res$scaling <- ginv(averageGamma(res))
 
-ptve = res$factor_variance/sum(res$factor_variance)
-Ks <- c(1:K)
-plot(Ks,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
+# ptve = res$factor_variance/sum(res$factor_variance)
+# Ks <- c(1:K)
+# plot(Ks,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
 
-save(res, file = paste0("results/full/NEW_PSD_alldata_2N1_BRRR_K",K, ".RData") )
+save(res, file = paste0("results/full/all_2N2_BRRR_",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
@@ -525,14 +527,20 @@ lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METH
 D1 <- validation(within_sample = F, dis='L1', pK=c(1:K), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
 
 #baseline: calculate distances on all data
-lat_map <- Y 
+nsubj <- length(unique(row.names(Y)))
+
+#lat_map <- Y[1:(2*nsubj),] 
+#lat_map2 <- Y[(2*nsubj+1):(3*nsubj),]
+lat_map <- Y
 lat_map2 <- Y2
-D <- validation(within_sample = F, dis='corr', pK=c(1:247), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
+D <- validation(within_sample = F, dis='L1', pK=c(1:247), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
 
 
 ### Loop over different number of components
 Ks <- seq(from=2,to=248, by=4)
 ptves <- c()
+accs_1 <- c()
+accs_2 <- c()
  
 source("brrr.R") 
 for(k in Ks){
@@ -545,15 +553,23 @@ for(k in Ks){
   lat_map <- Y%*%W
   lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
   
+  D1 <- validation(within_sample = T, dis='L1', pK=c(1:K), lat_map=lat_map, lat_map2=NULL, Xt=X)
+  D2 <- validation(within_sample = F, dis='L1', pK=c(1:K), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
+  
   ptves = c(ptves, res$model$ptve)
+  accs_1 = c(accs_1, D1[[2]])
+  accs_2 = c(accs_2, D2[[2]])
   #D <- validation(within_sample = T, dis='L1', pK=k, lat_map=lat_map, lat_map2=NULL, Xt=X)
   if((k%%10)==0){
-    save(res, file = paste0("results/full/all_2N1_BRRR_K",k, ".RData") )
+    save(res, file = paste0("results/full/all_2N2_BRRR_K",k, ".RData") )
   } 
 }
 
+save(list(ptves, accs_1, accs_2), file = "K-dependencies.RData")
+
 svg("figures/N1_all_latspace_dim_K.svg")
 plot(Ks,ptves, 'l', col='firebrick', ylab="ptve %", bty="n", lwd=2)
+lines(Ks, accs_1, 'l', col='forestgreen', lwd=2)
 dev.off()
 # grid(nx = NULL, ny = NULL,
 #      lty = 2,      # Grid line type

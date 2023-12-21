@@ -6,7 +6,7 @@
 #TODO: add miniheads? (nope) + same individual, different data??
 
 data <- "EEG_ind" # datatype
-fname='all_2N1_BRRR_110'
+fname='o7_2N2_BRRR_12'
 
 if(data == "EEG_ind") { #TODO: fix repetition
   #fname <- paste0("results/full/over7_2N1_BRRR_K12.RData")
@@ -15,7 +15,7 @@ if(data == "EEG_ind") { #TODO: fix repetition
   datafile <- paste0("data/N1Aspectrum.RData") #only to get frequencies
   load(datafile)
 
-
+  ptves = res$factor_variance/sum(res$factor_variance) * res$model$ptve
   keepFeat <- which(apply(res$data$phenotypes,2,var,na.rm=T)>0)
   #Y <- cbind(res$scaling[,1:5], t(res$model$A)) #to get confounder weight matrix too
   Y <- res$scaling 
@@ -24,7 +24,7 @@ if(data == "EEG_ind") { #TODO: fix repetition
               penLDA=4,omitN=2000,l1d=200)
   net$lambda <- 0
   
-  
+  net$freq <- freq
   net$freq <- freq[c(-1),]
   
   coords <- read.table("var/coords.csv",sep=",")
@@ -88,6 +88,7 @@ coords = coords * 200
 filename <- paste0("figures/NEW_",fname, data, ".pdf") # pdf file for saving plots
 pdf(file=filename,width=20,height=30)
 plotLabels <- paste0("K",1:ncol(net$Y)) # plot lables
+plotLabels <- paste0(plotLabels, "\n", round(ptves, 3)) 
 if(data=='raw'){
   plotLabels <- paste0("N", spectra)
 }
