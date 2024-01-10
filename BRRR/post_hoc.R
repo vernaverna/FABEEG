@@ -7,13 +7,14 @@ library("dplyr")
 library("cvms")
 library("RColorBrewer")
 library("corrplot")
+library("viridis")
 
 
 ## Test component simlarities ##
 
-load("results/full/all_2N2_BRRR_12.RData") #try with the best ptve models tho!
+load("results/full/all_2N1_BRRR_12.RData") #try with the best ptve models tho!
 comp1 <- res$scaling
-load("results/full/all_2N1_BRRR_12.RData")
+load("results/full/all_2N2_BRRR_12.RData")
 comp2 <- res$scaling
 #rm(res)
 
@@ -30,18 +31,27 @@ M <- matrix(NA, nrow=ncol(comp1), ncol=ncol(comp1))
 for(i in 1:ncol(comp1)){
   for(j in 1:ncol(comp2)){
     M[i,j] <- cossim(comp1[,i], comp2[,j])
+    #M[i,j] <- cor(comp1[,i], comp2[,j], method='pearson')
   }
 }
 rownames(M) <- c(paste0('K ', c(1:12))) #rows=res1
 colnames(M) <- c(paste0('K ', c(1:12)))
 
+M_df <- as.data.frame(M)
+M_df$N1 <- row.names(M_df)
 
-svg("figures/all_component_cossim_N1N2.svg")
+M_df <- M_df %>% gather(key="N2", value="Similarity", `K 1`:`K 12`)
+
+fname="figures/all_component_cossim_N1N2.pdf"
+my_order <- paste0("K ", c(1:12))
 #maybe better to use abs values with gradient palette
-vir_pal <- colorRampPalette(brewer.pal())
-heatmap(M,  Colv = NA, Rowv = NA, col=vir_pal, 
-        xlab="N2 model",ylab="N1 model",main="Heatmap of cosine distances") 
-dev.off()
+p <- ggplot(M_df, aes(N1, N2, fill=`Similarity`)) +
+  geom_tile() + scale_fill_viridis(discrete=FALSE) + theme_minimal() +
+  geom_text(aes(x = N1, y = N2, label = round(Similarity, 2))) +
+  scale_x_discrete(limits=my_order) + scale_y_discrete(limits=my_order)
+ggsave(file=fname, plot=p, width=10, height=9.5)
+
+#dev.off()
 
 
 P=cor(Ys, method = 'spearman')

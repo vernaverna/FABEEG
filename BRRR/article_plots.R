@@ -16,7 +16,7 @@ library("viridis")
 #   load visualization data   #
 # # # # # # # # # # # # # # # #
 
-load("results/full/NEW_alldata_2N2_BRRR_K12.RData")
+load("results/full/all_2N1_BRRR_12.RData")
 Y <- res$data$phenotypes
 X <- res$data$genotypes
 subj <- row.names(X)
@@ -77,6 +77,7 @@ lat_map = as.data.frame(rbind(lat_space))
 lat_map['X1'] = tsne$Y[,1]
 lat_map['X2'] = tsne$Y[,2]
 lat_map['spectra'] = c(rep('N1B', nsubj), rep('N1A', nsubj))
+lat_map['log_age'] = rep(log10(ages$Age), reps) #get age data
 lat_map['age'] = rep(ages$Age, reps) #get age data
 lat_map['group'] = rep(round(ages$Age, 0), reps) #get age data
 lat_map['sex'] = rep(ages$Sex, reps)
@@ -113,8 +114,17 @@ ggsave("figures/NEW_latmap_all_2N2_Sex.pdf", width=7.4, height=5.2)
 
 
 
-
-
+# Checking (log-)age correlations (?) 
+for(comp in c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12')){
+  print(paste0('Correlation between age and ', comp, ':'))
+  rho=cor(lat_map$age, lat_map[comp], method='pearson', use = "complete.obs")
+  print(rho)
+  
+  print(paste0('Correlation between log-age and ', comp, ':'))
+  rho2=cor(lat_map$log_age, lat_map[comp], method='pearson', use = "complete.obs")
+  print(rho2)
+}
+  
 
 
 

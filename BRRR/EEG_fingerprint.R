@@ -54,8 +54,11 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
         
       }
       set.seed(seed) #for reproducibility.
-      individuals = sample(individuals, length(individuals)) #shuffle the data, just in case.
-      Y = Y[names(Y) %in% names(individuals)]
+      if(use_all==T){
+        individuals = sample(individuals, length(individuals)) #shuffle the data, just in case. 
+        Y = Y[names(Y) %in% names(individuals)]
+      }
+
       
       # Omits frequencies
       if(data_type=='spectrum'){
@@ -176,7 +179,8 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
   
   tmp1 <- scale(validation_data[!is.na(validation_data[,1]),],center=T,scale=T)
   Y_val <- scale(validation_data, attr(tmp1,"scaled:center"), attr(tmp1,"scaled:scale"))
-  
+  reorder_idx <- match(rownames(Y1), rownames(Y_val))
+  Y_val <- Y_val[reorder_idx,]
   
   #Construct identifier matrix (covariates)
   subj = dimnames(Y1)[[1]]
@@ -221,7 +225,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
   
   #Trying with added Z
   Z1 = ages[ages$File %in% unique(subj),]
-  reorder_idx <- match(rownames(Y_val), Z1$File)
+  reorder_idx <- match(rownames(Y1), Z1$File)
   Z1 <- Z1[reorder_idx,]
 
   Z = matrix(c(Z1$Age, Z1$Age, Z1$Age))
@@ -282,27 +286,34 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
       if(within_sample){
         
         if(length(idxs) == 3){
-          other_data <- colMeans(lat_map[tail(idxs,2), pK])
+          #other_data <- colMeans(lat_map[tail(idxs,2), pK])
+          other_data <- lat_map[tail(idxs,2), pK]
+          dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
         } else {
-          other_data <- lat_map[tail(idxs,1), pK] 
+          other_data <- lat_map[tail(idxs,1), pK]
+          dists <- dist_func(lat_map[testidx,pK],other_data)
         }
-        D[testidx,m] <- dist_func(lat_map[testidx,pK],other_data)
+        D[testidx,m] <- min(dists)
         
       } else { #OOS validation
         
         if(length(idxs)>1){
-          other_data <- colMeans(lat_map[idxs, pK]) 
+          #other_data <- colMeans(lat_map[idxs, pK])
+          other_data <- lat_map[idxs, pK]
+          dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
+
         } else {
           other_data <- lat_map[idxs, pK]
+          dists <- dist_func(lat_map2[testidx,pK],other_data)
         }
-        D[testidx,m] <- dist_func(lat_map2[testidx,pK],other_data)
+        D[testidx,m] <- min(dists)
       }
     } 
   }
   
   PROJ <- D*0 #initialize 'projection' matrix
   
-  for(r in 1:nrow(D)){ #assign age groups based on minimal distance in lat. space
+  for(r in 1:nrow(D)){ #assign group based on minimal distance in lat. space
     if(dis!='corr'){
       index <- which.min(D[r,])
     } else {
@@ -400,6 +411,10 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
       #is not actually within-sample but oh well--- works now
       D <- validation(within_sample = F, dis=dis, pK=c(1:K), lat_map=lat_map, lat_map2=lat_map2,  
                       Xt=test_X)
+      
+      # compute 0-model (correlations in full data matrix) 
+      D0 <- validation(within_sample = F, dis='corr', pK=c(1:K), lat_map=test_Y, lat_map2=test2_Y,  
+                      Xt=test_X)
       #calculate test MSE & PTVE
       # PRED <- test_X%*%averagePsi(res)%*%averageGamma(res)
       # test_MSE <- mean((test_Y-PRED)^2)
@@ -412,7 +427,7 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
       # 
     }
     
-    Ds[[fold]] <- list(D, res$model$ptve, res) #append results
+    Ds[[fold]] <- list(D, res$model$ptve, res, D0) #append results
     
   }
    
@@ -460,6 +475,10 @@ for(n in Ns){
   #CV_2 <- lapply(CV_ptves, `[[`, 1)
   #CV_ptve <- lapply(CV_2, `[[`, 3)
   
+  CV_null_scores <- lapply(CV_results, `[[`, 4)
+  CV_null_scores <- lapply(CV_null_scores, `[[`, 2)
+  
+  
   accs <- unlist(lapply(CV_scores, `[[`, 1))
   print("Average CV accuracy:")
   print(mean(accs))
@@ -467,6 +486,10 @@ for(n in Ns){
   ptvs = unlist(lapply(CV_ptves, `[[`, 1))
   print("Average train-PTVE:")
   print( mean(ptvs) )
+  
+  null_accs <- unlist(lapply(CV_null_scores, `[[`, 1))
+  print("Average CV 0-accuracy:")
+  print(mean(null_accs))
   
   # ranks = unlist(lapply(CV_ranks, `[[`, 1))
   # print("Average self-identification ranks:")
@@ -538,13 +561,27 @@ D <- validation(within_sample = F, dis='L1', pK=c(1:247), lat_map=lat_map, lat_m
 
 ### Loop over different number of components
 Ks <- seq(from=2,to=248, by=4)
+Ns <- seq(55, 790, by=20)
 ptves <- c()
 accs_1 <- c()
 accs_2 <- c()
- 
-source("brrr.R") 
-for(k in Ks){
-  res <- brrr(X=X,Y=Y,K=k,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model
+N_s <- c() 
+
+for(n in Ns){
+  n2_data <- prepare_data(spectra = c("N2A", "N2B", "N2C"), validation_set = "N2C", 
+                          n_inds=n, data_type='spectrum')
+  Y = n2_data[[1]]
+  X = n2_data[[3]]
+  x = n2_data[[2]]
+  ages = n2_data[[4]]
+  # 
+  Y2 = n2_data[[5]] #validation set data
+  Z = n2_data[[6]]
+  
+  N_s = c(N_s, length(x))
+  
+  source("brrr.R") 
+  res <- brrr(X=X,Y=Y,K=12,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model
 
   res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
   res$scaling <- ginv(averageGamma(res))
@@ -553,23 +590,28 @@ for(k in Ks){
   lat_map <- Y%*%W
   lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
   
-  D1 <- validation(within_sample = T, dis='L1', pK=c(1:K), lat_map=lat_map, lat_map2=NULL, Xt=X)
-  D2 <- validation(within_sample = F, dis='L1', pK=c(1:K), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
+  D1 <- validation(within_sample = T, dis='L1', pK=c(1:12), lat_map=lat_map, lat_map2=NULL, Xt=X)
+  D2 <- validation(within_sample = F, dis='L1', pK=c(1:12), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
   
   ptves = c(ptves, res$model$ptve)
   accs_1 = c(accs_1, D1[[2]])
   accs_2 = c(accs_2, D2[[2]])
   #D <- validation(within_sample = T, dis='L1', pK=k, lat_map=lat_map, lat_map2=NULL, Xt=X)
-  if((k%%10)==0){
-    save(res, file = paste0("results/full/all_2N2_BRRR_K",k, ".RData") )
+  if((n%%100)==0){
+    save(res, file = paste0("results/full/n_",n,"_2N2_BRRR_K12.RData") )
   } 
 }
 
 save(list(ptves, accs_1, accs_2), file = "K-dependencies.RData")
+N_s <- N_s/2
 
-svg("figures/N1_all_latspace_dim_K.svg")
-plot(Ks,ptves, 'l', col='firebrick', ylab="ptve %", bty="n", lwd=2)
-lines(Ks, accs_1, 'l', col='forestgreen', lwd=2)
+pdf("figures/N2_all_latspace_dim_N.pdf", width=7, height=6)
+plot(N_s, accs_1, xlab='N', 'l', col='yellow3', ylab="Score", bty="n", lwd=2, ylim=c(0,0.99), axes=FALSE)
+lines(N_s, ptves, xlab='N', 'l', col='deepskyblue4', lwd=2, axes=FALSE)
+axis(2, at=c(0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9))
+axis(1, at=c(0,100,200,300,400,500,600,700,750))
+legend(100,0.20, legend=c('Accuracy', 'PTVE'), 
+       col=c("yellow3", "deepskyblue4"), pch=c(16,15)) #topright?
 dev.off()
 # grid(nx = NULL, ny = NULL,
 #      lty = 2,      # Grid line type
