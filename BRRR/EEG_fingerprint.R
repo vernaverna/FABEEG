@@ -286,27 +286,27 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
       if(within_sample){
         
         if(length(idxs) == 3){
-          #other_data <- colMeans(lat_map[tail(idxs,2), pK])
-          other_data <- lat_map[tail(idxs,2), pK]
-          dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
+          other_data <- colMeans(lat_map[tail(idxs,2), pK])
+          #other_data <- lat_map[tail(idxs,2), pK]
+          #dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
         } else {
           other_data <- lat_map[tail(idxs,1), pK]
-          dists <- dist_func(lat_map[testidx,pK],other_data)
+          #dists <- dist_func(lat_map[testidx,pK],other_data)
         }
-        D[testidx,m] <- min(dists)
+        D[testidx,m] <- dist_func(lat_map[testidx,pK],other_data) #min(dists)
         
       } else { #OOS validation
         
         if(length(idxs)>1){
-          #other_data <- colMeans(lat_map[idxs, pK])
-          other_data <- lat_map[idxs, pK]
-          dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
+          other_data <- colMeans(lat_map[idxs, pK])
+          #other_data <- lat_map[idxs, pK]
+          #dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
 
         } else {
           other_data <- lat_map[idxs, pK]
-          dists <- dist_func(lat_map2[testidx,pK],other_data)
+          #dists <- dist_func(lat_map2[testidx,pK],other_data)
         }
-        D[testidx,m] <- min(dists)
+        D[testidx,m] <- dist_func(lat_map2[testidx,pK],other_data) #min(dists)
       }
     } 
   }
@@ -399,6 +399,9 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
       #is not actually within-sample but oh well--- works now
       D <- validation(within_sample = T, dis=dis, pK=c(1:K), lat_map=lat_map, 
                       Xt=test_X)
+      # compute 0-model (correlations in full data matrix) 
+      D0 <- validation(within_sample = T, dis='corr',  pK=c(1:247), lat_map=test_Y,   
+                       Xt=test_X)
       
     } else if(validation_scheme=='unseen_data'){ #validate on the test spectra
       test_Y <- Y2[which(rownames(Y2)%in%testsubj),] #used to be ! before rownames
@@ -413,7 +416,7 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
                       Xt=test_X)
       
       # compute 0-model (correlations in full data matrix) 
-      D0 <- validation(within_sample = F, dis='corr', pK=c(1:K), lat_map=test_Y, lat_map2=test2_Y,  
+      D0 <- validation(within_sample = F, dis='corr', pK=c(1:247), lat_map=test_Y, lat_map2=test2_Y,  
                       Xt=test_X)
       #calculate test MSE & PTVE
       # PRED <- test_X%*%averagePsi(res)%*%averageGamma(res)
@@ -450,7 +453,7 @@ rank <- c()
 for(n in Ns){
   
   # read in the data
-  n2_data <- prepare_data(spectra = c("N2A", "N2B", "N2C"), validation_set = "N2C", 
+  n2_data <- prepare_data(spectra = c("N1A", "N1B", "N2C"), validation_set = "N2C", 
                           n_inds=792, data_type='spectrum')
   Y = n2_data[[1]]
   X = n2_data[[3]]
@@ -465,7 +468,7 @@ for(n in Ns){
   # MSE, PTVE and accuracy (L1 distances in the projection)
   source("brrr.R")
   
-  CV_results = do_CV(data=n2_data, n_folds=10, K=12, iter=1000, validation_scheme='subject')
+  CV_results = do_CV(data=n2_data, n_folds=10, K=12, iter=1000, validation_scheme='unseen_data')
   
   CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
   #CV_ranks <- lapply(CV_scores, `[[`, 3)
@@ -496,7 +499,7 @@ for(n in Ns){
   # print( mean(ranks) )
   
   # rank = c(rank,mean(ranks))
-  save(CV_results, file=paste0('results/', 10, 'foldCV/NEW_K12_o7_3N2.RData'))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/NEW_K12_all_2N1.RData'))
   write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N1_all.csv"))
   
   accuracies = c(accuracies,mean(accs))
@@ -578,7 +581,7 @@ for(n in Ns){
   Y2 = n2_data[[5]] #validation set data
   Z = n2_data[[6]]
   
-  N_s = c(N_s, length(x))
+ # N_s = c(N_s, length(x))
   
   source("brrr.R") 
   res <- brrr(X=X,Y=Y,K=12,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model
@@ -592,6 +595,7 @@ for(n in Ns){
   
   D1 <- validation(within_sample = T, dis='L1', pK=c(1:12), lat_map=lat_map, lat_map2=NULL, Xt=X)
   D2 <- validation(within_sample = F, dis='L1', pK=c(1:12), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
+  D3 <- validation(within_sample = T, dis='L1', pK=c(1:247), lat_map=Y, lat_map2=NULL, Xt=X)
   
   ptves = c(ptves, res$model$ptve)
   accs_1 = c(accs_1, D1[[2]])
