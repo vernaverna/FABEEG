@@ -15,7 +15,8 @@ library("cvms")
 #' @param data_type either 'spectra' or 'PSD'
 #' 
 # ex = N1 or N2, depending which data is read in
-prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra = F, data_type='spectrum',seed=191){
+prepare_data <- function(spectra, validation_set, n_inds=180, 
+                         group_by_spectra = F, data_type='spectrum',seed=191){
   
   
   # Choosing the channels and frequencies
@@ -28,7 +29,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
   ages[ages==" "] <- NA #replace empty strings with NA-values
   
   use_all=T #should we use all subjects in training?
-  age_gap=c(0,19) #ages to include
+  age_gap=c(7,19) #ages to include
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -174,13 +175,28 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
   data_Y <- data_Y[to_keep,]
   
   #Center and scale Y & validation data
-  tmp <- scale(data_Y[!is.na(data_Y[,1]),],center=T,scale=T)
-  Y1 <- scale(data_Y, attr(tmp,"scaled:center"), attr(tmp,"scaled:scale"))
-  
   tmp1 <- scale(validation_data[!is.na(validation_data[,1]),],center=T,scale=T)
   Y_val <- scale(validation_data, attr(tmp1,"scaled:center"), attr(tmp1,"scaled:scale"))
-  reorder_idx <- match(rownames(Y1), rownames(Y_val))
-  Y_val <- Y_val[reorder_idx,]
+  if(use_all){
+    reorder_idx <- match(rownames(Y_val), rownames(data_Y))
+    if(length(spectra)==3){
+      ordering <- c(reorder_idx, (length(common_subjects)+reorder_idx))
+    } else if(length(spectra)==4){
+      ordering <- c(reorder_idx, (length(common_subjects)+reorder_idx), (2*length(common_subjects)+reorder_idx))
+    }
+    data_Y <- data_Y[ordering,]
+    
+  } else {
+    reorder_idx <- match(rownames(data_Y), rownames(Y_val))
+    Y_val <- Y_val[reorder_idx,]
+  }
+  
+  
+  
+  
+  
+  tmp <- scale(data_Y[!is.na(data_Y[,1]),],center=T,scale=T) #scale after re-ordering
+  Y1 <- scale(data_Y, attr(tmp,"scaled:center"), attr(tmp,"scaled:scale"))
   
   #Construct identifier matrix (covariates)
   subj = dimnames(Y1)[[1]]
@@ -246,20 +262,20 @@ prepare_data <- function(spectra, validation_set, n_inds=180, group_by_spectra =
 #' @param Xt the subject identifiers
 #' @param lat_map the latent mapping used
 #' @param lat_map2 is using unseen data
-#' 
-# TODO: TRY IF WORKS JUST AS WELL WITHOUT LAT_SPACE PROJECTION???
-
-validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, lat_map2=NULL){
+#' @param linkage either 'average' or 'minimum', for deciding how to calculate distances
+# 
+validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, lat_map2=NULL, 
+                       linkage='minimum'){
   
   #distance matrix# 
   D <- matrix(NA, ncol(Xt), ncol(Xt), dimnames=list(colnames(Xt), c(paste0('other', colnames(Xt)) )) )  
   
   # permute lat_map to have same row_names as Xt - safety measure
+  # TODO: check this??? do i mess it up. 
   if(!is.null(lat_map2)){
     reorder_val_idx <- match(colnames(Xt), rownames(lat_map2))
     lat_map2 <- lat_map2[reorder_val_idx,]    
   }
-
   
   # Helper function to calculate distance betewen 2 vectors
   dist_func <- function(x, y){
@@ -281,32 +297,55 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
     for(m in 1:ncol(Xt)){     
       group_members <- rownames(lat_map)[m]   
       idxs = which(row.names(lat_map) %in% group_members) #should be at least 2!
-      #idxs2 = which(row.names(lat_map2) %in% group_members)
-      #group_mean <- colMeans(lat_map[idxs,1:pK])
+      
       if(within_sample){
         
         if(length(idxs) == 3){
-          other_data <- colMeans(lat_map[tail(idxs,2), pK])
-          #other_data <- lat_map[tail(idxs,2), pK]
-          #dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
+          if(linkage=='average'){
+            other_data <- colMeans(lat_map[tail(idxs,2), pK])
+          } else if(linkage=='minimum'){
+            other_data <- lat_map[tail(idxs,2), pK]
+            dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
+          }
         } else {
-          other_data <- lat_map[tail(idxs,1), pK]
-          #dists <- dist_func(lat_map[testidx,pK],other_data)
+          if(linkage=='average'){
+            other_data <- lat_map[tail(idxs,1), pK]
+          } else if(linkage=='minimum'){
+            other_data <- lat_map[tail(idxs,1), pK]
+            dists <- dist_func(lat_map[testidx,pK],other_data) 
+          }
         }
-        D[testidx,m] <- dist_func(lat_map[testidx,pK],other_data) #min(dists)
+        # Finally, determine the distances in the latent coordinates
+        if(linkage=='average'){ 
+          D[testidx,m] <- dist_func(lat_map[testidx,pK],other_data)
+        } else if (linkage=='minimum'){
+          D[testidx,m] <- if(dis!='corr') min(dists) else max(dists)
+        }
         
-      } else { #OOS validation
+        
+      } else { #OOS validation (unseen data)
         
         if(length(idxs)>1){
-          other_data <- colMeans(lat_map[idxs, pK])
-          #other_data <- lat_map[idxs, pK]
-          #dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
-
+          if(linkage=='average'){
+            other_data <- colMeans(lat_map[idxs, pK])
+          } else if(linkage=='minimum'){
+            other_data <- lat_map[idxs, pK]
+            dists <- apply(other_data, 1, function(x) dist_func(lat_map2[testidx,pK], x))
+          }
+          
         } else {
-          other_data <- lat_map[idxs, pK]
-          #dists <- dist_func(lat_map2[testidx,pK],other_data)
+          if(linkage=='average'){
+            other_data <- lat_map[idxs, pK]
+          } else if(linkage=='minimum'){
+            other_data <- lat_map[idxs, pK]
+            dists <- dist_func(lat_map2[testidx,pK],other_data)
+          }
         }
-        D[testidx,m] <- dist_func(lat_map2[testidx,pK],other_data) #min(dists)
+        if(linkage=='average'){
+          D[testidx,m] <- dist_func(lat_map2[testidx,pK],other_data)
+        } else if(linkage=='minimum'){
+          D[testidx,m] <- if(dis!='corr') min(dists) else max(dists)
+        }
       }
     } 
   }
@@ -317,7 +356,7 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
     if(dis!='corr'){
       index <- which.min(D[r,])
     } else {
-      index <- which.max(D[r,])
+      index <- which.max(D[r,]) #in case of correlation, we are of course looking for maximum correlation between subs
     }
     
     PROJ[r,index] <- 1+PROJ[r,index]
@@ -448,12 +487,24 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
 Ns <- seq(480, 780, by=30)
 accuracies <- c()
 ptve <-c()
+null_accus <- c()
 rank <- c()
 
-for(n in Ns){
+#create set of conditions to loop over as a list
+conds = list(c("N1A","N1B","N2C"),
+             c("N1A","N1B","N2A","N2C"),
+             c("N1A","N2B","N2C"),
+             #c("N1A","N2B","N1B"),
+             c("N1A","N2B","N2A","N1B"),
+             c("N2A","N2B","N2C"),
+             #c("N2A","N2B","N1B"),
+             c("N2A","N2B","N2C","N2D"))
+
+for(n in 1:length(conds)){
   
+  spectra_list = unlist(conds[n])
   # read in the data
-  n2_data <- prepare_data(spectra = c("N1A", "N1B", "N2C"), validation_set = "N2C", 
+  n2_data <- prepare_data(spectra = spectra_list, validation_set = tail(spectra_list,1), 
                           n_inds=792, data_type='spectrum')
   Y = n2_data[[1]]
   X = n2_data[[3]]
@@ -468,7 +519,7 @@ for(n in Ns){
   # MSE, PTVE and accuracy (L1 distances in the projection)
   source("brrr.R")
   
-  CV_results = do_CV(data=n2_data, n_folds=10, K=12, iter=1000, validation_scheme='unseen_data')
+  CV_results = do_CV(data=n2_data, n_folds=10, K=20, iter=1000, validation_scheme='subject')
   
   CV_scores <- lapply(CV_results, `[[`, 1) #unlisting stuff; looks ugly
   #CV_ranks <- lapply(CV_scores, `[[`, 3)
@@ -499,11 +550,12 @@ for(n in Ns){
   # print( mean(ranks) )
   
   # rank = c(rank,mean(ranks))
-  save(CV_results, file=paste0('results/', 10, 'foldCV/NEW_K12_all_2N1.RData'))
-  write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N1_all.csv"))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/NEW_K30_o7_',paste(spectra_list, collapse=''), '.RData'))
+  #write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N1_all.csv"))
   
   accuracies = c(accuracies,mean(accs))
   ptve = c(ptve,mean(ptvs))
+  null_accus = c(null_accus, mean(null_accs))
 }
 
 
@@ -536,7 +588,7 @@ print(mean(accs))
 
 ## Training with all data
 source("brrr.R")
-K=6
+K=30
 res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=0.01) 
 res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
 res$scaling <- ginv(averageGamma(res))
@@ -545,7 +597,7 @@ res$scaling <- ginv(averageGamma(res))
 # Ks <- c(1:K)
 # plot(Ks,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
 
-save(res, file = paste0("results/full/all_2N2_BRRR_",K, ".RData") )
+save(res, file = paste0("results/full/all_N1N2_BRRR_",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
@@ -564,10 +616,11 @@ D <- validation(within_sample = F, dis='L1', pK=c(1:247), lat_map=lat_map, lat_m
 
 ### Loop over different number of components
 Ks <- seq(from=2,to=248, by=4)
-Ns <- seq(55, 790, by=20)
+Ns <- seq(100, 790, by=20)
 ptves <- c()
 accs_1 <- c()
 accs_2 <- c()
+accs_3 <- c()
 N_s <- c() 
 
 for(n in Ns){
@@ -581,10 +634,12 @@ for(n in Ns){
   Y2 = n2_data[[5]] #validation set data
   Z = n2_data[[6]]
   
- # N_s = c(N_s, length(x))
+  N_s = c(N_s, length(x))
   
   source("brrr.R") 
-  res <- brrr(X=X,Y=Y,K=12,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model
+  K=30
+  lkg='minimum'
+  res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model
 
   res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
   res$scaling <- ginv(averageGamma(res))
@@ -593,29 +648,43 @@ for(n in Ns){
   lat_map <- Y%*%W
   lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
   
-  D1 <- validation(within_sample = T, dis='L1', pK=c(1:12), lat_map=lat_map, lat_map2=NULL, Xt=X)
-  D2 <- validation(within_sample = F, dis='L1', pK=c(1:12), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
-  D3 <- validation(within_sample = T, dis='L1', pK=c(1:247), lat_map=Y, lat_map2=NULL, Xt=X)
+  D1 <- validation(within_sample = T, dis='L1', pK=c(1:K), lat_map=lat_map, 
+                   lat_map2=NULL, Xt=X, linkage=lkg)
+  D2 <- validation(within_sample = F, dis='L1', pK=c(1:K), lat_map=lat_map, 
+                   lat_map2=lat_map2, Xt=X, linkage=lkg)
+  D3 <- validation(within_sample = F, dis='corr', pK=c(1:247), lat_map=Y, 
+                   lat_map2=Y2, Xt=X, linkage=lkg)
   
   ptves = c(ptves, res$model$ptve)
   accs_1 = c(accs_1, D1[[2]])
   accs_2 = c(accs_2, D2[[2]])
+  accs_3 = c(accs_3, D3[[2]])
   #D <- validation(within_sample = T, dis='L1', pK=k, lat_map=lat_map, lat_map2=NULL, Xt=X)
-  if((n%%100)==0){
-    save(res, file = paste0("results/full/n_",n,"_2N2_BRRR_K12.RData") )
-  } 
+  #if((n%%100)==0){
+  #  save(res, file = paste0("results/full/all_2N2_BRRR_K",K,".RData") )
+  #} 
 }
 
-save(list(ptves, accs_1, accs_2), file = "K-dependencies.RData")
 N_s <- N_s/2
+data_list <- list(N_s, ptves, accs_1, accs_2, accs_3)
 
-pdf("figures/N2_all_latspace_dim_N.pdf", width=7, height=6)
-plot(N_s, accs_1, xlab='N', 'l', col='yellow3', ylab="Score", bty="n", lwd=2, ylim=c(0,0.99), axes=FALSE)
-lines(N_s, ptves, xlab='N', 'l', col='deepskyblue4', lwd=2, axes=FALSE)
+save(data_list, file = "N-dependencies.RData")
+
+#dataK <- load("K-dependencies.RData")
+Ks <- data_list[[1]]
+ptves <- data_list[[2]] 
+accs_1 <- data_list[[3]] 
+accs_2 <- data_list[[4]] 
+accs_3 <- data_list[[5]]
+
+pdf("figures/N2_all_latspace_dim_K.pdf", width=7, height=6)
+plot(Ks, accs_1, xlab='K', 'l', col='yellow3', ylab="Score", bty="n", lwd=2, ylim=c(0,0.99), axes=FALSE)
+lines(Ks, accs_3, xlab='K', 'l', col='darkorchid4', lty=2, lwd=2, axes=FALSE)
+lines(Ks, ptves, xlab='K', 'l', col='deepskyblue4', lwd=2, axes=FALSE)
 axis(2, at=c(0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9))
 axis(1, at=c(0,100,200,300,400,500,600,700,750))
-legend(100,0.20, legend=c('Accuracy', 'PTVE'), 
-       col=c("yellow3", "deepskyblue4"), pch=c(16,15)) #topright?
+legend(80,0.20, legend=c('BRRR', 'Null model', 'PTVE'), 
+       col=c("yellow3", "darkorchid4", "deepskyblue4"), pch=c(16,15)) #topright?
 dev.off()
 # grid(nx = NULL, ny = NULL,
 #      lty = 2,      # Grid line type

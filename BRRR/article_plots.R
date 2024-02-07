@@ -18,7 +18,7 @@ library("rstatix")
 #   load visualization data   #
 # # # # # # # # # # # # # # # #
 
-load("results/full/all_2N1_BRRR_12.RData")
+load("results/full/o7_2N1_BRRR_K30.RData")
 Y <- res$data$phenotypes
 X <- res$data$genotypes
 subj <- row.names(X)
@@ -80,7 +80,7 @@ reps = 2
 lat_map = as.data.frame(rbind(lat_space))
 lat_map['X1'] = tsne$Y[,1]
 lat_map['X2'] = tsne$Y[,2]
-lat_map['spectra'] = c(rep('N1B', nsubj), rep('N1A', nsubj))
+lat_map['spectra'] = c(rep('N2B', nsubj), rep('N2A', nsubj))
 lat_map['log_age'] = rep(log10(ages$Age), reps) #get age data
 lat_map['age'] = rep(ages$Age, reps) #get age data
 lat_map['group'] = rep(round(ages$Age, 0), reps) #get age data
@@ -90,23 +90,26 @@ lat_map['subject'] = subj[1:nsubj]
 
 
 
-p <- ggplot(data=lat_map, aes(x=V2, y=V3, shape=spectra, colour=age)) + 
-            geom_point(alpha=0.3, size=2) +
+p <- ggplot(data=lat_map, aes(x=V3, y=V2, shape=spectra, colour=age)) + 
+            geom_point(alpha=0.5, size=3) +
             ggtitle("Subjects in latent mapping ") + 
             scale_color_viridis() +
-            xlab("t-SNE #1") + ylab("t-SNE #2") + #xlim(-42,48) + ylim(-20,25) +
+            xlab("component #2") + ylab("component #3") + #xlim(-42,48) + ylim(-20,25) +
             theme(legend.position="none") + theme_bw() + 
             theme(panel.border = element_blank(), 
                   panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank(), 
                   axis.line = element_line(colour = "black"))
 p
-ggsave("figures/NEW_latmap_all_2N2_Age.pdf", width=7.4, height=5.2)
+ggsave("figures/NEW_latmap_all_2N2_Age_K30.pdf", width=7.4, height=5.2)
 
-q <- ggplot(data=lat_map, aes(x=V2, y=V3, shape=spectra, colour=sex)) + 
-  geom_point(alpha=0.5, size=3) +
+lat_map <- na.omit(lat_map)
+
+q <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=sex)) + 
+  geom_point(alpha=0.65, size=3) +
   ggtitle("Subjects in latent mapping ") + 
-  scale_color_viridis(discrete=TRUE) +
+  #scale_color_viridis(discrete=TRUE) +
+  scale_color_manual(values=c("#DCE319FF", "#33638DFF")) +
   xlab("t-SNE #1") + ylab("t-SNE #2") + #xlim(-42,48) + ylim(-20,25) +
   theme(legend.position="none") + theme_bw() + 
   theme(panel.border = element_blank(), 
@@ -114,7 +117,7 @@ q <- ggplot(data=lat_map, aes(x=V2, y=V3, shape=spectra, colour=sex)) +
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"))
 q
-ggsave("figures/NEW_latmap_all_2N2_Sex.pdf", width=7.4, height=5.2)
+ggsave("figures/NEW_latmap_all_2N1_Sex_K30.pdf", width=7.4, height=5.2)
 
 
 for(comp in c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12')){
@@ -145,7 +148,7 @@ for(comp in c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12')){
 # 
 
 validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, lat_map2=NULL, 
-                       linkage='average'){
+                       linkage='minimum'){
   
   #distance matrix# 
   D <- matrix(NA, ncol(Xt), ncol(Xt), dimnames=list(colnames(Xt), c(paste0('other', colnames(Xt)) )) )  
@@ -217,6 +220,7 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
           if(linkage=='average'){
             other_data <- lat_map[idxs, pK]
           } else if(linkage=='minimum'){
+            other_data <- lat_map[idxs, pK]
             dists <- dist_func(lat_map2[testidx,pK],other_data)
           }
         }
@@ -253,12 +257,12 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
 }
 
 
-K=12
-D_list <- validation(within_sample = T, dis='L1', pK=c(1:K), lat_map=lat_space, Xt=X, linkage = 'average')
+K=30
+D_list <- validation(within_sample = T, dis='L1', pK=c(1:K), lat_map=lat_space, Xt=X)
 D <- D_list[[1]]
 # compute 0-model (correlations in full data matrix) 
 D0_list <- validation(within_sample = T, dis='corr',  pK=c(1:247), lat_map=Y, Xt=X)
-  
+#D <-D0_list[[1]]  
 # Creating a dataframe for plotting....
 reorder_val_idx <- match(rownames(D), ages$File)
 ages <- ages[reorder_val_idx,] 
@@ -296,13 +300,19 @@ p <- ggplot(dist_df, aes(x=sex, y=`diag(D)`)) + geom_violin(aes(fill=sex), alpha
            panel.grid.minor = element_blank(), 
            axis.line = element_line(colour = "black"))
 p
-ggsave(file="figures/WS_distances_all_2N2_sex.pdf", plot=p, width=7, height=7)
+ggsave(file="figures/WS_distances_o7_2N1_sex_K30.pdf", plot=p, width=7, height=7)
 
 
+# print also summary stats
+dist_df <- dist_df %>% rename('WS-distance'='diag(D)')
+stat_df <- dist_df[c('WS-distance', 'age', 'sex')] %>% 
+             group_by(sex) %>%
+              summarise(mean(`WS-distance`), sd(`WS-distance`), mad(`WS-distance`))
+print(stat_df)
 
 # then creating lm plot for checking the age-dep of WS-distances
 lm_eqn <- function(df){
-  m <- lm(age ~ `diag(D)`, df);
+  m <- lm(age ~ `WS-distance`, df);
   eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2*","~~italic(p)~"="~pvalue,
                    list(a = format(unname(coef(m)[1]), digits = 2),
                         b = format(unname(coef(m)[2]), digits = 2),
@@ -318,13 +328,13 @@ eqs_df <- data.frame(matrix(eqs, nrow=length(eqs), byrow=TRUE),
 colnames(eqs_df) <- "V1"
 eqs_df['sex'] <- as.factor(c('F', 'M'))
 
-p2 <- ggplot(dist_df, aes(x=age, y=`diag(D)`)) +
+p2 <- ggplot(dist_df, aes(x=age, y=`WS-distance`)) +
       geom_point(alpha=0.15) +
       geom_smooth(data=dist_df, aes(color=sex, fill=sex), method=lm, se=TRUE) +
       facet_grid(~sex) +
       scale_fill_manual(values=c("#DCE319FF", "#33638DFF")) +
       scale_color_manual(values=c("#DCE319FF", "#33638DFF")) +
-      geom_text(data=eqs_df, aes(x=10, y=5, label = V1), parse = TRUE, inherit.aes=FALSE) +
+      geom_text(data=eqs_df, aes(x=10, y=7.5, label = V1), parse = TRUE, inherit.aes=FALSE) +
       theme_bw() + ylab("W-S distance") +
       theme(panel.border = element_blank(), 
             panel.grid.major = element_blank(),
@@ -333,6 +343,6 @@ p2 <- ggplot(dist_df, aes(x=age, y=`diag(D)`)) +
 p2
 
 
-ggsave(file="figures/WS_age_sex_regplot_all_2N1.pdf", plot=p2, width=11, height=5)
+ggsave(file="figures/WS_age_sex_regplot_all_2N1_K30.pdf", plot=p2, width=11, height=5)
 
 
