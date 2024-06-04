@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from collections import defaultdict
 import numpy as np
 from config_eeg import age_df, fname, subjects
-from mne.time_frequency import psd_multitaper, psd_welch
+from mne.time_frequency import psd_array_welch
 from mne.stats import bootstrap_confidence_interval
 from mne.baseline import rescale
 from mne import open_report
@@ -144,6 +144,9 @@ for i in range(1, len(group_spectra_n1)+1):
     #     figs.append(fig)
 
 
+
+#%% OTher stuff
+
 # Define regions of interest (ROIs)
 # TODO: Confirm these!!! 
 roi_viz = ['P3', 'P4', 'O1', 'O2', 'PZ']
@@ -256,9 +259,13 @@ f.fig.suptitle("N2 Global average")
 glob_figs.append(f)
 
 #list(evk_df.columns)
-h = sns.relplot(data=evk_df, x="Frequency", y="Age: 11.42-18.6 y", hue="Sleep",
-                kind='line')
-h.fig.suptitle("Group global averages, Age: 11.42-18.6 y")
+col_palette = sns.color_palette("viridis",10)
+cols=[col_palette[3], col_palette[8]]
+cols = ['#DCE319FF', '#33638DFF']
+
+h = sns.relplot(data=evk_df, x="Frequency", y="Age: 0.83-1.28 y", hue="Sleep",
+                palette=cols, kind='line')
+h.fig.suptitle("Group global averages, Age: 0.83-1.28 y")
 (h.set_axis_labels("Frequency (Hz)", "log PSD"))
 glob_figs.append(h)
 

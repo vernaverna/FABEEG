@@ -62,7 +62,7 @@ PSD_df = pd.DataFrame.from_dict(PSD_dict, orient='index')
 PSD_df.to_pickle('PSD_dataframe_.pkl')
 chs = info['ch_names']
 
-#%% PLOTTING FUNCTIONS
+#%% PLOTTING FUNCTIONS AND STATS
 
 def plot_glob_intra_individual(PSD_df, subject, freqs):
     """
@@ -88,10 +88,7 @@ def plot_glob_intra_individual(PSD_df, subject, freqs):
     data = subj_data[3:] #choose only the psd 
     metadata=subj_data['Sex']+ ', '+ str(subj_data['Age'])+'y'
     
-    means = [np.mean(datum, axis=0) for datum in data]
-    conditions = data.index
-    
-    means = [np.mean(datum, axis=0) for datum in data]
+    means = [np.nanmean(datum, axis=0) for datum in data]
     conditions = data.index  
     
     plot_df = pd.DataFrame(means).T
@@ -142,8 +139,9 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
     Returns
     -------
     cohort_n_mean: list of mean and SD data per age group
+    stat_df : pd DataFrame containing the statics about the overall power betwwn groups
     """
-    plot_df = PSD_df[['Sex', 'Age', 'Cap', sleep]]
+    plot_df = PSD_df.loc[:,['Sex', 'Age', 'Cap', sleep]]
     
     #create age groups: even-sized bins #TODO: move this to outer layer?
     bin_labels = ['1','2','3','4','5','6','7','8','9','10']
@@ -153,9 +151,9 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
     bins, bin_labs = pd.qcut(plot_df['Age'], q=10, retbins=True, labels=bin_names)
     
     plot_df['Age group'] = bins
+    AUC_recs = []
     
-    
-    cohrt_groups = plot_df.groupby('Age group')
+    cohrt_groups = plot_df.groupby('Age group', observed=False)
     
     group_ch_means = []
     group_ch_sd = []
@@ -164,6 +162,13 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
         cohort_data = cohort_df[sleep]
         cohort_data.dropna(inplace=True) #get rid of nan -values
         Arr = np.array([i for i in cohort_data]) #nsubj x n_chs x n_freq
+        
+        #compute AUC values ("total power overall (from grand average)")
+        avg_Arr = np.nanmean(Arr, axis=1) #average over channel dimension
+        AUCs = np.trapz(avg_Arr, x=freqs, axis=-1)
+        namevec = [name]*AUCs.shape[0]
+        AUC_recs.append(  list( zip(namevec, AUCs, cohort_df['Sex'].values, cohort_df.index.values, ) ))
+        
         mean_data = np.nanmean(Arr, axis=0) #get mean data over all subjects within cohort
         sd_data= np.nanstd(Arr, axis=0)
         group_ch_means.append(mean_data)
@@ -173,14 +178,22 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
     cohort_n_mean1 = zip(names, group_ch_means, group_ch_sd)
     cohort_n_mean = [(name, psd_data, sd_data) for name, psd_data, sd_data in cohort_n_mean1]
     
-    return cohort_n_mean
+    
+    # make AUC df for later analysis
+    AUC_records = sum(AUC_recs, []) #unlist
+    AUC_df = pd.DataFrame.from_records(AUC_records, columns=['Age group', 'AUC', 'Sex', 'Subject'])
+    
+    
+    
+    return cohort_n_mean, AUC_df
     
 
 
 
 #%%% Plots
-sleep='PSD N1b'
-cohort_n_mean =  sd_mean_inter_age_groups(PSD_df, freqs, sleep=sleep)
+sleep='PSD N1a'
+cohort_n_mean, AUC_df =  sd_mean_inter_age_groups(PSD_df, freqs, sleep=sleep)
+
 
 def my_callback1(ax, ch_idx):
     """
@@ -223,9 +236,56 @@ plt.show()
 
 ### single-subject plots
 
-subj=subjects[5]
+subj=subjects[88]
 
 fig, metadata = plot_glob_intra_individual(PSD_df, subj, freqs)
 plt.title(f'Global average PSDs, {subj} ({metadata})')
+
+
+#%% Stats
+import scipy.stats as stats
+
+
+age_group1 = AUC_df.loc[AUC_df['Age group']=='0.0 – 0.5']['AUC']
+age_group2 = AUC_df.loc[AUC_df['Age group']=='0.5 – 0.8']['AUC']
+age_group3 = AUC_df.loc[AUC_df['Age group']=='0.8 – 1.3']['AUC']
+age_group4 = AUC_df.loc[AUC_df['Age group']=='1.3 – 1.9']['AUC']
+age_group5 = AUC_df.loc[AUC_df['Age group']=='1.9 – 2.8']['AUC']
+age_group6 = AUC_df.loc[AUC_df['Age group']=='2.8 – 4.4']['AUC']
+age_group7 = AUC_df.loc[AUC_df['Age group']=='4.4 – 6.2']['AUC']
+age_group8 = AUC_df.loc[AUC_df['Age group']=='6.2 – 8.1']['AUC']
+age_group9 = AUC_df.loc[AUC_df['Age group']=='8.1 – 11.3']['AUC']
+age_group10 = AUC_df.loc[AUC_df['Age group']=='11.3 – 18.6']['AUC']
+
+
+stats.f_oneway(age_group1,age_group2,age_group3,age_group4,age_group5,
+               age_group6,age_group7,age_group8,age_group9,age_group10)
+age_group_labs=['0.0 – 0.5','0.5 – 0.8','0.8 – 1.3','1.3 – 1.9','1.9 – 2.8',
+                '2.8 – 4.4','4.4 – 6.2','6.2 – 8.1','8.1 – 11.3','11.3 – 18.6']
+# test pairwise correlations?
+age_pairs=[]
+for ag1 in range(9):
+    for ag2 in range(ag1+1, 10):
+        age_pairs.append( (age_group_labs[ag1], age_group_labs[ag2]) )
+
+corrected_p = 0.05/len(age_pairs)
+print(f'Bonferroni-corrected p-value: {corrected_p}')
+for group1, group2 in age_pairs:
+    res=stats.ttest_ind(AUC_df.loc[AUC_df['Age group']==group1]['AUC'],
+                          AUC_df.loc[AUC_df['Age group']==group2]['AUC'])
+    if res.pvalue >corrected_p:
+        print(f'{group1} vs {group2}')
+        print(res)
+
+
+
+
+
+
+
+
+
+
+
 
 
