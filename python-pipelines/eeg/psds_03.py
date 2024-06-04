@@ -103,6 +103,7 @@ for key in time_indices.keys():
                                          sfreq=sfreq, fmin=1, fmax=fmax, n_fft=n_fft)
         
         comment = f'Subj: {args.subject}, Age: { ag }, Sex: { se }, Sleep: N1'
+        spectra = spectra*1e12 #scaling for EEG_PSD
         
         evokeds[key] = mne.EvokedArray(spectra.mean(axis=0), info=info1, comment=comment)
         psds[key] = 10*np.log10(spectra.mean(axis=0)) #get decibels
@@ -114,6 +115,7 @@ for key in time_indices.keys():
             
             comment = f'Subj: {args.subject}, Age: { ag }, Sex: { se }, Sleep: N2'
             
+            spectra = spectra*1e12
             evokeds[key] = mne.EvokedArray(spectra.mean(axis=0), info=info1, comment=comment)
             psds[key] = 10*np.log10(spectra.mean(axis=0)) #get decibels
         
