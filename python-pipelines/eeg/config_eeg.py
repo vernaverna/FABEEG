@@ -78,7 +78,7 @@ fname.add('processed_data_dir', processed_data_dir)
 ### TO DO: Change these (tasks and runs out, bids)
 
 # Continuous data
-fname.add('raw', '{raw_data_dir}/sub-{subject}/eeg/sub-{subject}_eeg.edf')
+fname.add('raw', '{raw_data_dir}/sub-{subject}/eeg/sub-{subject}_task-sleep_eeg.edf')
 fname.add('filt', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_filt_eeg.fif')
 fname.add('clean', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_clean_eeg.fif')
 
