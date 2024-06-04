@@ -191,6 +191,7 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
 
 
 #%%% Plots
+PSD_df = pd.read_pickle('PSD_dataframe_.pkl')
 sleep='PSD N1a'
 cohort_n_mean, AUC_df =  sd_mean_inter_age_groups(PSD_df, freqs, sleep=sleep)
 
@@ -273,7 +274,7 @@ print(f'Bonferroni-corrected p-value: {corrected_p}')
 for group1, group2 in age_pairs:
     res=stats.ttest_ind(AUC_df.loc[AUC_df['Age group']==group1]['AUC'],
                           AUC_df.loc[AUC_df['Age group']==group2]['AUC'])
-    if res.pvalue >corrected_p:
+    if res.pvalue < corrected_p:
         print(f'{group1} vs {group2}')
         print(res)
 
