@@ -192,9 +192,11 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
 
 #%%% Plots
 PSD_df = pd.read_pickle('PSD_dataframe_.pkl')
-sleep='PSD N1a'
+sleep='PSD N2a'
 cohort_n_mean, AUC_df =  sd_mean_inter_age_groups(PSD_df, freqs, sleep=sleep)
 
+#get absolute value from aucs -> makes comparisons more intuitive
+AUC_df['AUC'] = np.abs(AUC_df['AUC'])
 
 def my_callback1(ax, ch_idx):
     """
@@ -246,6 +248,68 @@ plt.title(f'Global average PSDs, {subj} ({metadata})')
 #%% Stats
 import scipy.stats as stats
 
+aucs_grouped = AUC_df.groupby('Age group')
+group_stats = aucs_grouped.describe()
+group_stats = group_stats.iloc[[0,1,2,3,4,6,7,8,9,5],:] 
+
+# plot auc distribution boxplots as per age group
+cm = plt.get_cmap('viridis')
+colors = [cm(x) for x in np.linspace(0, 1, 10)] 
+vd_palette = sns.color_palette("viridis", n_colors=10, as_cmap=True)
+
+g = sns.FacetGrid(AUC_df, row='Age group', hue='Age group', aspect=15, height=0.75, palette=colors)
+# add the densities kdeplots for age groups
+g.map(sns.kdeplot, 'AUC',
+      bw_adjust=1, clip_on=False,
+      fill=True, alpha=0.5, linewidth=1, legend=False)
+# here we add a white line that represents the contour of each kdeplot
+g.map(sns.kdeplot, 'AUC', 
+      bw_adjust=1, clip_on=False, 
+      color="w", lw=0.2)
+# here we add a horizontal line for each plot
+g.map(plt.axhline, y=0,
+      lw=1, clip_on=False)
+# we loop over the FacetGrid figure axes (g.axes.flat)
+# ax.lines[-1].get_color() enables to access the last line's color in each matplotlib.Axes
+label_dict = dict(zip([1,2,3,4,5,6,7,8,9,10],
+                      group_stats.iloc[:,1].values) )
+                      #list(np.unique(AUC_df['Age group']))) )
+
+for i, ax in enumerate(g.axes.flat):
+    kdeline = ax.lines[0]
+
+    xs, ys, = kdeline.get_xdata(), kdeline.get_ydata()
+    #middle = xs.mean()
+    middle=label_dict[i+1]
+    #left, middle, right = np.percentile(xs, [25, 50, 75])
+    ax.vlines(middle, 0, np.interp(middle, xs, ys), color=ax.lines[-1].get_color(), ls='--')
+    #ax.fill_between(xs, 0, ys, where=(left <= xs) & (xs <= right), interpolate=True, 
+    #                facecolor=ax.lines[-1].get_color(), alpha=0.2)
+
+    
+    ax.text(450, 0.001, f'Mean: {middle:.2f}',
+            fontweight='bold', fontsize=10,
+            color=ax.lines[-1].get_color())
+    
+# eventually we remove axes titles, yticks and spines
+g.set_titles("")
+g.set(yticks=[])
+g.set_ylabels()
+g.despine(bottom=True, left=True)
+
+# we use matplotlib.Figure.subplots_adjust() function to get the subplots to overlap
+g.fig.subplots_adjust(hspace=-0.01)
+
+plt.setp(ax.get_xticklabels(), fontsize=12)
+plt.xlabel('Area under curve', fontsize=15)
+g.fig.suptitle('AUC in Grand Average N2 PSDs per Age Group',
+               #ha='right',
+               fontsize=18,
+               fontweight=20)
+g.add_legend(markerscale=14, title_fontsize=18, fancybox=True)
+plt.show()
+
+# ok now stats for real for real
 
 age_group1 = AUC_df.loc[AUC_df['Age group']=='0.0 – 0.5']['AUC']
 age_group2 = AUC_df.loc[AUC_df['Age group']=='0.5 – 0.8']['AUC']
