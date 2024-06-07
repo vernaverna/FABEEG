@@ -105,23 +105,37 @@ def plot_glob_intra_individual(PSD_df, subject, freqs):
     
     # set up figure aesthetics - use two palettes rather than one?
     #cm = sns.color_palette("crest", 6)
-    cm_1 = sns.color_palette("dark:orangered", 2)
-    cm_2 = sns.color_palette("dark:#5A9_r", 4)
+    cm = plt.get_cmap('viridis')
+    colors = [cm(x) for x in np.linspace(0, 1, 10)] 
+
+    cm_1 = [colors[0], colors[2]]
+    cm_2 = [colors[3], colors[4], colors[6], colors[8]]
     #colors = [cm(x) for x in np.linspace(0, 1, len(conditions))] 
     #palette = {conditions[i]:colors[i] for i in range(len(colors))}
     #dashes = [(conditions[i],[]) if '2' in conditions[i] else (conditions[i],[6,2]) for i in range(len(colors)) ]
     #dashes=dict(dashes)
     
     fig, ax = plt.subplots(figsize=(8,6)) 
-    sns.lineplot(x='Freq. (Hz)', y='Power', hue='segment', #style='sleep', 
+    sns.lineplot(x='Freq. (Hz)', y='Power', hue='segment', #label='N1', 
             palette=cm_1, data=N1_df)
-    sns.lineplot(x='Freq. (Hz)', y='Power', hue='segment', #style='sleep', 
+    sns.lineplot(x='Freq. (Hz)', y='Power', hue='segment', #label='N2', 
             palette=cm_2, data=N2_df, linestyle='dashed')
     
-    # fig = sns.lineplot(data=plot_df, x='Freq. (Hz)', y='Power', hue='segment', 
-    #                    style='sleep',  palette=cm)
+    sns.despine(fig, bottom=False, left=False)
+    fig.suptitle(f'Global average PSDs, {subj} ({metadata})')
+    plt.ylabel('log-PSD')
+    plt.close()
+
+    fig2, ax = plt.subplots(figsize=(8,6)) 
+    sns.lineplot(data=plot_df, x='Freq. (Hz)', y='Power', hue='segment', 
+                        style='sleep',  palette=colors[1:10])
+    sns.despine(fig2, bottom=False, left=False)
+    fig2.suptitle(f'Global average PSDs, {subj} ({metadata})')
+    plt.ylabel('log-PSD')
+    plt.close()
     
-    return fig, metadata
+    return fig, fig2, metadata
+
 
 
 def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
@@ -188,15 +202,42 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
     return cohort_n_mean, AUC_df
     
 
+def plot_glob_age_groups(cohort_n_mean, freqs, sleep):
+    
+    cm = plt.get_cmap('viridis')
+    colors = [cm(x) for x in np.linspace(0, 1, len(cohort_n_mean))] 
+    
+    fig, ax = plt.subplots(figsize=(8,6)) 
+    
+    for ii, (name, mean_data, sd_data) in enumerate(cohort_n_mean):
+        glob_mean = np.mean(mean_data, axis=0)
+        ax.plot(freqs, glob_mean, color=colors[ii], label=name)
+        ax.set_xlabel('Frequency (Hz)')
+        ax.set_ylabel('Power $log_{10}$(dB $\mu V^{2}$/ Hz )')
+        ax.legend(loc="upper right", title='Age (in years)')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        
+    return fig
+
 
 
 #%%% Plots
 PSD_df = pd.read_pickle('PSD_dataframe_.pkl')
-sleep='PSD N2a'
+sleep='PSD N1a'
 cohort_n_mean, AUC_df =  sd_mean_inter_age_groups(PSD_df, freqs, sleep=sleep)
 
 #get absolute value from aucs -> makes comparisons more intuitive
-AUC_df['AUC'] = np.abs(AUC_df['AUC'])
+#AUC_df['AUC'] = np.abs(AUC_df['AUC'])
+
+# group averages plot
+
+fig = plot_glob_age_groups(cohort_n_mean, freqs, sleep)
+plt.gcf().suptitle(f'Power spectral densities in {sleep}', fontsize=14)
+plt.show()
+
+
 
 def my_callback1(ax, ch_idx):
     """
@@ -239,10 +280,10 @@ plt.show()
 
 ### single-subject plots
 
-subj=subjects[88]
+subj=subjects[299]
 
-fig, metadata = plot_glob_intra_individual(PSD_df, subj, freqs)
-plt.title(f'Global average PSDs, {subj} ({metadata})')
+fig, fig2, metadata = plot_glob_intra_individual(PSD_df, subj, freqs)
+fig2.show()
 
 
 #%% Stats
@@ -287,7 +328,7 @@ for i, ax in enumerate(g.axes.flat):
     #                facecolor=ax.lines[-1].get_color(), alpha=0.2)
 
     
-    ax.text(450, 0.001, f'Mean: {middle:.2f}',
+    ax.text(220, 0.001, f'Mean: {middle:.2f}',
             fontweight='bold', fontsize=10,
             color=ax.lines[-1].get_color())
     
