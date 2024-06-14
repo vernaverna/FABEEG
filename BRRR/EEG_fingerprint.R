@@ -29,7 +29,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180,
   ages[ages==" "] <- NA #replace empty strings with NA-values
   
   use_all=T #should we use all subjects in training?
-  age_gap=c(7,19) #ages to include
+  age_gap=c(0,19) #ages to include
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -597,7 +597,7 @@ res$scaling <- ginv(averageGamma(res))
 # Ks <- c(1:K)
 # plot(Ks,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
 
-save(res, file = paste0("results/full/all_N1N2_BRRR_",K, ".RData") )
+save(res, file = paste0("results/full/o7_N1N2_BRRR_",K, ".RData") )
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
@@ -639,7 +639,8 @@ for(n in Ns){
   source("brrr.R") 
   K=30
   lkg='minimum'
-  res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x) #fit the model
+  res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000, burnin=0.5, thin=1, init="LDA",fam=x) #fit the model
+  save(res, file = paste0("results/full/i1000_all_2N2_BRRR_K",K,".RData") )
 
   res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
   res$scaling <- ginv(averageGamma(res))
@@ -683,7 +684,7 @@ lines(Ks, accs_3, xlab='K', 'l', col='darkorchid4', lty=2, lwd=2, axes=FALSE)
 lines(Ks, ptves, xlab='K', 'l', col='deepskyblue4', lwd=2, axes=FALSE)
 axis(2, at=c(0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9))
 axis(1, at=c(0,100,200,300,400,500,600,700,750))
-legend(80,0.20, legend=c('BRRR', 'Null model', 'PTVE'), 
+legend(20,0.20, legend=c('BRRR', 'Null model', 'PTVE'), 
        col=c("yellow3", "darkorchid4", "deepskyblue4"), pch=c(16,15)) #topright?
 dev.off()
 # grid(nx = NULL, ny = NULL,

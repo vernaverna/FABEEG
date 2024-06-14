@@ -18,7 +18,7 @@ library("rstatix")
 #   load visualization data   #
 # # # # # # # # # # # # # # # #
 
-load("results/full/o7_2N1_BRRR_K30.RData")
+load("results/full/o7_2N2_BRRR_K30.RData")
 Y <- res$data$phenotypes
 X <- res$data$genotypes
 subj <- row.names(X)
@@ -72,7 +72,7 @@ ggsave(file='demographics.pdf', plot=pg, width=10, height=7)
 
 library("Rtsne")
 D <- normalize_input(lat_space)
-tsne <- Rtsne(D, perplexity=200, theta=0.0, check_duplicates = FALSE, max_iter=2000) 
+tsne <- Rtsne(D, perplexity=20, theta=0.0, check_duplicates = FALSE, max_iter=2000) 
 
 nsubj <- length(unique(subj))
 reps = 2
@@ -90,7 +90,7 @@ lat_map['subject'] = subj[1:nsubj]
 
 
 
-p <- ggplot(data=lat_map, aes(x=V3, y=V2, shape=spectra, colour=age)) + 
+p <- ggplot(data=lat_map, aes(x=V3, y=V4, shape=spectra, colour=age)) + 
             geom_point(alpha=0.5, size=3) +
             ggtitle("Subjects in latent mapping ") + 
             scale_color_viridis() +
@@ -262,7 +262,7 @@ D_list <- validation(within_sample = T, dis='L1', pK=c(1:K), lat_map=lat_space, 
 D <- D_list[[1]]
 # compute 0-model (correlations in full data matrix) 
 D0_list <- validation(within_sample = T, dis='corr',  pK=c(1:247), lat_map=Y, Xt=X)
-#D <-D0_list[[1]]  
+#D0 <-D0_list[[1]]  
 # Creating a dataframe for plotting....
 reorder_val_idx <- match(rownames(D), ages$File)
 ages <- ages[reorder_val_idx,] 
@@ -300,7 +300,7 @@ p <- ggplot(dist_df, aes(x=sex, y=`diag(D)`)) + geom_violin(aes(fill=sex), alpha
            panel.grid.minor = element_blank(), 
            axis.line = element_line(colour = "black"))
 p
-ggsave(file="figures/WS_distances_o7_2N1_sex_K30.pdf", plot=p, width=7, height=7)
+ggsave(file="figures/WS_distances_all_N1N2_sex_K30.pdf", plot=p, width=7, height=7)
 
 
 # print also summary stats
@@ -343,6 +343,127 @@ p2 <- ggplot(dist_df, aes(x=age, y=`WS-distance`)) +
 p2
 
 
-ggsave(file="figures/WS_age_sex_regplot_all_2N1_K30.pdf", plot=p2, width=11, height=5)
+ggsave(file="figures/WS_age_sex_regplot_all_N1N2_K30.pdf", plot=p2, width=11, height=5)
+
+################################################################################
+#                Plot distance heatmaps for BRRRR model                        #
+################################################################################
+library("reshape2")
+
+# Note: will be needing a subset, o7 model for these visualizations
+
+#p3 <- heatmap(D, Colv=NA, Rowv=NA)
+## convert to tibble, add row identifier, and shape "long"
+dat2 <- melt(D0[30:50, 30:50])
+#D0 <- 1-D0
+#dat2 <- melt(D0[50:70, 50:70])
+
+p3 <- ggplot(dat2, aes(Var1, Var2, fill=value)) +
+        geom_tile() +
+        labs(fill='Corr') +
+        scale_fill_viridis() + xlab('') + ylab('') +
+        theme_bw() +
+        theme(legend.key = element_rect(linewidth = 16), 
+              legend.text = element_text(size = 13),
+              legend.title = element_text(size = 18),
+              axis.text.x = element_text(size=0), axis.text.y = element_text(size=0),
+              axis.title.x = element_text(size=18),
+              axis.title.y = element_text(size=18),
+              axis.ticks=element_blank(), 
+              panel.border = element_blank())
+p3
+ggsave(file="figures/small4_distmat_o7_2N2_corr.pdf", plot=p3, width=11, height=10)
+
+################################################################################
+#   Convergence checks for coefficient matrices and ptve traces                # 
+################################################################################
+
+library("rstan")
+
+
+# load both models
+load("results/full/i1000_all_2N2_BRRR_K30.RData")
+res1 <- res
+load("results/full/i5000_all_2N2_BRRR_K30.RData")
+res2 <- res
+remove(res)
+
+# is it legal to compare averages of over mcmc samples?
+#coefmat_1 <- averagePsi(res1)%*%averageGamma(res1)
+#coefmat_2 <- averagePsi(res2)%*%averageGamma(res2)
+
+# Traces... there is either 100 (for i=1000) or 500 (for i=5000)
+traces_1 <- res1$traces
+traces_2 <- res2$traces
+
+tr_psi1 <- traces_1$Psi
+tr_gamma1 <- traces_1$Gamma
+ptves <- traces_1$tpve
+iter <- traces_1$iter
+
+# because of the rotation invariance, the convergence needs to be studied w.r.t. to
+# the standard regression coefficient matrix Psi*Gamma
+
+# pseudocode
+
+# for all iterations, compute theta esitmate (Lapply???)
+# for the set of coefficient matrices..
+# ... sample 200 or so parameters (Gillberg et al)
+# ... and store their values in a matrix
+# which should be plotted. 
+
+# Compute the standard regression coefficient matrices
+coefMats <- vector(mode="list", length=length(iter))
+for(i in 1:length(iter)){
+  coef_mat <- tr_psi1[[i]]%*%tr_gamma1[[i]]
+  coefMats[[i]] <- coef_mat
+}
+
+# choose 200 random element indices from the matrix
+set.seed(121)
+rows <- sample(788, size=200)
+cols <- sample(247, size=200)
+# pick iteration series for each of the params
+param_list <- vector(mode="list", length = 200)
+for(j in 1:200){
+  param_series <- lapply(coefMats, "[", rows[j], cols[j])
+  param_list[[j]] <- unlist(param_series)
+}
+
+param_matrix <- do.call(rbind, param_list)
+# collect some stats from indices of param matrix
+R_hats <- c()
+ESS_bs <- c()
+ESS_ts <- c()
+for(r in 1:200){
+  samples <- param_matrix[r,]
+  R_hats <- c(R_hats, Rhat(samples))
+  ESS_bs <- c(ESS_bs, ess_bulk(samples))
+  ESS_ts <- c(ESS_ts, ess_tail(samples))
+}
+
+convergence_stats <- as.data.frame(cbind(R_hats, ESS_bs, ESS_ts))
+mu<-apply(convergence_stats, 2, mean)
+sd<-apply(convergence_stats, 2, sd)
+rbind(mu, sd) #These are ok!
+
+Rhat = Rhat(unlist(ptves))
+ESS_b = ess_bulk(unlist(ptves))
+ESS_t = ess_tail(unlist(ptves))
+pdf("figures/i1000_ptve_traces.pdf", width=9, height=6)
+plot(iter, ptves, xlab='iteration', 'l', col='darkorchid4', ylab="PTVE score", ylim = c(0.84312, 0.84355))
+text(870, 0.8435, paste0("Rhat=", round(Rhat, 4), ", ESS_b=", round(ESS_b, 4),
+                         ", ESS_t=", round(ESS_t, 4)))
+dev.off()
+#legend(950, 0.8432, legend='PTVE', col="yellow3", pch=16)
+
+
+
+
+
+
+
+
+
 
 

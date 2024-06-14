@@ -2,11 +2,11 @@
 # Based on script by Joonas Haakana  #
 #                                    #
 ######################################
-
+library("viridis")
 #TODO: add miniheads? (nope) + same individual, different data??
 
 data <- "EEG_ind" # datatype
-fname='o7_2N2_BRRR_12'
+fname='o7_2N2_BRRR_K30'
 
 if(data == "EEG_ind") { #TODO: fix repetition
   #fname <- paste0("results/full/over7_2N1_BRRR_K12.RData")
@@ -117,7 +117,7 @@ for(k in 1:maxK) {
 # define colors for plotting
 scol <- colorRampPalette(c("#CCCC00","orange","#FF5555","gray"))(floor(nrow(net$freq)/2))
 scol <- c(scol, colorRampPalette(c("#888888","#5555FF","#33CC33"))(ceiling(nrow(net$freq)/2)))
-
+scol <- viridis(n=n_bands)
 
 par(mfrow=c(3,2),mar=rep(1,4),oma=c(0,0,0,12)) # create subplot
 for(K in 1:maxK) {
