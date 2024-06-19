@@ -222,6 +222,45 @@ def plot_glob_age_groups(cohort_n_mean, freqs, sleep):
     return fig
 
 
+def plot_individual_psd_pasta(subj, PSD_df, freqs, chs, segment='PSD N2a'):
+    """
+    
+
+    Parameters
+    ----------
+    subj : TYPE
+        DESCRIPTION.
+    PSD_df : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    fig : a matplotlib figure
+
+    """
+    
+    
+    subj_data=PSD_df.loc[subj][segment]
+    n_chs=len(subj_data)
+    
+    # Set colormap for visuals 
+    cm = plt.get_cmap('viridis')
+    colors = [cm(x) for x in np.linspace(0, 1, n_chs)] 
+    
+    fig, ax = plt.subplots(figsize=(8,6)) 
+    
+    for ii in range(n_chs):
+        ax.plot(freqs, subj_data[ii,:], color=colors[ii], alpha=0.6, label=chs[ii])
+        ax.set_xlabel('Frequency (Hz)')
+        ax.set_ylabel('Power $log_{10}$(dB $\mu V^{2}$/ Hz )')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+    
+    
+    plt.legend()
+    
+    return fig
+    
 
 #%%% Plots
 PSD_df = pd.read_pickle('PSD_dataframe_.pkl')
@@ -280,11 +319,15 @@ plt.show()
 
 ### single-subject plots
 
-subj=subjects[299]
+subj=subjects[399]
 
 fig, fig2, metadata = plot_glob_intra_individual(PSD_df, subj, freqs)
 fig2.show()
 
+
+#### also plot all the channels in one plot - for pipeline fig.
+
+ind_fig = plot_individual_psd_pasta(subj, PSD_df, freqs, chs, segment='PSD N1b')
 
 #%% Stats
 import scipy.stats as stats
