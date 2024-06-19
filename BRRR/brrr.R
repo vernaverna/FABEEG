@@ -266,14 +266,14 @@ brrr <- function(X=NULL, Y=NULL, K=NULL, Z=NA, n.iter=500, burnin=0.5, thin=1, i
   mcmc.output$runtime <- proc.time() - ptm
   
   #Use check_mcmc_result.R to study convergence 
-  #context <- list()
-  #context$Psi <- res$model$brr$context$Psi #what should be put into context?
-  #context$Gamma <- res$model$brr$context$Gamma
-  #name='coefMat'
-  #plot.path = paste0(getwd(), "/figures/mcmc_")
-  #plot.title = "coefMat=Psi*Gamma"
-  #result = check.mcmc.result(context = context, mcmc.output = mcmc.output, name=name, plot.path = plot.path, plot.title = plot.title)
-  
+  # context <- list()
+  # context$Psi <- mcmc.output$model$brr$context$Psi #what should be put into context?
+  # context$Gamma <- mcmc.output$model$brr$context$Gamma
+  # name='coefMat'
+  # plot.path = paste0(getwd(), "/figures/mcmc_")
+  # plot.title = "coefMat=Psi*Gamma"
+  # result = check.mcmc.result(context = context, mcmc.output = mcmc.output, name=name, plot.path = plot.path, plot.title = plot.title)
+  # 
   #  From Gillberg. et. al. (2016):
   #
   #     Averaged effective sample sizes (ESS) and potential scale reduction

@@ -640,7 +640,8 @@ for(n in Ns){
   K=30
   lkg='minimum'
   res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000, burnin=0.5, thin=1, init="LDA",fam=x) #fit the model
-  save(res, file = paste0("results/full/i1000_all_2N2_BRRR_K",K,".RData") )
+  res$scaling <- ginv(averageGamma(res))
+  save(res, file = paste0("results/full/all_2N2_BRRR_K",K,".RData") )
 
   res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
   res$scaling <- ginv(averageGamma(res))

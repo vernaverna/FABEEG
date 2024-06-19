@@ -1,5 +1,5 @@
 # copyright by the authors
-
+library("viridis")
 #' this function is used for comparing the true model parameters
 #' to an estimate by plotting both.
 #'
@@ -16,7 +16,8 @@ plot.matrix.comparison <- function(correct, est.mean=NULL, plot.path = NULL, plo
   n.col <- ncol(correct)
   n.row <- nrow(correct)
   
-  cols=rich.colors(30)
+  #cols=rich.colors(30)
+  cols = viridis(n=30)
   if (is.null(plot.path)) {
     x11()
   } else {

@@ -1,6 +1,7 @@
 # collection of plots for teh article.
 
 setwd("/projects/FABEEG/BRRR/")
+library("vegan")
 library("penalizedLDA")
 library("ggplot2")
 library("ggpubr")
@@ -18,21 +19,50 @@ library("rstatix")
 #   load visualization data   #
 # # # # # # # # # # # # # # # #
 
-load("results/full/o7_2N2_BRRR_K30.RData")
-Y <- res$data$phenotypes
-X <- res$data$genotypes
-subj <- row.names(X)
-ages = read.csv('data/new_age_df.csv')
-ages <- ages[,-1]
-ages[ages==" "] <- NA #replace empty strings with NA-values
-ages = ages[ages$File %in% unique(subj)==TRUE, ] #to get rid of some extra subjects that should not be there
-ages['Sex'] <- as.factor(ages$Sex)
+get_viz_data <- function(fname){
+  
+  data_list <- vector(mode="list")
+  
+  load(fname)
+  Y <- res$data$phenotypes
+  X <- res$data$genotypes
+  subj <- row.names(X)
+  ages = read.csv('data/new_age_df.csv')
+  ages <- ages[,-1]
+  ages[ages==" "] <- NA #replace empty strings with NA-values
+  ages = ages[ages$File %in% unique(subj)==TRUE, ] #to get rid of some extra subjects that should not be there
+  ages['Sex'] <- as.factor(ages$Sex)
+  
+  age_df <- na.omit(ages)
+  
+  inv_G <- res$scaling #inv(average(Gamma))
+  lat_space <- Y%*%inv_G #obs x latent components
+  lat_map = as.data.frame(rbind(lat_space))  
+  
+  data_list$X <- X
+  data_list$Y <- Y
+  data_list$subj <- subj
+  data_list$ages <- ages
+  data_list$age_df <- age_df
+  data_list$lat_space <- lat_space
+  data_list$lat_map <- lat_map
+  
+  return(data_list)
+}
 
-age_df <- na.omit(ages)
 
-inv_G <- res$scaling #inv(average(Gamma))
-lat_space <- Y%*%inv_G #obs x latent components
-lat_map = as.data.frame(rbind(lat_space))
+viz_data1 <- get_viz_data(fname = "results/full/all_2N1_BRRR_K30.RData")
+viz_data2 <- get_viz_data(fname= "results/full/all_2N1_BRRR_K30.RData")
+
+
+
+X <- viz_data2$X
+Y <- viz_data2$Y
+subj <- viz_data2$subj
+ages <- viz_data2$ages
+age_df <- viz_data2$age_df
+lat_space <- viz_data2$lat_space
+lat_map <- viz_data2$lat_map
 
 # ========================================================
 # FIGURE 6
@@ -72,7 +102,7 @@ ggsave(file='demographics.pdf', plot=pg, width=10, height=7)
 
 library("Rtsne")
 D <- normalize_input(lat_space)
-tsne <- Rtsne(D, perplexity=20, theta=0.0, check_duplicates = FALSE, max_iter=2000) 
+tsne <- Rtsne(D, perplexity=90, theta=0.0, check_duplicates = FALSE, max_iter=2000) 
 
 nsubj <- length(unique(subj))
 reps = 2
@@ -80,7 +110,7 @@ reps = 2
 lat_map = as.data.frame(rbind(lat_space))
 lat_map['X1'] = tsne$Y[,1]
 lat_map['X2'] = tsne$Y[,2]
-lat_map['spectra'] = c(rep('N2B', nsubj), rep('N2A', nsubj))
+lat_map['spectra'] = c(rep('N2A', nsubj), rep('N2B', nsubj))
 lat_map['log_age'] = rep(log10(ages$Age), reps) #get age data
 lat_map['age'] = rep(ages$Age, reps) #get age data
 lat_map['group'] = rep(round(ages$Age, 0), reps) #get age data
@@ -90,22 +120,22 @@ lat_map['subject'] = subj[1:nsubj]
 
 
 
-p <- ggplot(data=lat_map, aes(x=V3, y=V4, shape=spectra, colour=age)) + 
+p <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=age)) + 
             geom_point(alpha=0.5, size=3) +
             ggtitle("Subjects in latent mapping ") + 
             scale_color_viridis() +
-            xlab("component #2") + ylab("component #3") + #xlim(-42,48) + ylim(-20,25) +
+            xlab("t-SNE #1") + ylab("t-SNE #2")  + #xlim(-42,48) + ylim(-20,25) +
             theme(legend.position="none") + theme_bw() + 
             theme(panel.border = element_blank(), 
                   panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank(), 
                   axis.line = element_line(colour = "black"))
 p
-ggsave("figures/NEW_latmap_all_2N2_Age_K30.pdf", width=7.4, height=5.2)
+ggsave("figures/NEW_latmap_all_2N2_Age_K30.pdf", width=5.4, height=4.2)
 
 lat_map <- na.omit(lat_map)
 
-q <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=sex)) + 
+q <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=cap)) + 
   geom_point(alpha=0.65, size=3) +
   ggtitle("Subjects in latent mapping ") + 
   #scale_color_viridis(discrete=TRUE) +
@@ -117,7 +147,7 @@ q <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=sex)) +
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"))
 q
-ggsave("figures/NEW_latmap_all_2N1_Sex_K30.pdf", width=7.4, height=5.2)
+ggsave("figures/NEW_latmap_all_2N2_Sex_K30.pdf", width=5.4, height=4.2)
 
 
 for(comp in c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12')){
@@ -262,7 +292,7 @@ D_list <- validation(within_sample = T, dis='L1', pK=c(1:K), lat_map=lat_space, 
 D <- D_list[[1]]
 # compute 0-model (correlations in full data matrix) 
 D0_list <- validation(within_sample = T, dis='corr',  pK=c(1:247), lat_map=Y, Xt=X)
-#D0 <-D0_list[[1]]  
+D0 <- D0_list[[1]]  
 # Creating a dataframe for plotting....
 reorder_val_idx <- match(rownames(D), ages$File)
 ages <- ages[reorder_val_idx,] 
@@ -300,11 +330,12 @@ p <- ggplot(dist_df, aes(x=sex, y=`diag(D)`)) + geom_violin(aes(fill=sex), alpha
            panel.grid.minor = element_blank(), 
            axis.line = element_line(colour = "black"))
 p
-ggsave(file="figures/WS_distances_all_N1N2_sex_K30.pdf", plot=p, width=7, height=7)
+ggsave(file="figures/WS_distances_all_2N2_sex_K30.pdf", plot=p, width=7, height=7)
 
 
 # print also summary stats
 dist_df <- dist_df %>% rename('WS-distance'='diag(D)')
+dist_df['WS-distance^2'] = dist_df['WS-distance']**2
 stat_df <- dist_df[c('WS-distance', 'age', 'sex')] %>% 
              group_by(sex) %>%
               summarise(mean(`WS-distance`), sd(`WS-distance`), mad(`WS-distance`))
@@ -312,10 +343,13 @@ print(stat_df)
 
 # then creating lm plot for checking the age-dep of WS-distances
 lm_eqn <- function(df){
-  m <- lm(age ~ `WS-distance`, df);
-  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2*","~~italic(p)~"="~pvalue,
+  #m <- lm(age ~ `WS-distance`, df); #standard regression model
+  #m <- lm(log_age ~ `WS-distance`, df); #exp. model
+  m <- lm(age~ `WS-distance`+ `WS-distance^2`,df)
+  eq <- substitute(italic(y) == a + b %.% italic(x) + c %.% italic(x)^2*","~~italic(r)^2~"="~r2*","~~italic(p)~"="~pvalue,
                    list(a = format(unname(coef(m)[1]), digits = 2),
                         b = format(unname(coef(m)[2]), digits = 2),
+                        c = format(unname(coef(m)[3]), digits = 2),
                         r2 = format(summary(m)$r.squared, digits = 3),
                         pvalue = format(summary(m)$coefficients[2,4], digits = 2)))
   as.character(as.expression(eq));
@@ -330,12 +364,13 @@ eqs_df['sex'] <- as.factor(c('F', 'M'))
 
 p2 <- ggplot(dist_df, aes(x=age, y=`WS-distance`)) +
       geom_point(alpha=0.15) +
-      geom_smooth(data=dist_df, aes(color=sex, fill=sex), method=lm, se=TRUE) +
+      geom_smooth(data=dist_df, aes(color=sex, fill=sex), method=lm, 
+                  formula=y~x+I(x^2), se=TRUE) +
       facet_grid(~sex) +
       scale_fill_manual(values=c("#DCE319FF", "#33638DFF")) +
       scale_color_manual(values=c("#DCE319FF", "#33638DFF")) +
-      geom_text(data=eqs_df, aes(x=10, y=7.5, label = V1), parse = TRUE, inherit.aes=FALSE) +
-      theme_bw() + ylab("W-S distance") +
+      geom_text(data=eqs_df, aes(x=6, y=7, label = V1), parse = TRUE, inherit.aes=FALSE) +
+      theme_bw() + ylab("W-S distance") + ylim(0.5,7.5) +
       theme(panel.border = element_blank(), 
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(), 
@@ -343,7 +378,7 @@ p2 <- ggplot(dist_df, aes(x=age, y=`WS-distance`)) +
 p2
 
 
-ggsave(file="figures/WS_age_sex_regplot_all_N1N2_K30.pdf", plot=p2, width=11, height=5)
+ggsave(file="figures/WS_age_sex_quat_regplot_all_2N1_K30.pdf", plot=p2, width=11, height=5)
 
 ################################################################################
 #                Plot distance heatmaps for BRRRR model                        #
@@ -373,6 +408,37 @@ p3 <- ggplot(dat2, aes(Var1, Var2, fill=value)) +
               panel.border = element_blank())
 p3
 ggsave(file="figures/small4_distmat_o7_2N2_corr.pdf", plot=p3, width=11, height=10)
+
+
+
+################################################################################
+#           Mantell test for latent map matrices                               #
+################################################################################
+library("vegan")
+mat1 <- viz_data1$lat_space #N1 sleep
+mat2 <- viz_data2$lat_space #N2 sleep
+
+K=30
+D_list <- validation(within_sample = T, dis='L1', pK=c(1:K), lat_map=mat1, Xt=viz_data1$X)
+D1 <- D_list[[1]]
+# compute 0-model (correlations in full data matrix) 
+D0_list <- validation(within_sample = T, dis='L1',  pK=c(1:K), lat_map=mat2, Xt=viz_data2$X)
+D2 <- D0_list[[1]]  
+
+# match subjects for uneven data sets
+common_subjects = intersect(rownames(D1), rownames(D2)) 
+to_keep = which(rownames(D1)%in%common_subjects)
+D1 <- D1[to_keep, to_keep]
+reorder_idx <- match(rownames(D1), rownames(D2))
+D2 <- D2[reorder_idx, reorder_idx]
+
+
+#stats <- mantel.test(D1, D2, graph=TRUE)
+mantel_test <- mantel(xdis=D1, ydis=D2)
+print(mantel_test)
+
+
+
 
 ################################################################################
 #   Convergence checks for coefficient matrices and ptve traces                # 
