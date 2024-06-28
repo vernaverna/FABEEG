@@ -15,7 +15,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from mne.viz import iter_topography
-from config_eeg import fname
+from config_eeg import fname, bandpower, f_bands
 
 data_dir = '/net/theta/fishpool/projects/FABEEG/childEEG_data/bids/derivatives/'
 
@@ -43,14 +43,33 @@ for i in range(len(subjects)):
         subj_info = age_df.loc[subj].to_dict()
         for cond in conditions: #loop thru conditions
             psds_dict=psds[i]
-            
+            freqs = psds_dict['freqs']
+
+            cond_bpw = cond.replace('PSD', 'BPW')
             try:
                 subj_info[cond] = psds_dict[cond]
+                
+                data_bandpower = []
+                
+                for band in f_bands:
+                     fmin, fmax = band[0], band[1]
+                     bandpwr = bandpower(psd=psds_dict[cond], f=freqs, fmin=fmin, fmax=fmax)
+                     data_bandpower.append(bandpwr)
+                
+                data_bandpower = np.array(data_bandpower)
+                #sums over the absolute power of all channels
+                abs_power = np.sum(data_bandpower, axis=0)
+                #normalizes data
+                #if all (abs_power < -1e-5):
+                data_bandpower = data_bandpower/abs_power #did not scale with 100 yet
+                
+                subj_info[cond_bpw] = np.array(data_bandpower).T
+            
+            
             except KeyError:
                 subj_info[cond] = np.nan #some have empty N2 sequences
                 
         PSD_dict[subj] = subj_info
-        freqs = psds_dict['freqs']
         info = psds_dict['info']
     
     except KeyError:
@@ -59,10 +78,10 @@ for i in range(len(subjects)):
 PSD_df = pd.DataFrame.from_dict(PSD_dict, orient='index')
 
 # save the big dataframe to pickle for later use
-PSD_df.to_pickle('PSD_dataframe_.pkl')
+PSD_df.to_pickle('PSD_dataframe_with_bandpower.pkl')
 chs = info['ch_names']
 
-#%% PLOTTING FUNCTIONS AND STATS
+#%% PLOTTING FUNCTIONS AND STATS   
 
 def plot_glob_intra_individual(PSD_df, subject, freqs):
     """
@@ -138,7 +157,7 @@ def plot_glob_intra_individual(PSD_df, subject, freqs):
 
 
 
-def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
+def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a', do_bandpower=False):
     """
     
     Parameters
@@ -172,17 +191,30 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
     group_ch_means = []
     group_ch_sd = []
     names = [] 
+    
+    
+    
     for name, cohort_df in cohrt_groups:
         cohort_data = cohort_df[sleep]
         cohort_data.dropna(inplace=True) #get rid of nan -values
         Arr = np.array([i for i in cohort_data]) #nsubj x n_chs x n_freq
         
-        #compute AUC values ("total power overall (from grand average)")
         avg_Arr = np.nanmean(Arr, axis=1) #average over channel dimension
-        AUCs = np.trapz(avg_Arr, x=freqs, axis=-1)
-        namevec = [name]*AUCs.shape[0]
-        AUC_recs.append(  list( zip(namevec, AUCs, cohort_df['Sex'].values, cohort_df.index.values, ) ))
-        
+        if do_bandpower:
+            
+            for i in range(avg_Arr.shape[1]):
+                bandpowers = avg_Arr[:,i]
+                bandnames= [f'band {i}']*avg_Arr.shape[0]
+                namevec= [name]*avg_Arr.shape[0]
+                
+                AUC_recs.append(  list( zip(namevec, bandnames, bandpowers, cohort_df['Sex'].values, cohort_df.index.values, ) ))
+                
+        else:
+            #compute AUC values ("total power overall (from grand average)")
+            AUCs = np.trapz(avg_Arr, x=freqs, axis=-1)         
+            namevec = [name]*AUCs.shape[0]
+            AUC_recs.append(  list( zip(namevec, AUCs, cohort_df['Sex'].values, cohort_df.index.values, ) ))
+            
         mean_data = np.nanmean(Arr, axis=0) #get mean data over all subjects within cohort
         sd_data= np.nanstd(Arr, axis=0)
         group_ch_means.append(mean_data)
@@ -195,7 +227,11 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a'):
     
     # make AUC df for later analysis
     AUC_records = sum(AUC_recs, []) #unlist
-    AUC_df = pd.DataFrame.from_records(AUC_records, columns=['Age group', 'AUC', 'Sex', 'Subject'])
+    
+    if do_bandpower:
+        AUC_df = pd.DataFrame.from_records(AUC_records, columns=['Age group', 'Band', 'AUC', 'Sex', 'Subject'])
+    else:
+        AUC_df = pd.DataFrame.from_records(AUC_records, columns=['Age group', 'AUC', 'Sex', 'Subject'])
     
     
     
@@ -263,14 +299,12 @@ def plot_individual_psd_pasta(subj, PSD_df, freqs, chs, segment='PSD N2a'):
     
 
 #%%% Plots
-PSD_df = pd.read_pickle('PSD_dataframe_.pkl')
-sleep='PSD N1a'
-cohort_n_mean, AUC_df =  sd_mean_inter_age_groups(PSD_df, freqs, sleep=sleep)
+PSD_df = pd.read_pickle('PSD_dataframe_with_bandpower.pkl')
+sleep= 'BPW N1b' #'PSD N1a'
+cohort_n_mean, AUC_df = sd_mean_inter_age_groups(PSD_df, freqs, sleep=sleep, do_bandpower=True)
 
 #get absolute value from aucs -> makes comparisons more intuitive
 #AUC_df['AUC'] = np.abs(AUC_df['AUC'])
-
-# group averages plot
 
 fig = plot_glob_age_groups(cohort_n_mean, freqs, sleep)
 plt.gcf().suptitle(f'Power spectral densities in {sleep}', fontsize=14)
@@ -332,7 +366,7 @@ ind_fig = plot_individual_psd_pasta(subj, PSD_df, freqs, chs, segment='PSD N1b')
 #%% Stats
 import scipy.stats as stats
 
-aucs_grouped = AUC_df.groupby('Age group')
+aucs_grouped = AUC_df.groupby(['Age group', 'Band']) #for relative bandpower
 group_stats = aucs_grouped.describe()
 group_stats = group_stats.iloc[[0,1,2,3,4,6,7,8,9,5],:] 
 
@@ -341,7 +375,12 @@ cm = plt.get_cmap('viridis')
 colors = [cm(x) for x in np.linspace(0, 1, 10)] 
 vd_palette = sns.color_palette("viridis", n_colors=10, as_cmap=True)
 
-g = sns.FacetGrid(AUC_df, row='Age group', hue='Age group', aspect=15, height=0.75, palette=colors)
+
+band_index=6
+AUC_df2 = AUC_df[AUC_df['Band']==f'band {band_index}']
+band_freqs = f_bands[band_index]
+
+g = sns.FacetGrid(AUC_df2, row='Age group', hue='Age group', aspect=15, height=0.75, palette=colors)
 # add the densities kdeplots for age groups
 g.map(sns.kdeplot, 'AUC',
       bw_adjust=1, clip_on=False,

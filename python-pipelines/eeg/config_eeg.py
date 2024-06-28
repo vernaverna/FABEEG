@@ -50,10 +50,18 @@ bad_subjects = ['derivatives']
 # Analysis is performed on these subjects
 subjects = [subject for subject in all_subjects if subject not in bad_subjects]
 
-# Tasks 
-#tasks = ['restEO', 'restEC']
+# Define the frequency bands (heuristic approach as in BRRR)
+f_bands = [(1,3), (3,5.2), (5.2,7.6), (7.6,10.2), (10.2, 13), (13,16),
+           (16,19.2), (19.2,22.6), (22.6,26.2), (26.2,30), (30,34), (34,38.2), (38.2,42.6)]
 
-#runs = [1, 2]
+#TODO: change these!
+
+# Helper function to calculate bandpower for each sensor
+def bandpower(psd, f, fmin, fmax): 
+    min_index = max(0, np.argmax(f > fmin) - 1)
+    max_index = np.argmax(f > fmax) -1
+    
+    return np.trapz(psd[:,min_index: max_index], f[min_index: max_index], axis=1)
 
 # Bad EEG channels for each subject.
 # Made-up list: this is work in progress
