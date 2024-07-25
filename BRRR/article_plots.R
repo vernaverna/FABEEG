@@ -52,7 +52,7 @@ get_viz_data <- function(fname){
 
 
 viz_data1 <- get_viz_data(fname = "results/full/all_2N1_BRRR_K30.RData")
-viz_data2 <- get_viz_data(fname= "results/full/all_2N2_BRRR_K30.RData")
+viz_data2 <- get_viz_data(fname= "results/full/all_2N1_BRRR_K30.RData")
 
 
 
@@ -102,10 +102,12 @@ ggsave(file='demographics.pdf', plot=pg, width=10, height=7)
 
 library("Rtsne")
 D <- normalize_input(lat_space)
+set.seed(191) #20230505
 tsne <- Rtsne(D, perplexity=90, theta=0.0, check_duplicates = FALSE, max_iter=2000) 
-
+reorder_val_idx <- match(rownames(D), ages$File)
+ages <- ages[reorder_val_idx,] 
 nsubj <- length(unique(subj))
-reps = 2
+reps = 1
 # adding together N2 mappings  plus some covariates
 lat_map = as.data.frame(rbind(lat_space))
 lat_map['X1'] = tsne$Y[,1]
@@ -119,7 +121,7 @@ lat_map['cap'] = rep(ages$Cap, reps)
 lat_map['subject'] = subj[1:nsubj]
 
 
-
+lat_map <- na.omit(lat_map)
 p <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=age)) + 
             geom_point(alpha=0.5, size=3) +
             ggtitle("Subjects in latent mapping ") + 
@@ -131,11 +133,10 @@ p <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=age)) +
                   panel.grid.minor = element_blank(), 
                   axis.line = element_line(colour = "black"))
 p
-ggsave("figures/NEW_latmap_all_2N2_Age_K30.pdf", width=5.4, height=4.2)
+ggsave("figures/NEW_latmap_all_2N1_Age_K30.pdf", width=5.4, height=4.2)
 
-lat_map <- na.omit(lat_map)
 
-q <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=cap)) + 
+q <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=sex)) + 
   geom_point(alpha=0.65, size=3) +
   ggtitle("Subjects in latent mapping ") + 
   #scale_color_viridis(discrete=TRUE) +
@@ -147,7 +148,7 @@ q <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=cap)) +
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"))
 q
-ggsave("figures/NEW_latmap_all_2N2_Sex_K30.pdf", width=5.4, height=4.2)
+ggsave("figures/NEW_latmap_all_2N1_Sex_K30.pdf", width=5.4, height=4.2)
 
 
 for(comp in c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12')){
@@ -294,7 +295,7 @@ D <- D_list[[1]]
 D0_list <- validation(within_sample = T, dis='corr',  pK=c(1:247), lat_map=Y, Xt=X)
 D0 <- D0_list[[1]]  
 # Creating a dataframe for plotting....
-reorder_val_idx <- match(rownames(D), ages$File)
+reorder_val_idx <- match(rownames(D0), ages$File)
 ages <- ages[reorder_val_idx,] 
 
 dist_df = as.data.frame(diag(D), row.names = rownames(D))
