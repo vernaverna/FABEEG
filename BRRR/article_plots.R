@@ -50,9 +50,10 @@ get_viz_data <- function(fname){
   return(data_list)
 }
 
+double_subs <- read.csv("longitudinal_subset.csv")
 
-viz_data1 <- get_viz_data(fname = "results/full/all_2N1_BRRR_K30.RData")
-viz_data2 <- get_viz_data(fname= "results/full/all_2N1_BRRR_K30.RData")
+viz_data1 <- get_viz_data(fname = "results/full/all_2N2_BRRR_K30.RData")
+viz_data2 <- get_viz_data(fname= "results/full/all_N1N2_BRRR_30.RData")
 
 
 
@@ -133,10 +134,10 @@ p <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=age)) +
                   panel.grid.minor = element_blank(), 
                   axis.line = element_line(colour = "black"))
 p
-ggsave("figures/NEW_latmap_all_2N1_Age_K30.pdf", width=5.4, height=4.2)
+ggsave("figures/NEW_latmap_all_2N2_Age_K30.pdf", width=5.4, height=4.2)
 
 
-q <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=sex)) + 
+q <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=cap)) + 
   geom_point(alpha=0.65, size=3) +
   ggtitle("Subjects in latent mapping ") + 
   #scale_color_viridis(discrete=TRUE) +
@@ -148,7 +149,7 @@ q <- ggplot(data=lat_map, aes(x=X1, y=X2, shape=spectra, colour=sex)) +
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"))
 q
-ggsave("figures/NEW_latmap_all_2N1_Sex_K30.pdf", width=5.4, height=4.2)
+ggsave("figures/NEW_latmap_all_2N2_Sex_K30.pdf", width=5.4, height=4.2)
 
 
 for(comp in c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12')){
@@ -318,6 +319,32 @@ dist_df['differentiability'] <- dist_df['diag(D)'] / dist_df['dist to others']
 # remove NA -rows before muting the vars
 dist_df <- na.omit(dist_df)
 dist_df['log_age'] = log10(dist_df$age) #get age data
+
+
+# longitudinal subset
+# check distance to later meas. sessions
+longitudinal_dists <- c()
+
+for(s in 1:nrow(double_subs)){
+  sub1 = double_subs[s,1]
+  sub2 = double_subs[s,2]
+  
+  if(sub1 %in% rownames(D) & sub2 %in% rownames(D)){
+    longitudinal_dist <- D[sub1, paste0('other',sub2)]
+    print(paste(sub1, sub2))
+    print("distance to later instance")
+    print(longitudinal_dist)
+    longitudinal_dists <- c(longitudinal_dist, longitudinal_dists)
+    print(paste("minimum distance:", sub1))
+    print(min(D[sub1,]))
+    print(paste("minimum distance:", sub2))
+    print(min(D[sub2,]))
+  } else {
+    print("Both subjects not found in the data")
+  }
+
+}
+  
 
 
 
