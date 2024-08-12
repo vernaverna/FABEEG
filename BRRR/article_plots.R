@@ -371,7 +371,7 @@ p <- ggplot(dist_df, aes(x=sex, y=differentiability))+ geom_violin(aes(fill=sex)
            panel.grid.minor = element_blank(), 
            axis.line = element_line(colour = "black"))
 p
-ggsave(file="figures/Differentiability_all_2N1_sex_K30.pdf", plot=p, width=7, height=7)
+ggsave(file="figures/Differentiability_all_N1N2_sex_K30.pdf", plot=p, width=7, height=7)
 
 
 # print also summary stats
@@ -383,7 +383,13 @@ stat_df <- dist_df[c('WS-distance', 'age', 'sex')] %>%
               summarise(mean(`WS-distance`), sd(`WS-distance`), mad(`WS-distance`))
 print(stat_df)
 
-# then creating lm plot for checking the age-dep of WS-distances
+stat_df2 <- dist_df[c('differentiability', 'age', 'sex')] %>% 
+  group_by(sex) %>%
+  summarise(mean(differentiability), sd(differentiability), mad(differentiability))
+print(stat_df2)
+
+
+# then creating lm plot for checking the age-dep of WS-distances or differentiability measures
 lm_eqn <- function(df){
   #m <- lm(age ~ `WS-distance`, df); #standard regression model
   #m <- lm(age ~ differentiability + `differentiability^2`, df)
@@ -414,8 +420,8 @@ p2 <- ggplot(dist_df, aes(x=age, y=differentiability)) +
       facet_grid(~sex) +
       scale_fill_manual(values=c("#DCE319FF", "#33638DFF")) +
       scale_color_manual(values=c("#DCE319FF", "#33638DFF")) +
-      geom_text(data=eqs_df, aes(x=6, y=3, label = V1), parse = TRUE, inherit.aes=FALSE) +
-      theme_bw() + ylab("W-S distance") + ylim(0.05,4) +
+      geom_text(data=eqs_df, aes(x=7, y=1.4, label = V1), parse = TRUE, inherit.aes=FALSE) +
+      theme_minimal() + ylab("Differentiability") + ylim(0.05,1.7) + xlab("Age") +
       theme(panel.border = element_blank(), 
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(), 
@@ -423,7 +429,7 @@ p2 <- ggplot(dist_df, aes(x=age, y=differentiability)) +
 p2
 
 
-ggsave(file="figures/Differentiability_age_sex_regplot_all_2N1_K30.pdf", plot=p2, width=11, height=5)
+ggsave(file="figures/Differentiability_age_sex_regplot_all_N1N2_K30.pdf", plot=p2, width=11, height=5)
 
 ################################################################################
 #                Plot distance heatmaps for BRRRR model                        #

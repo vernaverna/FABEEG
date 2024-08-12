@@ -484,7 +484,7 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
 ### TRAINING / RUNS ###
 
 
-Ns <- seq(480, 780, by=30)
+#Ns <- seq(480, 780, by=30)
 accuracies <- c()
 ptve <-c()
 null_accus <- c()
@@ -550,7 +550,7 @@ for(n in 1:length(conds)){
   # print( mean(ranks) )
   
   # rank = c(rank,mean(ranks))
-  save(CV_results, file=paste0('results/unseen_data/', 10, 'foldCV/NEW_K30_all_',paste(spectra_list, collapse=''), '.RData'))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/NEW_K30_all_',paste(spectra_list, collapse=''), '.RData'))
   #write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N1_all.csv"))
   
   accuracies = c(accuracies,mean(accs))

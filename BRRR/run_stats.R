@@ -17,7 +17,7 @@ library("rstatix")
 
 compute_10fold_t_test <- function(population, psd_seq){
   
-  fname <- paste0('results/10foldCV/NEW_K30_', population, '_', psd_seq, '.RData')
+  fname <- paste0('results/10foldCV/unseen_data/NEW_K30_', population, '_', psd_seq, '.RData')
   load(fname)
   
   CV_models <- lapply(CV_results, `[`, 3)
@@ -65,16 +65,16 @@ stat_results <- data.frame(
   population = c(rep("all", 6), rep("o7", 6))
 )
 
-pos <- c(rep("o7", 6))
-psd_seqs <- c("N1AN1BN2C", "N1AN1BN2AN2C", "N1AN2BN2C", "N1AN2BN2AN1B",
-              "N2AN2BN2C", "N2AN2BN2CN2D")
-#psd_seqs <- c("N1AN1BN2C", "N1AN1BN2AN2C", "N1AN2BN2C", "N1AN2BN1B", "N1AN2BN2AN1B",
-#                             "N2AN2BN2C", "N2AN2BN1B", "N2AN2BN2CN2D")
-for(i in 1:6){
+pos <- c(rep("all", 8)) #or o7
+#psd_seqs <- c("N1AN1BN2C", "N1AN1BN2AN2C", "N1AN2BN2C", "N1AN2BN2AN1B",
+#              "N2AN2BN2C", "N2AN2BN2CN2D")
+psd_seqs <- c("N1AN1BN2C", "N1AN1BN2AN2C", "N1AN2BN2C", "N1AN2BN1B", "N1AN2BN2AN1B",
+              "N2AN2BN2C", "N2AN2BN1B", "N2AN2BN2CN2D")
+for(i in 1:8){
   population <- pos[i]
   psd_seq <- psd_seqs[i]
   print(psd_seq)
-  res <- compute_10fold_t_test(population, psd_seq) 
+  res <- compute_10fold_t_test(population, psd_seq)
 }
 
 
