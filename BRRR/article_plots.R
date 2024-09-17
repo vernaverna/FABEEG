@@ -378,9 +378,9 @@ ggsave(file="figures/Differentiability_all_N1N2_sex_K30.pdf", plot=p, width=7, h
 dist_df <- dist_df %>% rename('WS-distance'='diag(D)')
 dist_df['WS-distance^2'] = dist_df['WS-distance']**2
 dist_df['differentiability^2'] = dist_df['differentiability']**2
-stat_df <- dist_df[c('WS-distance', 'age', 'sex')] %>% 
+stat_df <- dist_df[c('differentiability', 'age', 'sex')] %>% 
              group_by(sex) %>%
-              summarise(mean(`WS-distance`), sd(`WS-distance`), mad(`WS-distance`))
+              summarise(mean(differentiability), sd(differentiability), mad(differentiability))
 print(stat_df)
 
 stat_df2 <- dist_df[c('differentiability', 'age', 'sex')] %>% 
@@ -392,8 +392,8 @@ print(stat_df2)
 # then creating lm plot for checking the age-dep of WS-distances or differentiability measures
 lm_eqn <- function(df){
   #m <- lm(age ~ `WS-distance`, df); #standard regression model
-  #m <- lm(age ~ differentiability + `differentiability^2`, df)
-  m <- lm(age ~ differentiability, df)
+  m <- lm(age ~ differentiability + `differentiability^2`, df)
+  #m <- lm(age ~ differentiability, df)
   #m <- lm(log_age ~ `WS-distance`, df); #exp. model
   #m <- lm(age~ `WS-distance`+ `WS-distance^2`,df)
   eq <- substitute(italic(y) == a + b %.% italic(x) + c %.% italic(x)^2*","~~italic(r)^2~"="~r2*","~~italic(p)~"="~pvalue,
@@ -415,13 +415,13 @@ eqs_df['sex'] <- as.factor(c('F', 'M'))
 p2 <- ggplot(dist_df, aes(x=age, y=differentiability)) +
       geom_point(alpha=0.15) +
       geom_smooth(data=dist_df, aes(color=sex, fill=sex), method=lm, 
-                  #formula=y~x+I(x^2), se=TRUE) +
-                  formula=y~x, se=TRUE) +
+                  formula=y~x+I(x^2), se=TRUE) +
+                  #formula=y~x, se=TRUE) +
       facet_grid(~sex) +
       scale_fill_manual(values=c("#DCE319FF", "#33638DFF")) +
       scale_color_manual(values=c("#DCE319FF", "#33638DFF")) +
-      geom_text(data=eqs_df, aes(x=7, y=1.4, label = V1), parse = TRUE, inherit.aes=FALSE) +
-      theme_minimal() + ylab("Differentiability") + ylim(0.05,1.7) + xlab("Age") +
+      geom_text(data=eqs_df, aes(x=7, y=1.2, label = V1), parse = TRUE, inherit.aes=FALSE) +
+      theme_minimal() + ylab("Differentiability") + ylim(0.05,1.5) + xlab("Age") +
       theme(panel.border = element_blank(), 
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(), 
@@ -429,7 +429,7 @@ p2 <- ggplot(dist_df, aes(x=age, y=differentiability)) +
 p2
 
 
-ggsave(file="figures/Differentiability_age_sex_regplot_all_N1N2_K30.pdf", plot=p2, width=11, height=5)
+ggsave(file="figures/Differentiability_age_sex_guatregplot_all_2N1_K30.pdf", plot=p2, width=11, height=5)
 
 ################################################################################
 #                Plot distance heatmaps for BRRRR model                        #
