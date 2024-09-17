@@ -6,6 +6,7 @@ Plot the power spectral densities on individual level.
 """
 import mne
 import os
+import scipy
 from mne.io import read_info
 from mne import find_layout
 from h5io import read_hdf5
@@ -15,6 +16,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from mne.viz import iter_topography
+from mne.stats import permutation_cluster_test
 from config_eeg import fname, bandpower, f_bands
 
 data_dir = '/net/theta/fishpool/projects/FABEEG/childEEG_data/bids/derivatives/'
@@ -83,7 +85,7 @@ chs = info['ch_names']
 
 #%% PLOTTING FUNCTIONS AND STATS   
 
-def plot_glob_intra_individual(PSD_df, subject, freqs):
+def plot_glob_intra_individual(PSD_df, subject, freqs, perform_clustering=False):
     """
     Calculates and plots the global mean PSD of all data segments
     of one subject in a same plot
@@ -96,6 +98,8 @@ def plot_glob_intra_individual(PSD_df, subject, freqs):
         which subject to plot?
     freqs : array-like
         determines the x-axis
+    perform_clustering : boolean
+        perform clustering test? Defaults to false.
 
     Returns
     -------
@@ -120,7 +124,24 @@ def plot_glob_intra_individual(PSD_df, subject, freqs):
     N2_df = plot_df.loc[plot_df['sleep']=='N2']
     #plot_df = plot_df.set_index('freq')
     
-    
+    if perform_clustering:
+        # clustering based on mean data over N1 vs N2 segments? or f test?
+        N1_data, N2_data = np.array(means[0:2]), np.array(means[2:])
+        m,n=N1_data.shape 
+        k=N2_data.shape[0]
+        data_array = [N1_data.reshape(m,n,1), N2_data.reshape(k,n,1)]
+        pval = 0.05  # arbitrary
+        dfn = 1 #two conditions - 1
+        dfd = len(means) - 2  # degrees of freedom denom.
+        thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)  # F distribution
+        
+        X=data_array #np.array([*data_array]) #unpack data
+        F_obs, clusters, cluster_pv, H0 = permutation_cluster_test(
+            X,
+            n_permutations=1000,
+            threshold=thresh,
+            tail=0,
+            )
     
     # set up figure aesthetics - use two palettes rather than one?
     #cm = sns.color_palette("crest", 6)
@@ -139,7 +160,6 @@ def plot_glob_intra_individual(PSD_df, subject, freqs):
             palette=cm_1, data=N1_df)
     sns.lineplot(x='Freq. (Hz)', y='Power', hue='segment', #label='N2', 
             palette=cm_2, data=N2_df, linestyle='dashed')
-    
     sns.despine(fig, bottom=False, left=False)
     fig.suptitle(f'Global average PSDs, {subj} ({metadata})')
     plt.ylabel('log-PSD')
@@ -148,12 +168,20 @@ def plot_glob_intra_individual(PSD_df, subject, freqs):
     fig2, ax = plt.subplots(figsize=(8,6)) 
     sns.lineplot(data=plot_df, x='Freq. (Hz)', y='Power', hue='segment', 
                         style='sleep',  palette=colors[1:10])
+    if perform_clustering:
+        for i_c, c in enumerate(clusters):
+            c=c[0]
+            if cluster_pv[i_c] <= 0.05:
+                h = ax.axvspan(freqs[c[0]], freqs[c[-1]], color="grey", alpha=0.2)
+    else:
+        clusters, cluster_pv = None, None
+          
     sns.despine(fig2, bottom=False, left=False)
     fig2.suptitle(f'Global average PSDs, {subj} ({metadata})')
     plt.ylabel('log-PSD')
     plt.close()
     
-    return fig, fig2, metadata
+    return fig, fig2, metadata, clusters, cluster_pv
 
 
 
@@ -303,6 +331,8 @@ PSD_df = pd.read_pickle('PSD_dataframe_with_bandpower.pkl')
 sleep= 'BPW N1b' #'PSD N1a'
 cohort_n_mean, AUC_df = sd_mean_inter_age_groups(PSD_df, freqs, sleep=sleep, do_bandpower=True)
 
+PSD_df = PSD_df.drop(['BPW N1a', 'BPW N1b', 'BPW N2a', 'BPW N2b', 'BPW N2c', 'BPW N2d'], axis=1)
+
 #get absolute value from aucs -> makes comparisons more intuitive
 #AUC_df['AUC'] = np.abs(AUC_df['AUC'])
 
@@ -353,9 +383,9 @@ plt.show()
 
 ### single-subject plots
 
-subj=subjects[399]
+subj=subjects[155] #365, 399, 179, 48, 449
 
-fig, fig2, metadata = plot_glob_intra_individual(PSD_df, subj, freqs)
+fig, fig2, metadata, clusters, cluster_pv = plot_glob_intra_individual(PSD_df, subj, freqs, perform_clustering=True)
 fig2.show()
 
 
