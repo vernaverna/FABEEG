@@ -81,6 +81,45 @@ for(i in 1:8){
 
 
 
+#############################################################
+library("reshape2")
+library("viridis")
+
+# Plot run results as bar charts
+
+fname <- '/dataToR/unseen_data_res_table.csv'
+res0 <- read.csv(paste0(getwd(),fname))
+res0$PTVE <- NULL
+names(res0)[4] <- 'BRRR'
+names(res0)[6] <- 'Corr'
+
+res <- melt(res0, id.vars=c("Group", "Input", "Test"),
+            variable.name = 'Model', value.name ='SR')
+res$Test <- as.factor(res$Test)
+res$Input <- as.factor(res$Input)
+#barplot(height=res$SR, names=res$Input)
+
+res <- res[res$Test=='N1',]
+
+p <- ggplot(res, aes(x=Input, y=SR, fill=Input)) +
+      geom_bar(position='dodge', stat='identity') +
+      #facet_grid(Model ~ Test) +
+      facet_wrap(~Model) +
+      scale_fill_viridis(discrete=T) +
+      theme_minimal() + ylab("Success rate") + ylim(0.0,1.0) + xlab("") +
+      theme(legend.text = element_text(size = 13),
+            legend.title = element_text(size = 18),
+            axis.text.x = element_blank(), axis.text.y = element_text(size=13),
+            axis.title.x = element_text(size=18),
+            axis.title.y = element_text(size=18),
+            panel.border = element_blank(),
+            panel.spacing = unit(85, 'points'),
+            panel.grid.major = element_blank(),
+            strip.text = element_text(face="bold", size = 15),
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+ggsave(file="figures/unseen_N1data_model_comparison.pdf", plot=p, width=14, height=8)
 
 
 

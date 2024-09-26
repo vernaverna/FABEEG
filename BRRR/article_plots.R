@@ -46,16 +46,229 @@ get_viz_data <- function(fname){
   data_list$age_df <- age_df
   data_list$lat_space <- lat_space
   data_list$lat_map <- lat_map
-  
+  data_list$W <- inv_G
   return(data_list)
 }
 
+#the validation function 
+#' Function for validating the model
+#' 
+#' @param within_sample Logical. If FALSE, does out-of-sample validation (unseen data points for all individuals)
+#' @param dis which distance measure to use. One of 'L1' or 'L2', 'corr' or 'cos'
+#' @param pK vector, which components to use in distance calculation
+#' @param Xt the subject identifiers
+#' @param lat_map the latent mapping used
+#' @param lat_map2 is using unseen data
+#' @param linkage either 'average' or 'minimum', for deciding how to calculate distances
+# 
+
+validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, lat_map2=NULL, 
+                       linkage='minimum'){
+  
+  #distance matrix# 
+  D <- matrix(NA, ncol(Xt), ncol(Xt), dimnames=list(colnames(Xt), c(paste0('other', colnames(Xt)) )) )  
+  
+  # permute lat_map to have same row_names as Xt - safety measure
+  # TODO: check this??? do i mess it up. 
+  if(!is.null(lat_map2)){
+    reorder_val_idx <- match(colnames(Xt), rownames(lat_map2))
+    lat_map2 <- lat_map2[reorder_val_idx,]    
+  }
+  
+  # Helper function to calculate distance betewen 2 vectors
+  dist_func <- function(x, y){
+    if(dis=='L1'){
+      return(sum(abs(x-y)))
+    } else if(dis=='L2'){
+      return(sqrt( sum(x-y)**2) )
+    } else if(dis=='cos'){
+      return( sum(x*y) / (sqrt(sum(x**2))*sqrt(sum(y**2))) )
+    } else if(dis=='corr'){
+      return(cor(x,y,method="pearson"))
+    } else {
+      browser(text="wrong distance measure!")
+    }
+  }
+  
+  #calculates the distances between individuals in lat.space   
+  for(testidx in 1:ncol(Xt)){ 
+    for(m in 1:ncol(Xt)){     
+      group_members <- rownames(lat_map)[m]   
+      idxs = which(row.names(lat_map) %in% group_members) #should be at least 2!
+      
+      if(within_sample){
+        
+        if(length(idxs) == 3){
+          if(linkage=='average'){
+            other_data <- colMeans(lat_map[tail(idxs,2), pK])
+          } else if(linkage=='minimum'){
+            other_data <- lat_map[tail(idxs,2), pK]
+            dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
+          }
+        } else {
+          if(linkage=='average'){
+            other_data <- lat_map[tail(idxs,1), pK]
+          } else if(linkage=='minimum'){
+            other_data <- lat_map[tail(idxs,1), pK]
+            dists <- dist_func(lat_map[testidx,pK],other_data) 
+          }
+        }
+        # Finally, determine the distances in the latent coordinates
+        if(linkage=='average'){ 
+          D[testidx,m] <- dist_func(lat_map[testidx,pK],other_data)
+        } else if (linkage=='minimum'){
+          D[testidx,m] <- if(dis!='corr') min(dists) else max(dists)
+        }
+        
+        
+      } else { #OOS validation (unseen data)
+        
+        if(length(idxs)>1){
+          if(linkage=='average'){
+            other_data <- colMeans(lat_map[idxs, pK])
+          } else if(linkage=='minimum'){
+            other_data <- lat_map[idxs, pK]
+            dists <- apply(other_data, 1, function(x) dist_func(lat_map2[testidx,pK], x))
+          }
+          
+        } else {
+          if(linkage=='average'){
+            other_data <- lat_map[idxs, pK]
+          } else if(linkage=='minimum'){
+            other_data <- lat_map[idxs, pK]
+            dists <- dist_func(lat_map2[testidx,pK],other_data)
+          }
+        }
+        if(linkage=='average'){
+          D[testidx,m] <- dist_func(lat_map2[testidx,pK],other_data)
+        } else if(linkage=='minimum'){
+          D[testidx,m] <- if(dis!='corr') min(dists) else max(dists)
+        }
+      }
+    } 
+  }
+  
+  PROJ <- D*0 #initialize 'projection' matrix
+  
+  for(r in 1:nrow(D)){ #assign group based on minimal distance in lat. space
+    if(dis!='corr'){
+      index <- which.min(D[r,])
+    } else {
+      index <- which.max(D[r,]) #in case of correlation, we are of course looking for maximum correlation between subs
+    }
+    
+    PROJ[r,index] <- 1+PROJ[r,index]
+  }
+  colnames(PROJ) <- c(paste0("class",rownames(D)))
+  
+  accuracy = sum(diag(PROJ))/nrow(D)
+  print(paste("Model accuracy:", accuracy)) #alright this is how I like it ;)
+  
+  rankings <- apply(D, 2, rank)
+  avg_rank = sum(diag(rankings))/nrow(rankings)
+  
+  return(list(D, accuracy, avg_rank))
+  
+}
+
+########
+
 double_subs <- read.csv("longitudinal_subset.csv")
 
-viz_data1 <- get_viz_data(fname = "results/full/all_2N2_BRRR_K30.RData")
-viz_data2 <- get_viz_data(fname= "results/full/all_N1N2_BRRR_30.RData")
+viz_data1 <- get_viz_data(fname = "results/full/o7_2N1_BRRR_K30.RData")
+viz_data2 <- get_viz_data(fname= "results/full/o7_2N2_BRRR_K30.RData")
+viz_data3 <- get_viz_data(fname= "results/full/o7_N1N2_BRRR_30.RData")
+
+get_distances <- function(viz_data, viz_data2, within_sample = T, K=30){
+  X <- viz_data$X
+  Y <- viz_data$Y
+  subj <- viz_data$subj
+  ages <- viz_data$ages
+  n <- length(subj)/2
+  W = viz_data$W
+  
+  lat_space <- viz_data$lat_space
+  lat_map <- viz_data$lat_map
+
+  if(within_sample){
+    lat_map2=NULL
+  } else {
+    Y2 <- viz_data2$Y[1:n,] #788:,? 
+    lat_map2 <- Y2%*%W
+  }
+  
+  D_list <- validation(within_sample = within_sample, dis='L1', pK=c(1:K), 
+                       lat_map=lat_space, lat_map2=lat_map2,Xt=X)
+  D <- D_list[[1]]
+  # compute 0-model (correlations in full data matrix) 
+  D0_list <- validation(within_sample = within_sample, dis='corr',pK=c(1:247), 
+                        lat_map=Y, lat_map2=Y2, Xt=X)
+  D0 <- D0_list[[1]]
+  
+  return(list(D, D0))
+}
 
 
+compute_differentiability <- function(distmat_vec){
+  #compute and add the mean distance to other subjects
+  D = distmat_vec[[1]]
+  D0= distmat_vec[[2]]
+  
+  dist_to_others <- c()
+  dist_to_others_corr <- c()
+  for(i in 1:nrow(D)){
+    to_include <- setdiff((1:nrow(D)), i) #take all distances except to self
+    to_include2 <- setdiff((1:nrow(D0)), i) #take all distances except to self
+    avg_dist <- mean(D[i, to_include])
+    avg_dist_corr <- mean(D0[i, to_include2])
+    dist_to_others <- c(dist_to_others, avg_dist)
+    dist_to_others_corr <- c(dist_to_others_corr, avg_dist_corr)
+  }
+  diff <- diag(D) /  dist_to_others
+  diff_c <- -diag(D0) / dist_to_others_corr
+  
+  return(list(dist_to_others, diff, dist_to_others_corr, diff_c))
+}
+
+N1_dists <- get_distances(viz_data1, viz_data2, within_sample = F)
+N2_dists <- get_distances(viz_data2, viz_data2=viz_data1, within_sample = F)
+mixed_dists1 <- get_distances(viz_data3, viz_data2, within_sample = F)
+mixed_dists2 <- get_distances(viz_data3, viz_data1, within_sample = F)
+
+# Creating a dataframe for plotting....
+reorder_val_idx <- match(rownames(N1_dists[[1]]), ages$File)
+ages <- ages[reorder_val_idx,] 
+
+D_n1 <- N1_dists[[1]]
+D0_n1 <- N1_dists[[2]]
+D_n2 <- N2_dists[[1]]
+D0_n2 <- N2_dists[[2]]
+D_n1n2 <- mixed_dists1[[1]]
+D0_n1n2 <- mixed_dists1[[2]]
+D_n1n2_ <- mixed_dists2[[1]]
+D0_n1n2_ <- mixed_dists2[[2]]
+
+dist_df = as.data.frame(diag(D_n1), row.names = rownames(D_n1))
+names(dist_df)[1] <- 'D_n1'
+dist_df['D_n2'] = diag(D0_n2)
+dist_df['D_n1n2'] = diag(D0_n1n2)
+dist_df['D0_n1'] = diag(D0_n1)
+dist_df['D0_n2'] = diag(D0_n2)
+dist_df['D0_n1n2'] = diag(D0_n1n2)
+dist_df['D_n1n2_'] = diag(D_n1n2_)
+dist_df['D_n1n2_'] = diag(D0_n1n2_)
+dist_df['age'] = ages$Age #get age data
+#dist_df['group'] = rep(round(ages$Age, 0), reps) #get age data
+dist_df['sex'] = ages$Sex
+dist_df['cap'] = ages$Cap
+
+
+dist_df['diff N1'] <- compute_differentiability(N1_dists)[[2]]
+dist_df['diff N2'] <- compute_differentiability(N2_dists)[[2]]
+dist_df['diff N1N2_N2'] <- compute_differentiability(mixed_dists1)[[2]]
+dist_df['diff N1N2_N1'] <- compute_differentiability(mixed_dists2)[[2]]
+
+### for general use?
 
 X <- viz_data2$X
 Y <- viz_data2$Y
@@ -64,8 +277,8 @@ ages <- viz_data2$ages
 age_df <- viz_data2$age_df
 lat_space <- viz_data2$lat_space
 lat_map <- viz_data2$lat_map
-
 # ========================================================
+
 # FIGURE 6
 # make a stacked histogram with subject info
 age_df <- ages %>% mutate(age_group = cut(Age, breaks=14))
@@ -166,161 +379,49 @@ for(comp in c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12')){
 # FIGURE N ---- Intra-subject distances in lat.space // FULL DATA ...
 #               ... according to age, factored by sex.
 #  possibilities: lm-plot, violinplot
-
-#the validation function 
-#' Function for validating the model
-#' 
-#' @param within_sample Logical. If FALSE, does out-of-sample validation (unseen data points for all individuals)
-#' @param dis which distance measure to use. One of 'L1' or 'L2', 'corr' or 'cos'
-#' @param pK vector, which components to use in distance calculation
-#' @param Xt the subject identifiers
-#' @param lat_map the latent mapping used
-#' @param lat_map2 is using unseen data
-#' @param linkage either 'average' or 'minimum', for deciding how to calculate distances
-# 
-
-validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, lat_map2=NULL, 
-                       linkage='minimum'){
-  
-  #distance matrix# 
-  D <- matrix(NA, ncol(Xt), ncol(Xt), dimnames=list(colnames(Xt), c(paste0('other', colnames(Xt)) )) )  
-  
-  # permute lat_map to have same row_names as Xt - safety measure
-  # TODO: check this??? do i mess it up. 
-  if(!is.null(lat_map2)){
-    reorder_val_idx <- match(colnames(Xt), rownames(lat_map2))
-    lat_map2 <- lat_map2[reorder_val_idx,]    
-  }
-  
-  # Helper function to calculate distance betewen 2 vectors
-  dist_func <- function(x, y){
-    if(dis=='L1'){
-      return(sum(abs(x-y)))
-    } else if(dis=='L2'){
-      return(sqrt( sum(x-y)**2) )
-    } else if(dis=='cos'){
-      return( sum(x*y) / (sqrt(sum(x**2))*sqrt(sum(y**2))) )
-    } else if(dis=='corr'){
-      return(cor(x,y,method="pearson"))
-    } else {
-      browser(text="wrong distance measure!")
-    }
-  }
-  
-  #calculates the distances between individuals in lat.space   
-  for(testidx in 1:ncol(Xt)){ 
-    for(m in 1:ncol(Xt)){     
-      group_members <- rownames(lat_map)[m]   
-      idxs = which(row.names(lat_map) %in% group_members) #should be at least 2!
-
-      if(within_sample){
-        
-        if(length(idxs) == 3){
-          if(linkage=='average'){
-            other_data <- colMeans(lat_map[tail(idxs,2), pK])
-          } else if(linkage=='minimum'){
-            other_data <- lat_map[tail(idxs,2), pK]
-            dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
-          }
-        } else {
-          if(linkage=='average'){
-            other_data <- lat_map[tail(idxs,1), pK]
-          } else if(linkage=='minimum'){
-            other_data <- lat_map[tail(idxs,1), pK]
-            dists <- dist_func(lat_map[testidx,pK],other_data) 
-          }
-        }
-        # Finally, determine the distances in the latent coordinates
-        if(linkage=='average'){ 
-          D[testidx,m] <- dist_func(lat_map[testidx,pK],other_data)
-        } else if (linkage=='minimum'){
-          D[testidx,m] <- if(dis!='corr') min(dists) else max(dists)
-        }
-
-        
-      } else { #OOS validation (unseen data)
-        
-        if(length(idxs)>1){
-          if(linkage=='average'){
-            other_data <- colMeans(lat_map[idxs, pK])
-          } else if(linkage=='minimum'){
-            other_data <- lat_map[idxs, pK]
-            dists <- apply(other_data, 1, function(x) dist_func(lat_map[testidx,pK], x))
-          }
-          
-        } else {
-          if(linkage=='average'){
-            other_data <- lat_map[idxs, pK]
-          } else if(linkage=='minimum'){
-            other_data <- lat_map[idxs, pK]
-            dists <- dist_func(lat_map2[testidx,pK],other_data)
-          }
-        }
-        if(linkage=='average'){
-          D[testidx,m] <- dist_func(lat_map2[testidx,pK],other_data)
-        } else if(linkage=='minimum'){
-          D[testidx,m] <- if(dis!='corr') min(dists) else max(dists)
-        }
-      }
-    } 
-  }
-  
-  PROJ <- D*0 #initialize 'projection' matrix
-  
-  for(r in 1:nrow(D)){ #assign group based on minimal distance in lat. space
-    if(dis!='corr'){
-      index <- which.min(D[r,])
-    } else {
-      index <- which.max(D[r,]) #in case of correlation, we are of course looking for maximum correlation between subs
-    }
-    
-    PROJ[r,index] <- 1+PROJ[r,index]
-  }
-  colnames(PROJ) <- c(paste0("class",rownames(D)))
-  
-  accuracy = sum(diag(PROJ))/nrow(D)
-  print(paste("Model accuracy:", accuracy)) #alright this is how I like it ;)
-  
-  rankings <- apply(D, 2, rank)
-  avg_rank = sum(diag(rankings))/nrow(rankings)
-  
-  return(list(D, accuracy, avg_rank))
-  
-}
-
-
-K=30
-D_list <- validation(within_sample = T, dis='L1', pK=c(1:K), lat_map=lat_space, Xt=X)
-D <- D_list[[1]]
-# compute 0-model (correlations in full data matrix) 
-D0_list <- validation(within_sample = T, dis='corr',  pK=c(1:247), lat_map=Y, Xt=X)
-D0 <- D0_list[[1]]  
-# Creating a dataframe for plotting....
-reorder_val_idx <- match(rownames(D0), ages$File)
-ages <- ages[reorder_val_idx,] 
-
-dist_df = as.data.frame(diag(D), row.names = rownames(D))
-dist_df['age'] = ages$Age #get age data
-#dist_df['group'] = rep(round(ages$Age, 0), reps) #get age data
-dist_df['sex'] = ages$Sex
-dist_df['cap'] = ages$Cap
-
-#compute and add the mean distance to other subjects
-dist_to_others <- c()
-for(i in 1:nrow(D)){
-  to_include <- setdiff((1:nrow(D)), i) #take all distances except to self
-  avg_dist <- mean(D[i, to_include])
-  dist_to_others <- c(dist_to_others, avg_dist)
-}
-
-dist_df['dist to others'] <- dist_to_others
-dist_df['differentiability'] <- dist_df['diag(D)'] / dist_df['dist to others']
+library("reshape2")
 
 # remove NA -rows before muting the vars
 dist_df <- na.omit(dist_df)
-dist_df['log_age'] = log10(dist_df$age) #get age data
+#dist_df['log_age'] = log10(dist_df$age) #get age data
+dist_df2 <- dist_df[,c('age', 'sex', 'diff N1', 'diff N2', 'diff N1N2_N1', 'diff N1N2_N2')]
+names(dist_df2)[3:6] <- c('N1', 'N2', 'N1N2_1', 'N1N2_2') 
+long_dist_df <- melt(dist_df2, id.vars=c("age", "sex"),
+                     variable.name = 'Segments', value.name ='differentiability')
+
+# analysis of variance
+anova <- welch_anova_test(differentiability ~ Segments, data = long_dist_df)
+summary(anova)
+# post_hoc
+pwc <- games_howell_test(differentiability ~ Segments, data = long_dist_df)
+print(pwc)
+pwc <- pwc %>% add_xy_position(x='Segments')
+
+q <- ggplot(long_dist_df, aes(x=Segments, y=differentiability))+
+      geom_violin(trim = TRUE, aes(fill=Segments), alpha=0.65) + geom_boxplot(width=0.15, fill=NA) +
+      scale_fill_viridis(discrete = T) +
+      stat_pvalue_manual(pwc, hide.ns = TRUE) + 
+      labs(subtitle = get_test_label(anova, detailed = TRUE),
+            caption = get_pwc_label(pwc)) +
+      theme_minimal() + ylab("Differentiability") + xlab("") +
+      theme(legend.text = element_text(size = 13),
+            legend.title = element_text(size = 18),
+            axis.text.x = element_blank(), axis.text.y = element_text(size=13),
+            axis.title.x = element_text(size=18),
+            axis.title.y = element_text(size=18),
+            panel.border = element_blank(),
+            panel.spacing = unit(85, 'points'),
+            panel.grid.major = element_blank(),
+            strip.text = element_text(face="bold", size = 15),
+            panel.grid.minor = element_blank(), 
+            axis.line = element_line(colour = "black"))
+q
 
 
+ggsave(file="figures/Differentiability_fingerprint_o7_BRRR_anova.pdf", plot=q, width=9, height=9)
+
+
+###############################################################################
 # longitudinal subset
 # check distance to later meas. sessions
 longitudinal_dists <- c()
