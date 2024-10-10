@@ -175,11 +175,13 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
 
 double_subs <- read.csv("longitudinal_subset.csv")
 
-viz_data1 <- get_viz_data(fname = "results/full/o7_2N1_BRRR_K30.RData")
-viz_data2 <- get_viz_data(fname= "results/full/o7_2N2_BRRR_K30.RData")
-viz_data3 <- get_viz_data(fname= "results/full/o7_N1N2_BRRR_30.RData")
+viz_data1 <- get_viz_data(fname = "results/full/all_2N1_BRRR_K30.RData")
+viz_data2 <- get_viz_data(fname= "results/full/all_2N2_BRRR_K30.RData")
+viz_data3 <- get_viz_data(fname= "results/full/all_N1N2_BRRR_30.RData")
 
-get_distances <- function(viz_data, viz_data2, within_sample = T, K=30){
+ages <- viz_data1$ages
+
+get_distances <- function(viz_data, viz_data2, within_sample = T, K=30, half='first'){
   X <- viz_data$X
   Y <- viz_data$Y
   subj <- viz_data$subj
@@ -193,7 +195,11 @@ get_distances <- function(viz_data, viz_data2, within_sample = T, K=30){
   if(within_sample){
     lat_map2=NULL
   } else {
-    Y2 <- viz_data2$Y[1:n,] #788:,? 
+    if(half=='second'){
+      Y2 <- viz_data2$Y[(n+1):(2*n),] #788:,? 
+    } else {
+      Y2 <- viz_data2$Y[1:n,] #788:,? 
+    }
     lat_map2 <- Y2%*%W
   }
   
@@ -233,7 +239,7 @@ compute_differentiability <- function(distmat_vec){
 N1_dists <- get_distances(viz_data1, viz_data2, within_sample = F)
 N2_dists <- get_distances(viz_data2, viz_data2=viz_data1, within_sample = F)
 mixed_dists1 <- get_distances(viz_data3, viz_data2, within_sample = F)
-mixed_dists2 <- get_distances(viz_data3, viz_data1, within_sample = F)
+mixed_dists2 <- get_distances(viz_data3, viz_data2=viz_data1, within_sample = F, half='second')
 
 # Creating a dataframe for plotting....
 reorder_val_idx <- match(rownames(N1_dists[[1]]), ages$File)
@@ -380,6 +386,7 @@ for(comp in c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12')){
 #               ... according to age, factored by sex.
 #  possibilities: lm-plot, violinplot
 library("reshape2")
+#library("ggpattern")
 
 # remove NA -rows before muting the vars
 dist_df <- na.omit(dist_df)
@@ -388,6 +395,20 @@ dist_df2 <- dist_df[,c('age', 'sex', 'diff N1', 'diff N2', 'diff N1N2_N1', 'diff
 names(dist_df2)[3:6] <- c('N1', 'N2', 'N1N2_1', 'N1N2_2') 
 long_dist_df <- melt(dist_df2, id.vars=c("age", "sex"),
                      variable.name = 'Segments', value.name ='differentiability')
+
+# add info on test segments
+test <- c()
+for(i in 1:nrow(long_dist_df)){
+  input <- long_dist_df$Segments[i]
+  
+  if(input %in% c('N2', 'N1N2_1')){
+    test <- c('N1', test)
+  } else {
+    test <- c('N2', test)
+  }
+}
+long_dist_df$Test <- as.factor(test)
+
 
 # analysis of variance
 anova <- welch_anova_test(differentiability ~ Segments, data = long_dist_df)
@@ -398,11 +419,12 @@ print(pwc)
 pwc <- pwc %>% add_xy_position(x='Segments')
 
 q <- ggplot(long_dist_df, aes(x=Segments, y=differentiability))+
-      geom_violin(trim = TRUE, aes(fill=Segments), alpha=0.65) + geom_boxplot(width=0.15, fill=NA) +
+      geom_violin(trim = TRUE, aes(fill=Segments), alpha=0.70) + 
+      geom_boxplot(width=0.35, fill=NA) +
       scale_fill_viridis(discrete = T) +
       stat_pvalue_manual(pwc, hide.ns = TRUE) + 
       labs(subtitle = get_test_label(anova, detailed = TRUE),
-            caption = get_pwc_label(pwc)) +
+            caption = get_pwc_label(pwc)) + #ylim(0.0,2.0)+
       theme_minimal() + ylab("Differentiability") + xlab("") +
       theme(legend.text = element_text(size = 13),
             legend.title = element_text(size = 18),
@@ -418,7 +440,10 @@ q <- ggplot(long_dist_df, aes(x=Segments, y=differentiability))+
 q
 
 
-ggsave(file="figures/Differentiability_fingerprint_o7_BRRR_anova.pdf", plot=q, width=9, height=9)
+ggsave(file="figures/Differentiability_fingerprint_all_BRRR_anova.pdf", plot=q, width=9, height=9)
+
+
+
 
 
 ###############################################################################
