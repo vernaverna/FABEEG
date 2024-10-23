@@ -17,7 +17,9 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from mne.viz import iter_topography
 from mne.stats import permutation_cluster_test
-from config_eeg import fname, bandpower, f_bands
+from mne.channels import find_ch_adjacency
+from mne.stats import combine_adjacency, spatio_temporal_cluster_test
+from config_eeg import fname, bandpower, f_bands, read_template_subject
 
 data_dir = '/net/theta/fishpool/projects/FABEEG/childEEG_data/bids/derivatives/'
 
@@ -324,7 +326,137 @@ def plot_individual_psd_pasta(subj, PSD_df, freqs, chs, segment='PSD N2a'):
     plt.legend()
     
     return fig
+
+def auc_over_freqrange(PSD_df, freqs, freqrange=(12,15), relative=True):
     
+    
+    # average sata from PSD segmetns within one sleep stage
+    N1_average = np.array(PSD_df[['PSD N1a', 'PSD N1b']]).mean(axis=1)
+    N2_average = np.array(PSD_df[['PSD N2a', 'PSD N2b', 'PSD N2c', 'PSD N2d']]).mean(axis=1)
+    
+    data_df = PSD_df.iloc[:,0:2]
+    
+    data_df['N1 data'] = N1_average
+    data_df['N2 data'] = N2_average
+
+    # Group the data according to age groups
+    bin_labels = ['1','2','3','4','5','6','7','8','9','10']
+    bins, bin_labs = pd.qcut(data_df['Age'], q=10, retbins=True, labels=bin_labels)
+    bin_names = [str( round(bin_labs[i-1],1)) + ' – ' + str(round(bin_labs[i],1)) for i in range(1,len(bin_labs))]
+    
+    bins, bin_labs = pd.qcut(data_df['Age'], q=10, retbins=True, labels=bin_names)
+    
+    data_df['Age group'] = bins
+    AUC_recs = []
+    
+    cohrt_groups = data_df.groupby('Age group', observed=False)
+    
+    
+    # determine the freq. indices of interest
+    f_idxs =  np.where((freqs >= freqrange[0]) & (freqs <= freqrange[1]))[0]
+    
+    
+    for name, cohort_df in cohrt_groups:
+        cohort_data = cohort_df[['N1 data', 'N2 data']]
+        cohort_data = cohort_data.dropna() #get rid of nan -values
+        # average over channels: nsubj x n_chs x n_freq -> nsubj x n_freq
+        N1_Arr = np.array(np.stack(cohort_data['N1 data'].values)).mean(axis=1) 
+        N2_Arr = np.array(np.stack(cohort_data['N2 data'].values)).mean(axis=1)
+       
+        #compute AUC values ("total power overall (from grand average)")
+        AUCs_n1 = np.trapz(N1_Arr[:,f_idxs], x=freqs[f_idxs], axis=-1)
+        AUCs_n2 = np.trapz(N2_Arr[:,f_idxs], x=freqs[f_idxs], axis=-1) 
+        
+        # devide these by total power to get relative aucs 
+        if relative:
+            tot_n1 = np.trapz(N1_Arr, x=freqs, axis=-1)
+            tot_n2 = np.trapz(N2_Arr, x=freqs, axis=-1)
+            
+            AUCs_n1 = AUCs_n1/tot_n1
+            AUCs_n2 = AUCs_n2/tot_n2
+
+            
+        namevec = [name]*AUCs_n1.shape[0]
+        AUC_recs.append(  list( zip(namevec, AUCs_n1, AUCs_n2, cohort_df['Sex'].values, cohort_df.index.values, ) ))            
+
+    
+    # make AUC df for later analysis
+    AUC_records = sum(AUC_recs, []) #unlist  
+    AUC_df = pd.DataFrame.from_records(AUC_records, columns=['Age group', 'AUC N1', 'AUC N2', 'Sex', 'Subject'])
+    
+    AUC_df = AUC_df.dropna()
+    
+    # return the data in a long format 
+    AUC_df_long = pd.melt(AUC_df, id_vars=['Subject', 'Sex', 'Age group'],
+                          value_vars=['AUC N1', 'AUC N2'], var_name='Sleep', value_name='AUC')
+    AUC_df_long['Sleep'] = [name.strip('AUC ') for name in AUC_df_long['Sleep'].values]
+    
+    return AUC_df_long, AUC_df
+    
+
+def within_sleep_stability(PSD_df, stage='N1'):
+
+    raw = read_template_subject()
+    adjacency, ch_names = find_ch_adjacency(raw.info, ch_type="eeg")
+  
+    subj_X = [] 
+    for subject in PSD_df.index:
+        subj_data = PSD_df.loc[subject]
+        data = subj_data[3:] #choose only the psd 
+        #metadata=subj_data['Sex']+ ', '+ str(subj_data['Age'])+'y'
+        
+        #means = [np.nanmean(datum, axis=0) for datum in data]
+        means = [datum for datum in data]
+        # conditions = data.index  
+        
+        # plot_df = pd.DataFrame(means).T
+        # plot_df.columns=conditions
+        # plot_df['Freq. (Hz)'] = freqs
+        # plot_df = pd.melt(plot_df, ['Freq. (Hz)'], var_name='segment', value_name='Power')
+        # plot_df['sleep'] = ['N1' if '1' in plot_df['segment'][i] else 'N2' for i in range(len(plot_df))]
+     
+        # # clustering based on mean segments? or f test?
+        try:
+            N1_data, N2_data = np.array(means[0:2]), np.array(means[2:])
+            
+            if stage == 'N1':
+                subj_X.append(N1_data.transpose(0,2,1))
+            else:    
+                subj_X.append(N2_data.transpose(0,2,1))
+
+
+        except ValueError:
+          print('Not enough N2 segments, skipping!')
+          
+     
+    subj_X = np.array(subj_X)
+    X =[ subj_X[:, i, :] for i in range(subj_X.shape[1])]
+    
+    alpha_cluster_forming = 0.001
+    pval = 0.05
+ 
+    n_conditions = len(X)
+    n_observations = len(X[0])
+    dfn = n_conditions - 1
+    dfd = n_observations - n_conditions
+    
+    thresh = scipy.stats.f.ppf(1 - alpha_cluster_forming, dfn=dfn, dfd=dfd)  # F distribution
+        
+        # X=data_array #np.array([*data_array]) #unpack data
+    F_obs, clusters, cluster_pv, H0 = spatio_temporal_cluster_test(
+        X,
+        n_permutations=1000,
+        threshold=thresh,
+        tail=0,
+        )
+        
+    #print(f'F-statistic: {F_obs}')
+    if np.any(cluster_pv < pval):
+        good_cluster_inds = np.where(cluster_pv < pval)[0]
+    
+        return clusters, good_cluster_inds
+
+
 
 #%%% Plots
 PSD_df = pd.read_pickle('PSD_dataframe_with_bandpower.pkl')
@@ -383,7 +515,7 @@ plt.show()
 
 ### single-subject plots
 
-subj=subjects[155] #365, 399, 179, 48, 449
+subj=subjects[15] #365, 399, 179, 48, 449
 
 fig, fig2, metadata, clusters, cluster_pv = plot_glob_intra_individual(PSD_df, subj, freqs, perform_clustering=True)
 fig2.show()
@@ -395,8 +527,54 @@ ind_fig = plot_individual_psd_pasta(subj, PSD_df, freqs, chs, segment='PSD N1b')
 
 #%% Stats
 import scipy.stats as stats
+import pingouin as pg
+from statsmodels.formula.api import mixedlm
 
-aucs_grouped = AUC_df.groupby(['Age group', 'Band']) #for relative bandpower
+#stability stats
+within_sleep_stability(PSD_df, stage='N1')
+
+
+
+
+# examine the difference of sleep spindle area over age groups
+# using mixed linear model with subjects as random effects
+AUC_df_long, AUC_df = auc_over_freqrange(PSD_df, freqs, freqrange=(12,15), relative=False)
+AUC_df_long = AUC_df_long.rename(columns={'Age group': 'Group'})
+AUC_df_long['AUC'] = np.log10(30+AUC_df_long['AUC'])
+model = mixedlm('AUC ~ Sleep', data=AUC_df_long,
+                groups="Subject", vc_formula={"Group": "0 + Group"}, re_formula="~Sleep")
+result = model.fit()
+print(result.summary())
+
+# diagnostic plots
+residuals = result.resid
+stats.probplot(residuals, dist="norm", plot=plt)
+plt.show()
+
+plt.scatter(result.fittedvalues, residuals)
+plt.xlabel("Fitted values")
+plt.ylabel("Residuals")
+plt.title("Residuals vs Fitted Values")
+plt.show()
+
+# plot the data as well
+
+
+#Other option: difference between measurements (N2-N1), does that differ between groups?
+
+
+#Another option: check the difference in groups separately 
+aucs_grouped = AUC_df.groupby('Age group')
+
+for name, group_df in aucs_grouped:
+    stat, p_val = stats.wilcoxon(group_df['AUC N1'], group_df['AUC N2'])
+    print(name)
+    print(f"Wilcoxon statistic: {stat}, p-value: {p_val}")
+
+
+###########################################
+# AUC stats
+aucs_grouped = AUC_df.groupby(['Age group']) #for relative bandpower
 group_stats = aucs_grouped.describe()
 group_stats = group_stats.iloc[[0,1,2,3,4,6,7,8,9,5],:] 
 
@@ -407,8 +585,10 @@ vd_palette = sns.color_palette("viridis", n_colors=10, as_cmap=True)
 
 
 band_index=6
-AUC_df2 = AUC_df[AUC_df['Band']==f'band {band_index}']
-band_freqs = f_bands[band_index]
+#AUC_df2 = AUC_df[AUC_df['Band']==f'band {band_index}']
+#band_freqs = f_bands[band_index]
+AUC_df2 = AUC_df
+AUC_df2['AUC'] = AUC_df2['AUC N2']
 
 g = sns.FacetGrid(AUC_df2, row='Age group', hue='Age group', aspect=15, height=0.75, palette=colors)
 # add the densities kdeplots for age groups

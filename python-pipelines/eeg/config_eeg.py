@@ -70,6 +70,14 @@ bads = {}
 
 eog_channel = 'PIETSO' #Change?
 
+
+def read_template_subject(subject='ELE12404'):
+    
+    raw = mne.io.read_raw_fif(fname.filt(subject=subject), preload=True)
+    
+    return raw
+
+
 ###############################################################################
 # Templates for filenames
 #
