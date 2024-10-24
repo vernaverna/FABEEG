@@ -394,67 +394,122 @@ def auc_over_freqrange(PSD_df, freqs, freqrange=(12,15), relative=True):
     return AUC_df_long, AUC_df
     
 
-def within_sleep_stability(PSD_df, stage='N1'):
-
+def within_sleep_stability(psd_df, stage='N1', spatial = False, color='green'):
+   
     raw = read_template_subject()
-    adjacency, ch_names = find_ch_adjacency(raw.info, ch_type="eeg")
   
     subj_X = [] 
-    for subject in PSD_df.index:
-        subj_data = PSD_df.loc[subject]
-        data = subj_data[3:] #choose only the psd 
+    subs = []
+    for subject in psd_df.index:
+        subj_data = psd_df.loc[subject]
+        data = subj_data[3:9] #choose only the psd 
         #metadata=subj_data['Sex']+ ', '+ str(subj_data['Age'])+'y'
         
-        #means = [np.nanmean(datum, axis=0) for datum in data]
-        means = [datum for datum in data]
-        # conditions = data.index  
-        
-        # plot_df = pd.DataFrame(means).T
-        # plot_df.columns=conditions
-        # plot_df['Freq. (Hz)'] = freqs
-        # plot_df = pd.melt(plot_df, ['Freq. (Hz)'], var_name='segment', value_name='Power')
-        # plot_df['sleep'] = ['N1' if '1' in plot_df['segment'][i] else 'N2' for i in range(len(plot_df))]
-     
+        if spatial:
+            means = [datum for datum in data]
+        else:
+            means = [np.nanmean(datum, axis=0) for datum in data]
+
         # # clustering based on mean segments? or f test?
         try:
             N1_data, N2_data = np.array(means[0:2]), np.array(means[2:])
             
             if stage == 'N1':
-                subj_X.append(N1_data.transpose(0,2,1))
-            else:    
-                subj_X.append(N2_data.transpose(0,2,1))
-
+                if spatial:
+                    subj_X.append(N1_data.transpose(0,2,1))
+                else: 
+                    subj_X.append(N1_data)
+            else:
+                if spatial:
+                    subj_X.append(N2_data.transpose(0,2,1))
+                else:
+                    subj_X.append(N2_data)
+            subs.append(subject)
 
         except ValueError:
           print('Not enough N2 segments, skipping!')
           
      
     subj_X = np.array(subj_X)
-    X =[ subj_X[:, i, :] for i in range(subj_X.shape[1])]
+    if spatial:
+        adjacency, ch_names = find_ch_adjacency(raw.info, ch_type="eeg")
+        X =[ subj_X[:, i, :] for i in range(subj_X.shape[1])]
+        alpha = 0.001
     
-    alpha_cluster_forming = 0.001
-    pval = 0.05
+
+    else:
+        X =[ subj_X[:, i] for i in range(subj_X.shape[1])]
+        alpha = 0.01
  
     n_conditions = len(X)
     n_observations = len(X[0])
     dfn = n_conditions - 1
     dfd = n_observations - n_conditions
     
-    thresh = scipy.stats.f.ppf(1 - alpha_cluster_forming, dfn=dfn, dfd=dfd)  # F distribution
+    thresh = scipy.stats.f.ppf(1 - alpha, dfn=dfn, dfd=dfd)  # F distribution
+
+    if spatial:
+        F_obs, clusters, cluster_pv, H0 = spatio_temporal_cluster_test(
+            X,
+            n_permutations=1000,
+            threshold=thresh,
+            tail=0,
+            )
         
-        # X=data_array #np.array([*data_array]) #unpack data
-    F_obs, clusters, cluster_pv, H0 = spatio_temporal_cluster_test(
-        X,
-        n_permutations=1000,
-        threshold=thresh,
-        tail=0,
-        )
+        fig = None
+        
+    else:
+        F_obs, clusters, cluster_pv, H0 = permutation_cluster_test(
+            X,
+            n_permutations=1000,
+            threshold=thresh,
+            tail=1,
+            )
+    
+        # determine clusters worth plotting
+        good_idxxs = list(np.where(pvs < alpha)[0])
+        print(good_idxxs)
+        good_clusts = []
+        if len(good_idxxs) > 0:
+            for clust in [clusts[k] for k in good_idxxs]:
+                if len(clust[0]) > 10:
+                    good_clusts.append(clust)
+        
+    
+        # Reshape the data to long format
+        subjects = np.repeat(subs, n_conditions * 180)
+        conditions = np.tile(np.repeat(np.arange(1,n_conditions+1), 180), n_observations)  
+        freq_vec = np.tile(freqs, n_observations * n_conditions)  
+        values = subj_X.flatten()  
+        
+        df = pd.DataFrame({
+            'Subject': subjects,
+            'Segment': conditions,
+            'Freqs': freq_vec,
+            'Value': values
+        })
+        
+        fig = plt.figure()
+        ax=sns.lineplot(data=df, x='Freqs', y='Value', color=color, style='Segment', errorbar=None)
+        ax = plt.gca()
+
+        for clust in good_clusts:
+            plotclust = clust[0]
+            fmin, fmax = freqs[plotclust[0]], freqs[plotclust[-1]]
+            plt.axvspan(fmin, fmax, color='silver', alpha=0.2)
+
+        ax.set_xlabel('Frequency (Hz)')
+        ax.set_ylabel('Power')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        ax.set_title(f'Within-sleep stability: {stage} sleep')
+       
+    
         
     #print(f'F-statistic: {F_obs}')
-    if np.any(cluster_pv < pval):
-        good_cluster_inds = np.where(cluster_pv < pval)[0]
     
-        return clusters, good_cluster_inds
+    return clusters, cluster_pv, fig
 
 
 
@@ -531,8 +586,57 @@ import pingouin as pg
 from statsmodels.formula.api import mixedlm
 
 #stability stats
-within_sleep_stability(PSD_df, stage='N1')
 
+# group PSD_df also
+
+# Group the data according to age groups
+bin_labels = ['1','2','3','4','5','6','7','8','9','10']
+bins, bin_labs = pd.qcut(PSD_df['Age'], q=10, retbins=True, labels=bin_labels)
+bin_names = [str( round(bin_labs[i-1],1)) + ' – ' + str(round(bin_labs[i],1)) for i in range(1,len(bin_labs))]
+
+bins, bin_labs = pd.qcut(PSD_df['Age'], q=10, retbins=True, labels=bin_names)
+PSD_df['Age group'] = bins
+
+# plot the clusters for assessing differences
+cm = plt.get_cmap('viridis')
+#cm = plt.get_cmap('mako')
+colors = [cm(x) for x in np.linspace(0, 1, len(bin_labels))] 
+
+grouped_psd_df = PSD_df.groupby('Age group')
+ages_clusters = {}
+figs = []
+stage='N2'
+for i, (name, group_df) in enumerate(grouped_psd_df):
+    print(f'Spatiotemporal permutation test: Age group {name}')
+    clusts, pvs, fig = within_sleep_stability(group_df, stage=stage, spatial=False, color=colors[i])
+    plt.show()
+    fig.suptitle(f'Age group {name}')
+    
+    good_idxxs = list(np.where(pvs < 0.01)[0])
+    print(good_idxxs)
+    good_clusts = []
+    if len(good_idxxs) > 0:
+        for clust in [clusts[k] for k in good_idxxs]:
+            if len(clust[0]) > 10:
+                good_clusts.append(clust)
+    print(f'Number of significant clusters is {len(good_idxxs)}')
+    print(f'Number of non-trivial clusters is {len(good_clusts)}')
+
+    ages_clusters[name] = len(good_clusts)
+    fig.savefig(os.path.join('figures', f'within-{stage}-stability_ages{name}.pdf'))
+
+
+# for everyone:
+clusters, cluster_pv = within_sleep_stability(PSD_df, stage='N2')
+good_idxxs = list(np.where(cluster_pv < 0.01)[0])
+print(good_idxxs)
+good_clusts = []
+if len(good_idxxs) > 0:
+    for clust in [clusters[k] for k in good_idxxs]:
+        if len(clust[0]) > 10:
+            good_clusts.append(clust)
+print(f'Number of significant clusters is {len(good_idxxs)}')
+print(f'Number of non-trivial clusters is {len(good_clusts)}')
 
 
 
