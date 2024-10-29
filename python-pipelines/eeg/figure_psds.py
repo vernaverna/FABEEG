@@ -396,7 +396,8 @@ def auc_over_freqrange(PSD_df, freqs, freqrange=(12,15), relative=True):
 
 def within_sleep_stability(psd_df, stage='N1', spatial = False, color='green'):
    
-    raw = read_template_subject()
+    if spatial:
+        raw = read_template_subject()
   
     subj_X = [] 
     subs = []
@@ -504,12 +505,138 @@ def within_sleep_stability(psd_df, stage='N1', spatial = False, color='green'):
         ax.spines['right'].set_visible(False)
         
         ax.set_title(f'Within-sleep stability: {stage} sleep')
-       
-    
+      
         
     #print(f'F-statistic: {F_obs}')
     
     return clusters, cluster_pv, fig
+
+
+
+def sleep_spindle_difference(psd_df, freqs, freqrange=(12,15), spatial=False, color='blue'):
+    
+    if spatial:
+        raw = read_template_subject()
+  
+    subj_X = [] 
+    subj_Xs = []
+    subs = []
+    
+    # determine the freq. indices of interest
+    f_idxs =  np.where((freqs >= freqrange[0]) & (freqs <= freqrange[1]))[0]
+    
+    for subject in psd_df.index:
+        subj_data = psd_df.loc[subject]
+        data = subj_data[3:9] #choose only the psd 
+        #metadata=subj_data['Sex']+ ', '+ str(subj_data['Age'])+'y'
+        
+        if spatial:
+            means = [datum for datum in data]
+        else:
+            means = [np.nanmean(datum, axis=0) for datum in data]
+
+        # average over the segments
+        try:
+            N1_data, N2_data = np.array(means[0:2]).mean(axis=0), np.array(means[2:]).mean(axis=0)
+
+            if spatial:
+                n1_data = N1_data[:,f_idxs]
+                n2_data = N2_data[:,f_idxs]
+                
+                N_data = np.stack([n1_data, n2_data])
+                
+                subj_Xs.append(N_data.transpose(0,2,1))
+                subj_X.append(np.stack([N1_data, N2_data]).transpose(0,2,1))
+            else: 
+                n1_data = N1_data[f_idxs]
+                n2_data = N2_data[f_idxs]
+                
+                N_data = np.stack([n1_data, n2_data])
+                
+                subj_Xs.append(N_data)
+                subj_X.append(np.stack([N1_data, N2_data]))
+
+            subs.append(subject)
+
+        except ValueError:
+          print('Not enough N2 segments, skipping!')
+          
+     
+    subj_Xs = np.array(subj_Xs)
+    subj_X = np.array(subj_X)
+    if spatial:
+        adjacency, ch_names = find_ch_adjacency(raw.info, ch_type="eeg")
+        X =[ subj_Xs[:, i, :, :] for i in range(subj_Xs.shape[1])]
+        alpha = 0.001
+    
+
+    else:
+        X =[ subj_Xs[:, i] for i in range(subj_Xs.shape[1])]
+        alpha = 0.01
+ 
+    n_conditions = len(X)
+    n_observations = len(X[0])
+    dfn = n_conditions - 1
+    dfd = n_observations - n_conditions
+    
+    thresh = scipy.stats.f.ppf(1 - alpha, dfn=dfn, dfd=dfd)  # F distribution
+
+    if spatial:
+        F_obs, clusters, cluster_pv, H0 = spatio_temporal_cluster_test(
+            X,
+            n_permutations=1000,
+            threshold=thresh,
+            tail=0,
+            )
+        
+        fig = None
+        
+    else:
+        F_obs, clusters, cluster_pv, H0 = permutation_cluster_test(
+            X,
+            n_permutations=1000,
+            threshold=thresh,
+            tail=1,
+            )
+    
+        # determine clusters worth plotting
+        good_idxxs = list(np.where(cluster_pv < alpha)[0])
+        print(good_idxxs)
+
+        if len(good_idxxs) > 0:
+            good_clusts = clusters[good_idxxs[0]][0]
+        
+    
+        # Reshape the data to long format
+        subjects = np.repeat(subs, n_conditions * len(freqs))
+        conditions = np.tile(np.repeat(np.arange(1,n_conditions+1), len(freqs)), n_observations)  
+        freq_vec = np.tile(freqs, n_observations * n_conditions)  
+        values = subj_X.flatten()  
+        
+        df = pd.DataFrame({
+            'Subject': subjects,
+            'Segment': conditions,
+            'Freqs': freq_vec,
+            'Value': values
+        })
+        
+        fig = plt.figure()
+        ax=sns.lineplot(data=df, x='Freqs', y='Value', color=color, style='Segment', errorbar=None)
+        ax = plt.gca()
+
+        plotclust = good_clusts
+        fmin, fmax = freqs[f_idxs[plotclust[0]]], freqs[f_idxs[plotclust[-1]]]
+        plt.axvspan(fmin, fmax, color='silver', alpha=0.2)
+
+        ax.set_xlabel('Frequency (Hz)')
+        ax.set_ylabel('Power')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        #ax.set_title(f'Within-sleep stability: {stage} sleep')
+        
+        
+        return clusters, cluster_pv, fig
 
 
 
@@ -623,11 +750,11 @@ for i, (name, group_df) in enumerate(grouped_psd_df):
     print(f'Number of non-trivial clusters is {len(good_clusts)}')
 
     ages_clusters[name] = len(good_clusts)
-    fig.savefig(os.path.join('figures', f'within-{stage}-stability_ages{name}.pdf'))
+    fig.savefig(os.path.join('figures', f'within-{stage}-stability_ages_{name}.pdf'))
 
 
 # for everyone:
-clusters, cluster_pv = within_sleep_stability(PSD_df, stage='N2')
+clusters, cluster_pv, fig = within_sleep_stability(PSD_df, stage='N2', spatial=False)
 good_idxxs = list(np.where(cluster_pv < 0.01)[0])
 print(good_idxxs)
 good_clusts = []
@@ -637,6 +764,24 @@ if len(good_idxxs) > 0:
             good_clusts.append(clust)
 print(f'Number of significant clusters is {len(good_idxxs)}')
 print(f'Number of non-trivial clusters is {len(good_clusts)}')
+
+
+##################################################################################################
+#
+# permutation test over sleep spindle range
+ages_clusters = {}
+figs = []
+
+for i, (name, group_df) in enumerate(grouped_psd_df):
+    print(f'Spatiotemporal permutation test: Age group {name}')
+    clusts, pvs, fig = sleep_spindle_difference(group_df, freqs, spatial=False, color=colors[i])
+    plt.show()
+    fig.suptitle(f'Age group {name}')
+    
+    good_idxxs = list(np.where(pvs < 0.01)[0])
+    
+    ages_clusters[name] = len(good_idxxs)
+    fig.savefig(os.path.join('figures', f'spindle_range_ages{name}.pdf'))
 
 
 
