@@ -29,7 +29,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180,
   ages[ages==" "] <- NA #replace empty strings with NA-values
   
   use_all=T #should we use all subjects in training?
-  age_gap=c(0,19) #ages to include
+  age_gap=c(7,19) #ages to include
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -160,39 +160,21 @@ prepare_data <- function(spectra, validation_set, n_inds=180,
     
   }
 
-  # Combine data into 1 big matrix
-
+  # Choose common rownames
+  rowname_list <- lapply(data_Y, rownames)
+  common_rows <- Reduce(intersect, rowname_list)
+  data_Y <- lapply(data_Y, function(mat) mat[common_rows, , drop = FALSE])
+  
+  # Extract validation data
   val=which(names(data_Y)==validation_set)
-  validation_data = data_Y[[val]] #extract validation data
+  validation_data = data_Y[[val]] 
   data_Y[[val]] <- NULL
   
-  data_Y <- do.call(rbind, data_Y) #make into matrices
-  # TODO: make sure that data_Y has the same elements!!!!
-  
-  #choose those subjects who are both in the validation set and train set
-  common_subjects = intersect(rownames(data_Y), rownames(validation_data)) 
-  to_keep = which(rownames(data_Y)%in%common_subjects)
-  data_Y <- data_Y[to_keep,]
-  
+  data_Y <- do.call(rbind, data_Y) #make into single matrix
+
   #Center and scale Y & validation data
   tmp1 <- scale(validation_data[!is.na(validation_data[,1]),],center=T,scale=T)
   Y_val <- scale(validation_data, attr(tmp1,"scaled:center"), attr(tmp1,"scaled:scale"))
-  if(use_all){
-    reorder_idx <- match(rownames(Y_val), rownames(data_Y))
-    if(length(spectra)==3){
-      ordering <- c(reorder_idx, (length(common_subjects)+reorder_idx))
-    } else if(length(spectra)==4){
-      ordering <- c(reorder_idx, (length(common_subjects)+reorder_idx), (2*length(common_subjects)+reorder_idx))
-    }
-    data_Y <- data_Y[ordering,]
-    
-  } else {
-    reorder_idx <- match(rownames(data_Y), rownames(Y_val))
-    Y_val <- Y_val[reorder_idx,]
-  }
-  
-  
-  
   
   
   tmp <- scale(data_Y[!is.na(data_Y[,1]),],center=T,scale=T) #scale after re-ordering
@@ -498,9 +480,10 @@ conds = list(c("N1A","N1B","N2C"),
              c("N1A","N2B","N2A","N1B"),
              c("N2A","N2B","N2C"),
              c("N2A","N2B","N1B"),
-             c("N2A","N2B","N2C","N2D"))
+             c("N2A","N2B","N2C","N2D"),
+             c("N2A","N2B","N2C","N1B"))
 
-for(n in 1:length(conds)){
+for(n in length(conds)){
   
   spectra_list = unlist(conds[n])
   # read in the data
@@ -550,7 +533,7 @@ for(n in 1:length(conds)){
   # print( mean(ranks) )
   
   # rank = c(rank,mean(ranks))
-  save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/NEW_K30_all_',paste(spectra_list, collapse=''), '.RData'))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/NEW_K30_o7_',paste(spectra_list, collapse=''), '.RData'))
   #write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N1_all.csv"))
   
   accuracies = c(accuracies,mean(accs))

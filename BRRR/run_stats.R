@@ -54,7 +54,7 @@ compute_10fold_t_test <- function(population, psd_seq){
   return(list(t, p_val))
 }
 
-population <- "all"
+population <- "o7"
 psd_seq <- "N1AN1BN2C"
 
 stat_results <- compute_10fold_t_test(population, psd_seq) 
@@ -65,12 +65,12 @@ stat_results <- data.frame(
   population = c(rep("all", 6), rep("o7", 6))
 )
 
-pos <- c(rep("all", 8)) #or o7
+pos <- c(rep("o7", 9)) #or o7
 #psd_seqs <- c("N1AN1BN2C", "N1AN1BN2AN2C", "N1AN2BN2C", "N1AN2BN2AN1B",
 #              "N2AN2BN2C", "N2AN2BN2CN2D")
 psd_seqs <- c("N1AN1BN2C", "N1AN1BN2AN2C", "N1AN2BN2C", "N1AN2BN1B", "N1AN2BN2AN1B",
-              "N2AN2BN2C", "N2AN2BN1B", "N2AN2BN2CN2D")
-for(i in 1:8){
+              "N2AN2BN2C", "N2AN2BN1B", "N2AN2BN2CN2D", "N2AN2BN2CN1B")
+for(i in 1:9){
   population <- pos[i]
   psd_seq <- psd_seqs[i]
   print(psd_seq)
@@ -89,20 +89,24 @@ library("viridis")
 
 fname <- '/dataToR/unseen_subj_res_table.csv'
 res0 <- read.csv(paste0(getwd(),fname))
-res0$PTVE <- NULL
+#
 names(res0)[3] <- 'BRRR'
-names(res0)[4] <- 'Corr'
+names(res0)[5] <- 'Corr'
+ptve_vec <- res0$PTVE
+res0$PTVE <- NULL
 
 res <- melt(res0, id.vars=c("Group", "Input"),
             variable.name = 'Model', value.name ='SR')
-res$Test <- as.factor(res$Test)
+#res$Test <- as.factor(res$Test)
 res$Input <- as.factor(res$Input)
+res$PTVE <- c(ptve_vec, rep(NA, 12))
 #barplot(height=res$SR, names=res$Input)
 
 res <- res[res$Test=='N1',]
 
-p <- ggplot(res, aes(x=Input, y=SR, fill=Input)) +
-      geom_bar(position='dodge', stat='identity') +
+p <- ggplot() +
+      geom_bar(data=res, aes(x=Input, y=SR, fill=Input), position='dodge', stat='identity') +
+      geom_line(data=res, aes(x=Input,y=PTVE), group=interaction(res$Group, res$Model), color='red') +
       facet_grid(Group~Model) +
       #facet_wrap(~Model) +
       scale_fill_viridis(discrete=T) +
@@ -121,7 +125,7 @@ p <- ggplot(res, aes(x=Input, y=SR, fill=Input)) +
             panel.grid.minor.y = element_line(colour = "grey80"),
         axis.line = element_line(colour = "black"))
 p
-ggsave(file="figures/unseen_subj_model_comparison.pdf", plot=p, width=8, height=8)
+ggsave(file="figures/unseen_subj_model_comparison_ptve.pdf", plot=p, width=8, height=8)
 
 
 
