@@ -175,9 +175,9 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
 
 double_subs <- read.csv("longitudinal_subset.csv")
 
-viz_data1 <- get_viz_data(fname = "results/full/all_2N1_BRRR_K30.RData")
-viz_data2 <- get_viz_data(fname= "results/full/all_2N2_BRRR_K30.RData")
-viz_data3 <- get_viz_data(fname= "results/full/all_N1N2_BRRR_30.RData")
+viz_data1 <- get_viz_data(fname = "results/full/o7_2N1_BRRR_K30.RData")
+viz_data2 <- get_viz_data(fname= "results/full/o7_2N2_BRRR_K30.RData")
+viz_data3 <- get_viz_data(fname= "results/full/o7_N1N2_BRRR_30.RData")
 
 ages <- viz_data1$ages
 
@@ -194,6 +194,7 @@ get_distances <- function(viz_data, viz_data2, within_sample = T, K=30, half='fi
 
   if(within_sample){
     lat_map2=NULL
+    Y2=Y
   } else {
     if(half=='second'){
       Y2 <- viz_data2$Y[(n+1):(2*n),] #788:,? 
@@ -224,7 +225,7 @@ compute_differentiability <- function(distmat_vec){
   dist_to_others_corr <- c()
   for(i in 1:nrow(D)){
     to_include <- setdiff((1:nrow(D)), i) #take all distances except to self
-    to_include2 <- setdiff((1:nrow(D0)), i) #take all distances except to self
+    to_include2 <- setdiff((1:nrow(D0)), i)
     avg_dist <- mean(D[i, to_include])
     avg_dist_corr <- mean(D0[i, to_include2])
     dist_to_others <- c(dist_to_others, avg_dist)
@@ -236,9 +237,9 @@ compute_differentiability <- function(distmat_vec){
   return(list(dist_to_others, diff, dist_to_others_corr, diff_c))
 }
 
-N1_dists <- get_distances(viz_data1, viz_data2, within_sample = F)
-N2_dists <- get_distances(viz_data2, viz_data2=viz_data1, within_sample = F)
-mixed_dists1 <- get_distances(viz_data3, viz_data2, within_sample = F)
+N1_dists <- get_distances(viz_data1, viz_data2, within_sample = T)
+N2_dists <- get_distances(viz_data2, viz_data2=viz_data1, within_sample = T)
+mixed_dists1 <- get_distances(viz_data3, viz_data2, within_sample = T)
 mixed_dists2 <- get_distances(viz_data3, viz_data2=viz_data1, within_sample = F, half='second')
 
 # Creating a dataframe for plotting....
@@ -269,10 +270,15 @@ dist_df['sex'] = ages$Sex
 dist_df['cap'] = ages$Cap
 
 
-dist_df['diff N1'] <- compute_differentiability(N1_dists)[[2]]
-dist_df['diff N2'] <- compute_differentiability(N2_dists)[[2]]
-dist_df['diff N1N2_N2'] <- compute_differentiability(mixed_dists1)[[2]]
-dist_df['diff N1N2_N1'] <- compute_differentiability(mixed_dists2)[[2]]
+dist_df['WS-dist N1'] <- compute_differentiability(N1_dists)[[2]]
+dist_df['WS-dist N2'] <- compute_differentiability(N2_dists)[[2]]
+dist_df['WS-dist N1N2'] <- compute_differentiability(mixed_dists1)[[2]]
+#dist_df['WS-dist N1N2_N1'] <- compute_differentiability(mixed_dists1)[[2]]
+
+dist_df['BS-dist N1'] <- compute_differentiability(N1_dists)[[1]]
+dist_df['BS-dist N2'] <- compute_differentiability(N2_dists)[[1]]
+dist_df['BS-dist N1N2'] <- compute_differentiability(mixed_dists1)[[1]]
+#dist_df['BS-dist N1N2_N1'] <- compute_differentiability(mixed_dists2)[[1]]
 
 ### for general use?
 
@@ -386,17 +392,32 @@ for(comp in c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12')){
 #               ... according to age, factored by sex.
 #  possibilities: lm-plot, violinplot
 library("reshape2")
+library("tidyr")
+library("dplyr")
 #library("ggpattern")
 
 # remove NA -rows before muting the vars
 dist_df <- na.omit(dist_df)
 #dist_df['log_age'] = log10(dist_df$age) #get age data
-dist_df2 <- dist_df[,c('age', 'sex', 'diff N1', 'diff N2', 'diff N1N2_N1', 'diff N1N2_N2')]
-names(dist_df2)[3:6] <- c('N1', 'N2', 'N1N2_1', 'N1N2_2') 
-long_dist_df <- melt(dist_df2, id.vars=c("age", "sex"),
-                     variable.name = 'Segments', value.name ='differentiability')
+dist_df2 <- dist_df[,c('age', 'sex', 'WS-dist N1', 'WS-dist N2', 'WS-dist N1N2',# 'WS-dist N1N2_N1',
+                       'BS-dist N1', 'BS-dist N2', 'BS-dist N1N2')]
+#dist_df2 <- dist_df[,c('age', 'sex', 'diff N1', 'diff N2', 'diff N1N2_N1', 'diff N1N2_N2')]
+#names(dist_df2)[3:6] <- c('N1', 'N2', 'N1N2_1', 'N1N2_2') 
+#long_dist_df <- melt(dist_df2, id.vars=c("age", "sex"))
 
-# add info on test segments
+# Reshape the data
+long_dist_df <- dist_df2 %>%
+  pivot_longer(
+    cols = starts_with("WS-dist") | starts_with("BS-dist"),   
+    names_to = c("Type", "Data"),       # Create new columns `type` and `group`
+    names_pattern = "([WB])_?(.*)",     # Regex to capture "W" or "B" and "aa", "bb", "cc"
+    values_drop_na = TRUE       # Optional: drop any NA values if they exist
+  )
+
+long_dist_df$Data = sub("^S-dist ", "", long_dist_df$Data)
+long_dist_df <- long_dist_df %>% rename('Distance'='value')
+
+# add info on test segments, if applicable
 test <- c()
 for(i in 1:nrow(long_dist_df)){
   input <- long_dist_df$Segments[i]
@@ -409,23 +430,25 @@ for(i in 1:nrow(long_dist_df)){
 }
 long_dist_df$Test <- as.factor(test)
 
+# AHHHH I think I'm gonna still use only W or B
+long_dist_df <- long_dist_df %>% filter(Type == "B")
 
 # analysis of variance
-anova <- welch_anova_test(differentiability ~ Segments, data = long_dist_df)
+anova <- welch_anova_test(Distance ~ Data, data = long_dist_df)
 summary(anova)
 # post_hoc
-pwc <- games_howell_test(differentiability ~ Segments, data = long_dist_df)
+pwc <- games_howell_test(Distance ~ Data, data = long_dist_df)
 print(pwc)
-pwc <- pwc %>% add_xy_position(x='Segments')
+pwc <- pwc %>% add_xy_position(x='Data')
 
-q <- ggplot(long_dist_df, aes(x=Segments, y=differentiability))+
-      geom_violin(trim = TRUE, aes(fill=Segments), alpha=0.70) + 
+q <- ggplot(long_dist_df, aes(x=Data, y=Distance))+
+      geom_violin(aes(fill=Data), trim = TRUE, alpha=0.50) + 
       geom_boxplot(width=0.35, fill=NA) +
-      scale_fill_viridis(discrete = T) +
+      scale_fill_viridis(option='cividis', discrete = T) +
       stat_pvalue_manual(pwc, hide.ns = TRUE) + 
       labs(subtitle = get_test_label(anova, detailed = TRUE),
             caption = get_pwc_label(pwc)) + #ylim(0.0,2.0)+
-      theme_minimal() + ylab("Differentiability") + xlab("") +
+      theme_minimal() + ylab("Between-Subject Distance") + xlab("") +
       theme(legend.text = element_text(size = 13),
             legend.title = element_text(size = 18),
             axis.text.x = element_blank(), axis.text.y = element_text(size=13),
@@ -440,10 +463,9 @@ q <- ggplot(long_dist_df, aes(x=Segments, y=differentiability))+
 q
 
 
-ggsave(file="figures/Differentiability_fingerprint_all_BRRR_anova.pdf", plot=q, width=9, height=9)
+ggsave(file="figures/BS_distance_latspace_fingerprint_o7_BRRR_anova.pdf", plot=q, width=9, height=9)
 
-
-
+###############################################################################
 
 
 ###############################################################################
@@ -472,7 +494,7 @@ for(s in 1:nrow(double_subs)){
 }
   
 
-
+################################################################################
 
 # compare if significant difference between F vs M using t-test
 stat_t <- dist_df %>% t_test(differentiability~sex) %>% add_significance()
@@ -558,7 +580,7 @@ p2
 ggsave(file="figures/Differentiability_age_sex_guatregplot_all_2N1_K30.pdf", plot=p2, width=11, height=5)
 
 ################################################################################
-#                Plot distance heatmaps for BRRRR model                        #
+#                Plot distance heatmaps for BRRRR model (fig  3)               #
 ################################################################################
 library("reshape2")
 
@@ -646,8 +668,6 @@ iter <- traces_1$iter
 
 # because of the rotation invariance, the convergence needs to be studied w.r.t. to
 # the standard regression coefficient matrix Psi*Gamma
-
-# pseudocode
 
 # for all iterations, compute theta esitmate (Lapply???)
 # for the set of coefficient matrices..

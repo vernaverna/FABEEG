@@ -3,6 +3,7 @@
 ###########################################
 setwd("/projects/FABEEG/BRRR/")
 library("ggplot2")
+library("ggpattern")
 library("ggpubr")
 library("dplyr")
 library("cvms")
@@ -65,12 +66,12 @@ stat_results <- data.frame(
   population = c(rep("all", 6), rep("o7", 6))
 )
 
-pos <- c(rep("o7", 9)) #or o7
+pos <- c(rep("all", 10)) #or o7
 #psd_seqs <- c("N1AN1BN2C", "N1AN1BN2AN2C", "N1AN2BN2C", "N1AN2BN2AN1B",
 #              "N2AN2BN2C", "N2AN2BN2CN2D")
 psd_seqs <- c("N1AN1BN2C", "N1AN1BN2AN2C", "N1AN2BN2C", "N1AN2BN1B", "N1AN2BN2AN1B",
-              "N2AN2BN2C", "N2AN2BN1B", "N2AN2BN2CN2D", "N2AN2BN2CN1B")
-for(i in 1:9){
+              "N2AN2BN2C", "N2AN2BN1B", "N2AN2BN2CN2D", "N2AN2BN2CN1B", "N1AN2BN2AN2D")
+for(i in 1:10){
   population <- pos[i]
   psd_seq <- psd_seqs[i]
   print(psd_seq)
@@ -87,28 +88,32 @@ library("viridis")
 
 # Plot run results as bar charts
 
-fname <- '/dataToR/unseen_subj_res_table.csv'
+fname <- '/dataToR/unseen_data_res_table.csv'
 res0 <- read.csv(paste0(getwd(),fname))
 #
-names(res0)[3] <- 'BRRR'
-names(res0)[5] <- 'Corr'
+names(res0)[4] <- 'BRRR'
+names(res0)[6] <- 'Corr'
 ptve_vec <- res0$PTVE
 res0$PTVE <- NULL
 
-res <- melt(res0, id.vars=c("Group", "Input"),
+res <- melt(res0, id.vars=c("Group", "Input", "Test"),
             variable.name = 'Model', value.name ='SR')
 #res$Test <- as.factor(res$Test)
 res$Input <- as.factor(res$Input)
-res$PTVE <- c(ptve_vec, rep(NA, 12))
+res$PTVE <- c(ptve_vec, rep(NA, 20))
 #barplot(height=res$SR, names=res$Input)
 
 res <- res[res$Test=='N1',]
+res <- res[res$Input != "3N2", ]
+res <- res[res$Input != "2N1+N2", ]
+
 
 p <- ggplot() +
       geom_bar(data=res, aes(x=Input, y=SR, fill=Input), position='dodge', stat='identity') +
-      geom_line(data=res, aes(x=Input,y=PTVE), group=interaction(res$Group, res$Model), color='red') +
+      geom_line(data=res, aes(x=Input,y=PTVE), group=interaction(res$Group, res$Model), color='orangered1', linewidth=2) +
       facet_grid(Group~Model) +
       #facet_wrap(~Model) +
+      #scale_fill_viridis(option='cividis', discrete=T) +
       scale_fill_viridis(discrete=T) +
       theme_minimal() + ylab("Success rate") + ylim(0.0,1.0) + xlab("") +
       theme(legend.text = element_text(size = 13),
@@ -125,7 +130,36 @@ p <- ggplot() +
             panel.grid.minor.y = element_line(colour = "grey80"),
         axis.line = element_line(colour = "black"))
 p
-ggsave(file="figures/unseen_subj_model_comparison_ptve.pdf", plot=p, width=8, height=8)
+ggsave(file="figures/unseen_N2data_model_comparison_ptve.pdf", plot=p, width=8, height=8)
+
+# Try with some splitting
+res2 <- res[res$Group=='A',]
+
+
+p2 <- ggplot() +
+  geom_bar(data=res2, aes(x=Input, y=SR, fill=Input), position='dodge', stat='identity') +
+  geom_line(data=res2, aes(x=Input,y=PTVE), group=res2$Model, color='orangered1', linewidth=2) +
+  facet_wrap(~Model) +
+  #scale_fill_viridis(option='cividis', discrete=T) +
+  scale_fill_viridis(discrete=T) +
+  theme_minimal() + ylab("Success rate") + ylim(0.0,1.0) + xlab("") +
+  theme(legend.text = element_text(size = 13),
+        legend.title = element_text(size = 18),
+        axis.text.x = element_blank(), axis.text.y = element_text(size=13),
+        axis.title.x = element_text(size=18),
+        axis.title.y = element_text(size=18),
+        panel.border = element_blank(),
+        panel.spacing = unit(55, 'points'),
+        panel.grid.major.x = element_blank(),
+        strip.text = element_text(face="bold", size = 15),
+        panel.grid.minor.x = element_blank(), 
+        panel.grid.major.y = element_line(colour = "grey80"),
+        panel.grid.minor.y = element_line(colour = "grey80"),
+        axis.line = element_line(colour = "black"))
+p2
+
+
+ggsave(file="figures/GrA_unseen_N1data_model_comparison_ptve.pdf", plot=p2, width=8, height=4)
 
 
 

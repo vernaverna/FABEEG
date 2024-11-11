@@ -29,7 +29,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180,
   ages[ages==" "] <- NA #replace empty strings with NA-values
   
   use_all=T #should we use all subjects in training?
-  age_gap=c(7,19) #ages to include
+  age_gap=c(0,19) #ages to include
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -481,7 +481,8 @@ conds = list(c("N1A","N1B","N2C"),
              c("N2A","N2B","N2C"),
              c("N2A","N2B","N1B"),
              c("N2A","N2B","N2C","N2D"),
-             c("N2A","N2B","N2C","N1B"))
+             c("N2A","N2B","N2C","N1B"),
+             c("N1A","N2B","N2A","N2D"))
 
 for(n in length(conds)){
   
@@ -533,7 +534,7 @@ for(n in length(conds)){
   # print( mean(ranks) )
   
   # rank = c(rank,mean(ranks))
-  save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/NEW_K30_o7_',paste(spectra_list, collapse=''), '.RData'))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/NEW_K30_all_',paste(spectra_list, collapse=''), '.RData'))
   #write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N1_all.csv"))
   
   accuracies = c(accuracies,mean(accs))
