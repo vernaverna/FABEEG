@@ -2,17 +2,18 @@
 # Based on script by Joonas Haakana  #
 #                                    #
 ######################################
+setwd("/projects/FABEEG/BRRR/")
 library("viridis")
 #TODO: add miniheads? (nope) + same individual, different data??
 
 data <- "EEG_ind" # datatype
-fname='o7_2N2_BRRR_K30'
+fname='o7_N1N2_BRRR_K30'
 
 if(data == "EEG_ind") { #TODO: fix repetition
   #fname <- paste0("results/full/over7_2N1_BRRR_K12.RData")
   file = paste0("results/full/",fname,".RData")
   load(file)
-  datafile <- paste0("data/N1Aspectrum.RData") #only to get frequencies
+  datafile <- paste0("data/new_N1Aspectrum.RData") #only to get frequencies
   load(datafile)
 
   ptves = res$factor_variance/sum(res$factor_variance) * res$model$ptve
@@ -25,7 +26,7 @@ if(data == "EEG_ind") { #TODO: fix repetition
   net$lambda <- 0
   
   net$freq <- freq
-  net$freq <- freq[c(-1),]
+  #net$freq <- freq[c(-1),]
   
   coords <- read.table("var/coords.csv",sep=",")
   ch_names <- read.table("var/ch_names.csv", sep=",")

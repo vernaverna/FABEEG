@@ -647,29 +647,28 @@ library("rstan")
 
 
 # load both models
-load("results/full/i1000_all_2N2_BRRR_K30.RData")
+#load("results/full/i1000_all_2N2_BRRR_K30.RData")
+load("results/full/o7_2N2N1_BRRR_K30.RData")
 res1 <- res
 load("results/full/i5000_all_2N2_BRRR_K30.RData")
 res2 <- res
 remove(res)
 
-# is it legal to compare averages of over mcmc samples?
-#coefmat_1 <- averagePsi(res1)%*%averageGamma(res1)
-#coefmat_2 <- averagePsi(res2)%*%averageGamma(res2)
 
-# Traces... there is either 100 (for i=1000) or 500 (for i=5000)
-traces_1 <- res1$traces
+# Traces... there are 500
 traces_2 <- res2$traces
+traces_1 <- res1$traces
 
 tr_psi1 <- traces_1$Psi
 tr_gamma1 <- traces_1$Gamma
-ptves <- traces_1$tpve
+ptves <- unlist(traces_1$tpve)
 iter <- traces_1$iter
+
 
 # because of the rotation invariance, the convergence needs to be studied w.r.t. to
 # the standard regression coefficient matrix Psi*Gamma
 
-# for all iterations, compute theta esitmate (Lapply???)
+# for all iterations, compute theta, esitmate 
 # for the set of coefficient matrices..
 # ... sample 200 or so parameters (Gillberg et al)
 # ... and store their values in a matrix
@@ -682,9 +681,11 @@ for(i in 1:length(iter)){
   coefMats[[i]] <- coef_mat
 }
 
+n_subj <- nrow(coef_mat)
+
 # choose 200 random element indices from the matrix
 set.seed(121)
-rows <- sample(788, size=200)
+rows <- sample(n_subj, size=200)
 cols <- sample(247, size=200)
 # pick iteration series for each of the params
 param_list <- vector(mode="list", length = 200)
@@ -714,7 +715,7 @@ Rhat = Rhat(unlist(ptves))
 ESS_b = ess_bulk(unlist(ptves))
 ESS_t = ess_tail(unlist(ptves))
 pdf("figures/i1000_ptve_traces.pdf", width=9, height=6)
-plot(iter, ptves, xlab='iteration', 'l', col='darkorchid4', ylab="PTVE score", ylim = c(0.84312, 0.84355))
+plot(iter, ptves, xlab='iteration', 'l', col='darkorchid4', ylab="PTVE score")#, ylim = c(0.84312, 0.84355))
 text(870, 0.8435, paste0("Rhat=", round(Rhat, 4), ", ESS_b=", round(ESS_b, 4),
                          ", ESS_t=", round(ESS_t, 4)))
 dev.off()

@@ -86,58 +86,110 @@ for(i in 1:10){
 library("reshape2")
 library("viridis")
 
-# Plot run results as bar charts
+modality <- 'data' #'data'
 
-fname <- '/dataToR/unseen_data_res_table.csv'
+# Plot run results as bar charts
+fname <- '/dataToR/unseen_subj_res_table.csv'
 res0 <- read.csv(paste0(getwd(),fname))
 #
-names(res0)[4] <- 'BRRR'
-names(res0)[6] <- 'Corr'
+names(res0)[3] <- 'BRRR'
+names(res0)[5] <- 'Corr'
+
+# choose which sleep stage model to use
+res0 <- res0[res0$Type=='Across',]
+
 ptve_vec <- res0$PTVE
 res0$PTVE <- NULL
 
-res <- melt(res0, id.vars=c("Group", "Input", "Test"),
+res <- melt(res0, id.vars=c("Group", "Input", "Type"),
             variable.name = 'Model', value.name ='SR')
 #res$Test <- as.factor(res$Test)
 res$Input <- as.factor(res$Input)
-res$PTVE <- c(ptve_vec, rep(NA, 20))
+res$PTVE <- c(ptve_vec, rep(NA, 6))
 #barplot(height=res$SR, names=res$Input)
 
-res <- res[res$Test=='N1',]
-res <- res[res$Input != "3N2", ]
-res <- res[res$Input != "2N1+N2", ]
+#res <- res[res$Test=='N1',]
+#res <- res[res$Input != "3N2", ]
+#res <- res[res$Input != "2N1+N2", ]
+res2 <- res %>% filter(!is.na(PTVE))
 
+if(modality=='subj'){
+  p <- ggplot() +
+    geom_col_pattern(data=res, aes(pattern=ifelse(Model == "Corr", "stripe", "none"), x=Input, y=SR, fill=Input),
+                     colour                   = 'black', 
+                     pattern_density          = 0.35, 
+                     pattern_spacing = 0.035,
+                     pattern_angle = 45,
+                     position='dodge') +
+    scale_pattern_manual(values = c("none" = NA, "stripe" = "stripe")) +  # Define patterns
+    scale_pattern_fill_manual(values = c("black")) +
+    geom_line(data=res2, aes(x=Input,y=PTVE), 
+              group=interaction(res2$Group, res2$Model), color='orangered1', linewidth=1) +
+    #facet_grid(Group~Model) +
+    facet_wrap(~Group) +
+    #scale_fill_viridis(option='cividis', discrete=T) +
+    scale_fill_viridis(discrete=T) +
+    guides(pattern=guide_legend(title='Model')) +
+    theme_minimal() + ylab("Success rate") + ylim(0.0,1.0) + xlab("") +
+    theme(legend.text = element_text(size = 13),
+          legend.title = element_text(size = 18),
+          axis.text.x = element_blank(), axis.text.y = element_text(size=13),
+          axis.title.x = element_text(size=18),
+          axis.title.y = element_text(size=18),
+          panel.border = element_blank(),
+          panel.spacing = unit(55, 'points'),
+          panel.grid.major.x = element_blank(),
+          strip.text = element_text(face="bold", size = 15),
+          panel.grid.minor.x = element_blank(), 
+          panel.grid.major.y = element_line(colour = "grey80"),
+          panel.grid.minor.y = element_line(colour = "grey80"),
+          axis.line = element_line(colour = "black"))
+  p
+  ggsave(file="figures/across_unseen_subj_model_comparison_ptve.pdf", plot=p, width=8, height=5)
+  
+  
+} else if(modality=='data'){
+  p2 <- ggplot() +
+    geom_col_pattern(data=res, aes(pattern=ifelse(Model == "Corr", "stripe", "none"), x=Input, y=SR, fill=Input),
+                     colour                   = 'black', 
+                     pattern_density          = 0.35, 
+                     pattern_spacing = 0.035,
+                     pattern_angle = 45,
+                     position='dodge') +
+    scale_pattern_manual(values = c("none" = NA, "stripe" = "stripe")) +  # Define patterns
+    scale_pattern_fill_manual(values = c("black")) +
+    geom_line(data=res2, aes(x=Input,y=PTVE), 
+              group=interaction(res2$Model, res2$Group), color='orangered1', linewidth=1) +
+    facet_grid(Test~Group) +
+    #facet_wrap(~Group) +
+    #scale_fill_viridis(option='cividis', discrete=T) +
+    scale_fill_viridis(discrete=T) +
+    guides(pattern=guide_legend(title='Model')) +
+    theme_minimal() + ylab("Success rate") + ylim(0.0,1.0) + xlab("") +
+    theme(legend.text = element_text(size = 13),
+          legend.title = element_text(size = 18),
+          axis.text.x = element_text(size = 13), axis.text.y = element_text(size=13),
+          axis.title.x = element_text(size=18),
+          axis.title.y = element_text(size=18),
+          panel.border = element_blank(),
+          panel.spacing = unit(55, 'points'),
+          panel.grid.major.x = element_blank(),
+          strip.text = element_text(face="bold", size = 15),
+          panel.grid.minor.x = element_blank(), 
+          panel.grid.major.y = element_line(colour = "grey80"),
+          panel.grid.minor.y = element_line(colour = "grey80"),
+          axis.line = element_line(colour = "black"))
+  p2
+  ggsave(file="figures/within_unseen_data_model_comparison_ptve.pdf", plot=p2, width=8, height=8)
+}
 
-p <- ggplot() +
-      geom_bar(data=res, aes(x=Input, y=SR, fill=Input), position='dodge', stat='identity') +
-      geom_line(data=res, aes(x=Input,y=PTVE), group=interaction(res$Group, res$Model), color='orangered1', linewidth=2) +
-      facet_grid(Group~Model) +
-      #facet_wrap(~Model) +
-      #scale_fill_viridis(option='cividis', discrete=T) +
-      scale_fill_viridis(discrete=T) +
-      theme_minimal() + ylab("Success rate") + ylim(0.0,1.0) + xlab("") +
-      theme(legend.text = element_text(size = 13),
-            legend.title = element_text(size = 18),
-            axis.text.x = element_blank(), axis.text.y = element_text(size=13),
-            axis.title.x = element_text(size=18),
-            axis.title.y = element_text(size=18),
-            panel.border = element_blank(),
-            panel.spacing = unit(55, 'points'),
-            panel.grid.major.x = element_blank(),
-            strip.text = element_text(face="bold", size = 15),
-            panel.grid.minor.x = element_blank(), 
-            panel.grid.major.y = element_line(colour = "grey80"),
-            panel.grid.minor.y = element_line(colour = "grey80"),
-        axis.line = element_line(colour = "black"))
-p
-ggsave(file="figures/unseen_N2data_model_comparison_ptve.pdf", plot=p, width=8, height=8)
 
 # Try with some splitting
 res2 <- res[res$Group=='A',]
 
 
 p2 <- ggplot() +
-  geom_bar(data=res2, aes(x=Input, y=SR, fill=Input), position='dodge', stat='identity') +
+  geom_bar(data=res2, aes(x=Input, y=SR, fill=Input, alpha=0.6), position='dodge', stat='identity') +
   geom_line(data=res2, aes(x=Input,y=PTVE), group=res2$Model, color='orangered1', linewidth=2) +
   facet_wrap(~Model) +
   #scale_fill_viridis(option='cividis', discrete=T) +

@@ -29,7 +29,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180,
   ages[ages==" "] <- NA #replace empty strings with NA-values
   
   use_all=T #should we use all subjects in training?
-  age_gap=c(0,19) #ages to include
+  age_gap=c(7,19) #ages to include
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -611,7 +611,7 @@ accs_3 <- c()
 N_s <- c() 
 
 for(n in Ns){
-  n2_data <- prepare_data(spectra = c("N2A", "N2B", "N2C"), validation_set = "N2C", 
+  n2_data <- prepare_data(spectra = c("N1A","N2B","N2A","N2C"), validation_set = "N2C", 
                           n_inds=n, data_type='spectrum')
   Y = n2_data[[1]]
   X = n2_data[[3]]
@@ -621,14 +621,14 @@ for(n in Ns){
   Y2 = n2_data[[5]] #validation set data
   Z = n2_data[[6]]
   
-  N_s = c(N_s, length(x))
+  #N_s = c(N_s, length(x))
   
   source("brrr.R") 
   K=30
   lkg='minimum'
   res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000, burnin=0.5, thin=1, init="LDA",fam=x) #fit the model
   res$scaling <- ginv(averageGamma(res))
-  save(res, file = paste0("results/full/all_2N2_BRRR_K",K,".RData") )
+  save(res, file = paste0("results/full/o7_2N2N1_BRRR_K",K,".RData") )
 
   res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
   res$scaling <- ginv(averageGamma(res))
