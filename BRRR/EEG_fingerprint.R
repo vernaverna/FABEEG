@@ -15,8 +15,8 @@ library("cvms")
 #' @param data_type either 'spectra' or 'PSD'
 #' 
 # ex = N1 or N2, depending which data is read in
-prepare_data <- function(spectra, validation_set, n_inds=180, 
-                         group_by_spectra = F, data_type='spectrum',seed=191){
+prepare_data <- function(spectra, validation_set, n_inds=180, start_age=0,
+                         group_by_spectra = F, data_type='spectrum', seed=191){
   
   
   # Choosing the channels and frequencies
@@ -29,7 +29,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180,
   ages[ages==" "] <- NA #replace empty strings with NA-values
   
   use_all=T #should we use all subjects in training?
-  age_gap=c(7,19) #ages to include
+  age_gap=c(start_age,19) #ages to include
   #Cap='-'
   
   data_Y = vector(mode='list',length=length(spectra)) #containers for targets Y and covariates X
@@ -167,10 +167,15 @@ prepare_data <- function(spectra, validation_set, n_inds=180,
   
   # Extract validation data
   val=which(names(data_Y)==validation_set)
-  validation_data = data_Y[[val]] 
-  data_Y[[val]] <- NULL
+  validation_data = data_Y[val] 
+  data_Y[val] <- NULL
   
   data_Y <- do.call(rbind, data_Y) #make into single matrix
+  if(length(val) > 1){
+    validation_data <- do.call(rbind, validation_data)
+  } else {
+    validation_data <- validation_data[1] #unlist the matrix
+  } 
 
   #Center and scale Y & validation data
   tmp1 <- scale(validation_data[!is.na(validation_data[,1]),],center=T,scale=T)
@@ -210,7 +215,7 @@ prepare_data <- function(spectra, validation_set, n_inds=180,
     for(s in 1:M){
       x[subj[s]] <- s
     }
-    x=rep(x, length(spectra)-1) 
+    x=rep(x, length(spectra)-length(val)) 
     
     X <- matrix(0,S,M,dimnames=list(subj,unique(subj)))
     for(i in 1:length(x)) if(!is.na(x[i])) X[i,x[i]] <- 1
@@ -366,7 +371,7 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
 #' @param K BRRR rank 
 #' @param iter how many iterations given to BRRR
 #' @param dis which distance measure to use in validation
-#' @param validation_scheme 'subject' if dropping subjects, 'unseen_data' if validating on new spectra
+#' @param validation_scheme 'subject' if dropping subjects, 'unseen_data' if validating on additional spectra
 
 
 do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='subject') {
@@ -473,20 +478,33 @@ null_accus <- c()
 rank <- c()
 
 #create set of conditions to loop over as a list
-conds = list(c("N1A","N1B","N2C"),
-             c("N1A","N1B","N2A","N2C"),
-             c("N1A","N2B","N2C"),
-             c("N1A","N2B","N1B"),
-             c("N1A","N2B","N2A","N1B"),
-             c("N2A","N2B","N2C"),
-             c("N2A","N2B","N1B"),
-             c("N2A","N2B","N2C","N2D"),
-             c("N2A","N2B","N2C","N1B"),
-             c("N1A","N2B","N2A","N2D"))
+conds = list(c("N1A","N1B","N2C"),               # 1, 2    | 5
+             c("N1A","N1B","N2A","N2C"),         # 1, 2, 3 | 5
+             c("N1A","N2B","N2C"),               # 1, 4    | 5
+             c("N1A","N2B","N1B"),               # 1, 4    | 2
+             c("N1A","N2B","N2A","N1B"),         # 1, 3, 4 | 2
+             c("N2A","N2B","N2C"),               # 3, 4    | 5
+             c("N2A","N2B","N1B"),               # 3, 4    | 2
+             c("N2A","N2B","N2C","N2D"),         # 3, 4, 5 | 6
+             c("N1A","N2B","N2A","N2D"),         # 1, 3, 4 | 6
+             c("N2A","N2B","N2C","N1B"))         # 3, 4, 5 | 2
 
-for(n in length(conds)){
+# try with these combination as well
+conds2 = list(c("N1A","N1B","N2A"),              # 1, 2    | 3
+             c("N1A","N1B","N2A","N2B"),         # 1, 2, 3 | 4
+             c("N1A","N2A","N2C"),               # 1, 3    | 5
+             c("N1A","N2A","N1B"),               # 1, 3    | 2
+             c("N1A","N2C","N2D","N1B"),         # 1, 5, 6 | 2
+             c("N2A","N2B","N2D"),               # 3, 4    | 6
+             c("N2A","N2D","N1A"),               # 3, 6    | 1
+             c("N2A","N2B","N2D","N2C"),         # 3, 4, 6 | 5
+             c("N1B","N2B","N2A","N2C"),         # 2, 3, 4 | 5
+             c("N2B","N2C","N2D","N1A"))         # 4, 5, 6 | 2
+
+
+for(n in 1:length(conds2)){
   
-  spectra_list = unlist(conds[n])
+  spectra_list = unlist(conds2[n])
   # read in the data
   n2_data <- prepare_data(spectra = spectra_list, validation_set = tail(spectra_list,1), 
                           n_inds=792, data_type='spectrum')
@@ -534,7 +552,7 @@ for(n in length(conds)){
   # print( mean(ranks) )
   
   # rank = c(rank,mean(ranks))
-  save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/NEW_K30_all_',paste(spectra_list, collapse=''), '.RData'))
+  save(CV_results, file=paste0('results/', 10, 'foldCV/unseen_data/NEW_K30_o7_',paste(spectra_list, collapse=''), '.RData'))
   #write.csv(x=c(n, mean(accs),mean(ptvs),mean(ranks)), file=paste0("result_N1_all.csv"))
   
   accuracies = c(accuracies,mean(accs))
@@ -570,19 +588,60 @@ print(mean(accs))
 
 ################################################################################
 
-## Training with all data
+## Training with all data - OOS 
+accuracies <- c()
+ptve <-c()
+null_accus <- c()
+
+
+#create set of conditions to loop over as a list
+conds3 = list(c("N1A","N1B","N2A","N2B"),         # 1, 2    | 3, 4  aX near
+             c("N2A","N2B","N1A","N1B"),         # 3, 4    | 1, 2  aX near, permuted 
+             c("N1A","N1B","N2A","N2D"),         # 1, 2    | 3, 6  aX far
+             c("N2A","N2D","N1A","N1B"),         # 3, 6    | 1, 2  aX far, permuted
+             c("N2C","N2D","N1A","N1B"),         # 5, 6    | 1, 2  aX far, permuted
+             c("N2B","N2C","N2D","N1A"),         # 4, 5    | 6, 2  mixed farish 
+             c("N1A","N2B","N2A","N1B"),         # 1, 4    | 3, 2  mixed near
+             c("N1A","N2D","N2A","N2B"),         # 1, 6    | 3, 4  mixed in between
+             c("N2A","N2B","N2A","N2D"),         # 3, 4    | 1, 6  mixed in between, permuted
+             c("N1A","N2A","N2C","N2D"),         # 1, 3    | 5, 6  mixed far
+             c("N2C","N2D","N1A","N2A"),         # 5, 6    | 1, 3  mixed far, permuted             
+             c("N2A","N2B","N2C","N2D"),         # 3, 4    | 5, 6  N2 near
+             c("N2A","N2D","N2B","N2C"))         # 3, 6    | 4, 5  N2 between
+
 
 source("brrr.R")
-K=30
-res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=0.01) 
-res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
-res$scaling <- ginv(averageGamma(res))
+for(n in 1:length(conds3)){
+  
+  spectra_list = unlist(conds3[n])
+  # read in the data
+  n2_data <- prepare_data(spectra = spectra_list, validation_set = tail(spectra_list,2), 
+                          n_inds=792, start_age=0, data_type='spectrum')
+  
+  Y = n2_data[[1]]
+  X = n2_data[[3]]
+  x = n2_data[[2]]
+  ages = n2_data[[4]]
+  # 
+  Y2 = n2_data[[5]] #validation set data
+  Z = n2_data[[6]]
+  
+  K=30
+  res <- brrr(X=X,Y=Y,K=K,Z=NA,n.iter=1000,thin=5,init="LDA",fam=x, omg=0.01) 
+  #res$scaling2 <- ginv(averagePsi(res)%*%averageGamma(res)) # i have seen this as well
+  res$scaling <- ginv(averageGamma(res))
+  res$lat_map <- Y%*%res$scaling
+  res$lat_map2 <-Y2%*%res$scaling
+  res$input_data <- n2_data #needs to be saved if validation is done at later point
+  
+  #TODO: needs a new validation function! do also the o7 tomorrow.
 
-# ptve = res$factor_variance/sum(res$factor_variance)
-# Ks <- c(1:K)
-# plot(Ks,ptve, 'l', col='firebrick', ylab="ptve %", bty="n")
 
-save(res, file = paste0("results/full/o7_N1N2_BRRR_",K, ".RData") )
+  save(res, file = paste0("results/full/all_",paste(spectra_list, collapse=''),"_BRRR_K",K, ".RData") )
+
+}
+
+
 W <- res$scaling
 lat_map <- Y%*%W
 lat_map2 <- Y2%*%W #mapping to latent space with unseen N2_D data! (HOLDOUT METHOD)
@@ -596,7 +655,7 @@ nsubj <- length(unique(row.names(Y)))
 #lat_map2 <- Y[(2*nsubj+1):(3*nsubj),]
 lat_map <- Y
 lat_map2 <- Y2
-D <- validation(within_sample = F, dis='L1', pK=c(1:247), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
+D <- validation(within_sample = F, dis='corr', pK=c(1:247), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
 
 ###############################################################################
 
@@ -611,7 +670,7 @@ accs_3 <- c()
 N_s <- c() 
 
 for(n in Ns){
-  n2_data <- prepare_data(spectra = c("N1A","N2B","N2A","N2C"), validation_set = "N2C", 
+  n2_data <- prepare_data(spectra = c("N1A","N2B","N2A","N2C"), validation_set = c("N2A","N2C"), 
                           n_inds=n, data_type='spectrum')
   Y = n2_data[[1]]
   X = n2_data[[3]]

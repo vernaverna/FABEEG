@@ -175,9 +175,9 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
 
 double_subs <- read.csv("longitudinal_subset.csv")
 
-viz_data1 <- get_viz_data(fname = "results/full/o7_2N1_BRRR_K30.RData")
-viz_data2 <- get_viz_data(fname= "results/full/o7_2N2_BRRR_K30.RData")
-viz_data3 <- get_viz_data(fname= "results/full/o7_N1N2_BRRR_30.RData")
+viz_data1 <- get_viz_data(fname = "results/full/all_2N1_BRRR_30.RData")
+viz_data2 <- get_viz_data(fname= "results/full/all_2N2_BRRR_30.RData")
+viz_data3 <- get_viz_data(fname= "results/full/all_N1N2_BRRR_30.RData")
 
 ages <- viz_data1$ages
 
@@ -282,13 +282,13 @@ dist_df['BS-dist N1N2'] <- compute_differentiability(mixed_dists1)[[1]]
 
 ### for general use?
 
-X <- viz_data2$X
-Y <- viz_data2$Y
-subj <- viz_data2$subj
-ages <- viz_data2$ages
-age_df <- viz_data2$age_df
-lat_space <- viz_data2$lat_space
-lat_map <- viz_data2$lat_map
+X <- viz_data1$X
+Y <- viz_data1$Y
+subj <- viz_data1$subj
+ages <- viz_data1$ages
+age_df <- viz_data1$age_df
+lat_space <- viz_data1$lat_space
+lat_map <- viz_data1$lat_map
 # ========================================================
 
 # FIGURE 6
@@ -431,7 +431,7 @@ for(i in 1:nrow(long_dist_df)){
 long_dist_df$Test <- as.factor(test)
 
 # AHHHH I think I'm gonna still use only W or B
-long_dist_df <- long_dist_df %>% filter(Type == "B")
+long_dist_df <- long_dist_df %>% filter(Type == "W")
 
 # analysis of variance
 anova <- welch_anova_test(Distance ~ Data, data = long_dist_df)
@@ -445,10 +445,11 @@ q <- ggplot(long_dist_df, aes(x=Data, y=Distance))+
       geom_violin(aes(fill=Data), trim = TRUE, alpha=0.50) + 
       geom_boxplot(width=0.35, fill=NA) +
       scale_fill_viridis(option='cividis', discrete = T) +
+      scale_y_continuous(limits = c(0, 3)) +
       stat_pvalue_manual(pwc, hide.ns = TRUE) + 
       labs(subtitle = get_test_label(anova, detailed = TRUE),
             caption = get_pwc_label(pwc)) + #ylim(0.0,2.0)+
-      theme_minimal() + ylab("Between-Subject Distance") + xlab("") +
+      theme_minimal() + ylab("Within-Subject Distance") + xlab("") +
       theme(legend.text = element_text(size = 13),
             legend.title = element_text(size = 18),
             axis.text.x = element_blank(), axis.text.y = element_text(size=13),
@@ -463,7 +464,7 @@ q <- ggplot(long_dist_df, aes(x=Data, y=Distance))+
 q
 
 
-ggsave(file="figures/BS_distance_latspace_fingerprint_o7_BRRR_anova.pdf", plot=q, width=9, height=9)
+ggsave(file="figures/WS_distance_latspace_fingerprint_all_BRRR_anova.pdf", plot=q, width=9, height=9)
 
 ###############################################################################
 
@@ -496,6 +497,8 @@ for(s in 1:nrow(double_subs)){
 
 ################################################################################
 
+dist_df['differentiability'] = dist_df['WS-dist N2']
+
 # compare if significant difference between F vs M using t-test
 stat_t <- dist_df %>% t_test(differentiability~sex) %>% add_significance()
 stat_t <- stat_t %>% add_xy_position(x = "sex")
@@ -504,10 +507,11 @@ stat_t <- stat_t %>% add_xy_position(x = "sex")
 p <- ggplot(dist_df, aes(x=sex, y=differentiability))+ geom_violin(aes(fill=sex), alpha=0.65) +
      scale_fill_manual(values=c("#DCE319FF", "#33638DFF")) + 
      #stat_summary(fun.data = "mean_sdl", geom="pointrange", size=2, color="black") +
-     geom_boxplot(width=0.1, fill="white") +
+     geom_boxplot(width=0.25) +
+     scale_y_continuous(limits = c(0, 2.5)) + 
      stat_pvalue_manual(stat_t, tip.length = 0) +
      labs(subtitle = get_test_label(stat_t, detailed = TRUE)) +
-     theme_bw() + ylab("Differentiability") + xlab("") +
+     theme_bw() + ylab("Self-distance") + xlab("") +
      theme(legend.key = element_rect(linewidth = 16), 
            legend.text = element_text(size = 13),
            legend.title = element_text(size = 18),
@@ -519,7 +523,7 @@ p <- ggplot(dist_df, aes(x=sex, y=differentiability))+ geom_violin(aes(fill=sex)
            panel.grid.minor = element_blank(), 
            axis.line = element_line(colour = "black"))
 p
-ggsave(file="figures/Differentiability_all_N1N2_sex_K30.pdf", plot=p, width=7, height=7)
+ggsave(file="figures/Differentiability_all_N2_sex_K30.pdf", plot=p, width=7, height=7)
 
 
 # print also summary stats
@@ -540,8 +544,8 @@ print(stat_df2)
 # then creating lm plot for checking the age-dep of WS-distances or differentiability measures
 lm_eqn <- function(df){
   #m <- lm(age ~ `WS-distance`, df); #standard regression model
-  m <- lm(age ~ differentiability + `differentiability^2`, df)
-  #m <- lm(age ~ differentiability, df)
+  #m <- lm(age ~ differentiability + `differentiability^2`, df)
+  m <- lm(age ~ differentiability, df)
   #m <- lm(log_age ~ `WS-distance`, df); #exp. model
   #m <- lm(age~ `WS-distance`+ `WS-distance^2`,df)
   eq <- substitute(italic(y) == a + b %.% italic(x) + c %.% italic(x)^2*","~~italic(r)^2~"="~r2*","~~italic(p)~"="~pvalue,
@@ -563,12 +567,12 @@ eqs_df['sex'] <- as.factor(c('F', 'M'))
 p2 <- ggplot(dist_df, aes(x=age, y=differentiability)) +
       geom_point(alpha=0.15) +
       geom_smooth(data=dist_df, aes(color=sex, fill=sex), method=lm, 
-                  formula=y~x+I(x^2), se=TRUE) +
-                  #formula=y~x, se=TRUE) +
+                  #formula=y~x+I(x^2), se=TRUE) +
+                  formula=y~x, se=TRUE) +
       facet_grid(~sex) +
       scale_fill_manual(values=c("#DCE319FF", "#33638DFF")) +
       scale_color_manual(values=c("#DCE319FF", "#33638DFF")) +
-      geom_text(data=eqs_df, aes(x=7, y=1.2, label = V1), parse = TRUE, inherit.aes=FALSE) +
+      geom_text(data=eqs_df, aes(x=8, y=1.2, label = V1), parse = TRUE, inherit.aes=FALSE) +
       theme_minimal() + ylab("Differentiability") + ylim(0.05,1.5) + xlab("Age") +
       theme(panel.border = element_blank(), 
             panel.grid.major = element_blank(),
@@ -577,7 +581,7 @@ p2 <- ggplot(dist_df, aes(x=age, y=differentiability)) +
 p2
 
 
-ggsave(file="figures/Differentiability_age_sex_guatregplot_all_2N1_K30.pdf", plot=p2, width=11, height=5)
+ggsave(file="figures/Differentiability_age_sex_regplot_all_N1N2_K30.pdf", plot=p2, width=11, height=5)
 
 ################################################################################
 #                Plot distance heatmaps for BRRRR model (fig  3)               #

@@ -14,16 +14,17 @@ library("rstatix")
 
 # get the CV results and perform k-fold cross-validated paired t-test
 # 
-
-
 compute_10fold_t_test <- function(population, psd_seq){
   
   fname <- paste0('results/10foldCV/unseen_data/NEW_K30_', population, '_', psd_seq, '.RData')
   load(fname)
   
+  CV_scores <- lapply(CV_results, `[[`, 1) #un-listing stuff
+  CV_ptves <- lapply(CV_results, `[[`, 2)
+  
   CV_models <- lapply(CV_results, `[`, 3)
   
-  CV_scores <- lapply(CV_results, `[[`, 1) #unlisting 
+  CV_scores <- lapply(CV_results, `[[`, 1) #un-listing 
   CV_scores <- lapply(CV_scores, `[[`, 2)
   
   CV_null_scores <- lapply(CV_results, `[[`, 4)
@@ -38,6 +39,9 @@ compute_10fold_t_test <- function(population, psd_seq){
   print("Average CV 0-accuracy:")
   print(mean(null_accs))
   
+  ptvs = unlist(lapply(CV_ptves, `[[`, 1))
+  print("Average train-PTVE:")
+  print( mean(ptvs) )
   
   #define difference in accuracies
   p <- unlist(CV_scores) - unlist(CV_null_scores)
@@ -51,9 +55,79 @@ compute_10fold_t_test <- function(population, psd_seq){
   print(paste("T:", t))
   print(paste("p-value:", p_val))
   #crit_value <- qt(p=0.025, df=9)
+  print("-------------------------------------")
   
   return(list(t, p_val))
 }
+
+
+
+do_OOS_validation <- function(population, psd_seq){
+  
+  test_seq <- tail(psd_seq,2)
+  train_seq <- setdiff(psd_seq, test_seq)
+  psd_seq_list <- paste(psd_seq, collapse='')
+  
+  fname <- paste0('results/full/', population, '_', psd_seq_list, '_BRRR_K30.RData')
+  load(fname)
+  
+  Y = res$input_data[[1]]
+  Y2 = res$input_data[[5]] #validation set data
+  X =  res$input_data[[3]]
+  W = res$scaling
+  
+  oos_proj <- Y2%*%W
+  is_proj <- Y%*%W
+  
+  #distance matrices 
+  D <- matrix(NA, ncol(X), ncol(X), dimnames=list(colnames(X), c(paste0('other', colnames(X)) )) )  
+  D0 <- matrix(NA, ncol(X), ncol(X), dimnames=list(colnames(X), c(paste0('other', colnames(X)) )) )  
+  
+  # compute distances in full data matrix (correlation + BRRR, minimum linkage) 
+  # assuming paired observations
+   for(testidx in 1:ncol(X)){ 
+     for(m in 1:ncol(X)){     
+       group_members <- rownames(oos_proj)[m]   
+       idxs = which(row.names(oos_proj) %in% group_members) #should be 2!
+       other_data <- oos_proj[idxs[2], 1:30]
+       other_data0 <- Y2[idxs[2],]
+       
+       dist <- sum(abs(oos_proj[testidx,1:30] - other_data)) #L1-dist
+       dist0 <- cor(Y2[testidx,1:247], other_data0, method='pearson') 
+   
+       D[testidx,m] <-  dist 
+       D0[testidx, m] <- dist0
+      }
+   } 
+   
+   PROJ <- D*0 #initialize 'projection' matrix
+   PROJ0 <- D*0
+   
+   for(r in 1:nrow(D)){ #assign group based on minimal distance in lat. space
+     index <- which.min(D[r,])
+     index_cor <- which.max(D0[r,])
+     PROJ[r,index] <- 1+PROJ[r,index]
+     PROJ0[r,index_cor] <- 1+PROJ0[r,index_cor]
+   }
+   colnames(PROJ) <- c(paste0("class",rownames(D)))
+   colnames(PROJ0) <- c(paste0("class",rownames(D0)))
+   
+   print(paste("Train seq:", paste(train_seq, collapse = ' '), "Test seq:", paste(test_seq, collapse=' ')))
+   accuracy = sum(diag(PROJ))/nrow(D)
+   print(paste("Model accuracy:", accuracy)) 
+   
+   print(paste("Model PTVE:", res$model$ptve)) 
+   
+   null_accuracy = sum(diag(PROJ0))/nrow(D0)
+   print(paste("Null model accuracy:", null_accuracy)) 
+
+   print("------------------------------------")
+}
+
+
+
+#############################################################
+
 
 population <- "o7"
 psd_seq <- "N1AN1BN2C"
@@ -65,6 +139,8 @@ stat_results <- data.frame(
   row_id = c(1:12),
   population = c(rep("all", 6), rep("o7", 6))
 )
+
+#############################################################
 
 pos <- c(rep("all", 10)) #or o7
 #psd_seqs <- c("N1AN1BN2C", "N1AN1BN2AN2C", "N1AN2BN2C", "N1AN2BN2AN1B",
@@ -79,6 +155,28 @@ for(i in 1:10){
 }
 
 
+#############################################################
+
+#create set of conditions to loop over as a list
+conds3 = list(c("N1A","N1B","N2A","N2B"),         # 1, 2    | 3, 4  aX near
+              c("N2A","N2B","N1A","N1B"),         # 3, 4    | 1, 2  aX near, permuted 
+              c("N1A","N1B","N2A","N2D"),         # 1, 2    | 3, 6  aX far
+              c("N2A","N2D","N1A","N1B"),         # 3, 6    | 1, 2  aX far, permuted
+              c("N2C","N2D","N1A","N1B"),         # 5, 6    | 1, 2  aX far, permuted
+              c("N2B","N2C","N2D","N1A"),         # 4, 5    | 6, 2  mixed farish 
+              c("N1A","N2B","N2A","N1B"),         # 1, 4    | 3, 2  mixed near
+              c("N1A","N2D","N2A","N2B"),         # 1, 6    | 3, 4  mixed in between
+              #c("N2A","N2B","N2A","N2D"),         # 3, 4    | 1, 6  mixed in between, permuted
+              c("N1A","N2A","N2C","N2D"),         # 1, 3    | 5, 6  mixed far
+              c("N2C","N2D","N1A","N2A"),         # 5, 6    | 1, 3  mixed far, permuted             
+              c("N2A","N2B","N2C","N2D"),         # 3, 4    | 5, 6  N2 near
+              c("N2A","N2D","N2B","N2C"))         # 3, 6    | 4, 5  N2 between
+
+for(psd_seq in conds3){
+  do_OOS_validation(psd_seq = psd_seq, population = 'o7')
+}
+
+
 
 
 
@@ -86,10 +184,10 @@ for(i in 1:10){
 library("reshape2")
 library("viridis")
 
-modality <- 'data' #'data'
+modality <- 'subj' #'subj'
 
 # Plot run results as bar charts
-fname <- '/dataToR/unseen_subj_res_table.csv'
+fname <- sprintf('/dataToR/unseen_%s_res_table.csv', modality)
 res0 <- read.csv(paste0(getwd(),fname))
 #
 names(res0)[3] <- 'BRRR'
@@ -101,7 +199,7 @@ res0 <- res0[res0$Type=='Across',]
 ptve_vec <- res0$PTVE
 res0$PTVE <- NULL
 
-res <- melt(res0, id.vars=c("Group", "Input", "Type"),
+res <- melt(res0, id.vars=c("Group", "Input", "Type"), #Test
             variable.name = 'Model', value.name ='SR')
 #res$Test <- as.factor(res$Test)
 res$Input <- as.factor(res$Input)
