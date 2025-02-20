@@ -19,7 +19,7 @@ from mne.viz import iter_topography
 from mne.stats import permutation_cluster_test
 from mne.channels import find_ch_adjacency
 from mne.stats import combine_adjacency, spatio_temporal_cluster_test
-from config_eeg import fname, bandpower, f_bands, read_template_subject
+from config_eeg import fname, f_bands,  bandpower
 
 data_dir = '/net/theta/fishpool/projects/FABEEG/childEEG_data/bids/derivatives/'
 
@@ -29,9 +29,6 @@ conditions = ['PSD N1a', 'PSD N1b', 'PSD N2a', 'PSD N2b', 'PSD N2c', 'PSD N2d']
 all_subjects = os.listdir(data_dir)
 subjects = [x.strip('sub-') for x in all_subjects]
 
-# Load the PSDs for each subject
-psds = [read_hdf5(fname.psds(subject=subject))
-        for subject in tqdm(subjects)]
 
 # also the supplimentary data 
 age_df = pd.read_csv('ages.csv', index_col=1)
@@ -39,53 +36,70 @@ age_df = age_df.drop(columns=['Unnamed: 0'])
 age_df = age_df[~age_df.index.duplicated(keep='first')]
 
 # Create holder dict 
-PSD_dict = {}
 
-for i in range(len(subjects)):
-    subj=subjects[i]  
-    try:
-        subj_info = age_df.loc[subj].to_dict()
-        for cond in conditions: #loop thru conditions
-            psds_dict=psds[i]
-            freqs = psds_dict['freqs']
-
-            cond_bpw = cond.replace('PSD', 'BPW')
-            try:
-                subj_info[cond] = psds_dict[cond]
-                
-                data_bandpower = []
-                
-                for band in f_bands:
-                     fmin, fmax = band[0], band[1]
-                     bandpwr = bandpower(psd=psds_dict[cond], f=freqs, fmin=fmin, fmax=fmax)
-                     data_bandpower.append(bandpwr)
-                
-                data_bandpower = np.array(data_bandpower)
-                #sums over the absolute power of all channels
-                abs_power = np.sum(data_bandpower, axis=0)
-                #normalizes data
-                #if all (abs_power < -1e-5):
-                data_bandpower = data_bandpower/abs_power #did not scale with 100 yet
-                
-                subj_info[cond_bpw] = np.array(data_bandpower).T
-            
-            
-            except KeyError:
-                subj_info[cond] = np.nan #some have empty N2 sequences
-                
-        PSD_dict[subj] = subj_info
-        info = psds_dict['info']
+# Load the PSDs for each subject
+def get_PSD_df():
+    psds = [read_hdf5(fname.psds(subject=subject))
+            for subject in tqdm(subjects)]
     
-    except KeyError:
-        print(f'PSD data missing from subject {subj}')
-
-PSD_df = pd.DataFrame.from_dict(PSD_dict, orient='index')
-
-# save the big dataframe to pickle for later use
-PSD_df.to_pickle('PSD_dataframe_with_bandpower.pkl')
-chs = info['ch_names']
+    PSD_dict = {}
+    
+    for i in range(len(subjects)):
+        subj=subjects[i]  
+        try:
+            subj_info = age_df.loc[subj].to_dict()
+            for cond in conditions: #loop thru conditions
+                psds_dict=psds[i]
+                freqs = psds_dict['freqs']
+    
+                cond_bpw = cond.replace('PSD', 'BPW')
+                try:
+                    subj_info[cond] = psds_dict[cond]
+                    
+                    data_bandpower = []
+                    
+                    for band in f_bands:
+                         fmin, fmax = band[0], band[1]
+                         bandpwr = bandpower(psd=psds_dict[cond], f=freqs, fmin=fmin, fmax=fmax)
+                         data_bandpower.append(bandpwr)
+                    
+                    data_bandpower = np.array(data_bandpower)
+                    #sums over the absolute power of all channels
+                    abs_power = np.sum(data_bandpower, axis=0)
+                    #normalizes data
+                    #if all (abs_power < -1e-5):
+                    data_bandpower = data_bandpower/abs_power #did not scale with 100 yet
+                    
+                    subj_info[cond_bpw] = np.array(data_bandpower).T
+                
+                
+                except KeyError:
+                    subj_info[cond] = np.nan #some have empty N2 sequences
+                    
+            PSD_dict[subj] = subj_info
+            info = psds_dict['info']
+        
+        except KeyError:
+            print(f'PSD data missing from subject {subj}')
+    
+    PSD_df = pd.DataFrame.from_dict(PSD_dict, orient='index')
+    
+    # save the big dataframe to pickle for later use
+    PSD_df.to_pickle('PSD_dataframe_with_bandpower.pkl')
+    chs = info['ch_names']
+    
+    return PSD_df, chs
 
 #%% PLOTTING FUNCTIONS AND STATS   
+
+def read_template_subject(subject='ELE12404'):
+    
+    raw = mne.io.read_raw_fif(fname.filt(subject=subject), preload=True)
+    psds = read_hdf5(fname.psds(subject=subject))
+    freqs = psds['freqs']
+    
+    return raw, freqs
+
 
 def plot_glob_intra_individual(PSD_df, subject, freqs, perform_clustering=False):
     """
@@ -394,7 +408,7 @@ def auc_over_freqrange(PSD_df, freqs, freqrange=(12,15), relative=True):
     return AUC_df_long, AUC_df
     
 
-def within_sleep_stability(psd_df, stage='N1', spatial = False, color='green'):
+def within_sleep_stability(psd_df, freqs, stage='N1', spatial = False, color='green'):
    
     if spatial:
         raw = read_template_subject()
@@ -455,6 +469,8 @@ def within_sleep_stability(psd_df, stage='N1', spatial = False, color='green'):
             n_permutations=1000,
             threshold=thresh,
             tail=0,
+            adjacency=adjacency,
+            seed=191,
             )
         
         fig = None
@@ -465,14 +481,15 @@ def within_sleep_stability(psd_df, stage='N1', spatial = False, color='green'):
             n_permutations=1000,
             threshold=thresh,
             tail=1,
+            seed=191,
             )
     
         # determine clusters worth plotting
-        good_idxxs = list(np.where(pvs < alpha)[0])
+        good_idxxs = list(np.where(cluster_pv < alpha)[0])
         print(good_idxxs)
         good_clusts = []
         if len(good_idxxs) > 0:
-            for clust in [clusts[k] for k in good_idxxs]:
+            for clust in [clusters[k] for k in good_idxxs]:
                 if len(clust[0]) > 10:
                     good_clusts.append(clust)
         
@@ -509,7 +526,7 @@ def within_sleep_stability(psd_df, stage='N1', spatial = False, color='green'):
         
     #print(f'F-statistic: {F_obs}')
     
-    return clusters, cluster_pv, fig
+    return clusters, cluster_pv, fig, F_obs
 
 
 
@@ -587,6 +604,8 @@ def sleep_spindle_difference(psd_df, freqs, freqrange=(12,15), spatial=False, co
             n_permutations=1000,
             threshold=thresh,
             tail=0,
+            adjacency=adjacency,
+            seed=191,
             )
         
         fig = None
@@ -597,6 +616,7 @@ def sleep_spindle_difference(psd_df, freqs, freqrange=(12,15), spatial=False, co
             n_permutations=1000,
             threshold=thresh,
             tail=1,
+            seed=191,
             )
     
         # determine clusters worth plotting
@@ -633,14 +653,18 @@ def sleep_spindle_difference(psd_df, freqs, freqrange=(12,15), spatial=False, co
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         
-        #ax.set_title(f'Within-sleep stability: {stage} sleep')
+        #ax.set_title(f'F-statistic: {}')
         
         
-        return clusters, cluster_pv, fig
+        return clusters, cluster_pv, fig, F_obs
 
 
 
 #%%% Plots
+
+raw, freqs = read_template_subject()
+chs = raw.info['ch_names']
+
 PSD_df = pd.read_pickle('PSD_dataframe_with_bandpower.pkl')
 sleep= 'BPW N1b' #'PSD N1a'
 cohort_n_mean, AUC_df = sd_mean_inter_age_groups(PSD_df, freqs, sleep=sleep, do_bandpower=True)
@@ -681,10 +705,8 @@ def my_callback1(ax, ch_idx):
         #ax.set_title(sleep) #overrides channel name :(
         i=i+1
 
-
-template = mne.io.read_raw_fif(fname.filt(subject=subj), preload=True)
 #loop through all channels and create an axis for them
-for ax, idx in iter_topography(template.info, 
+for ax, idx in iter_topography(raw.info, 
                                fig_facecolor='white',
                                axis_facecolor='white',
                                axis_spinecolor='white',
@@ -735,7 +757,7 @@ figs = []
 stage='N2'
 for i, (name, group_df) in enumerate(grouped_psd_df):
     print(f'Spatiotemporal permutation test: Age group {name}')
-    clusts, pvs, fig = within_sleep_stability(group_df, stage=stage, spatial=False, color=colors[i])
+    clusts, pvs, fig, F_obs = within_sleep_stability(group_df, freqs, stage=stage, spatial=False, color=colors[i])
     plt.show()
     fig.suptitle(f'Age group {name}')
     
@@ -754,7 +776,8 @@ for i, (name, group_df) in enumerate(grouped_psd_df):
 
 
 # for everyone:
-clusters, cluster_pv, fig = within_sleep_stability(PSD_df, stage='N2', spatial=False)
+stage='N1'
+clusters, cluster_pv, fig, _ = within_sleep_stability(PSD_df, freqs, stage=stage, spatial=False, color='navy')
 good_idxxs = list(np.where(cluster_pv < 0.01)[0])
 print(good_idxxs)
 good_clusts = []
@@ -764,6 +787,7 @@ if len(good_idxxs) > 0:
             good_clusts.append(clust)
 print(f'Number of significant clusters is {len(good_idxxs)}')
 print(f'Number of non-trivial clusters is {len(good_clusts)}')
+fig.savefig(os.path.join('figures', f'within-{stage}-stability_all.pdf'))
 
 
 ##################################################################################################
@@ -774,20 +798,20 @@ figs = []
 
 for i, (name, group_df) in enumerate(grouped_psd_df):
     print(f'Spatiotemporal permutation test: Age group {name}')
-    clusts, pvs, fig = sleep_spindle_difference(group_df, freqs, spatial=False, color=colors[i])
+    clusts, pvs, fig, _ = sleep_spindle_difference(group_df, freqs, spatial=False, color=colors[i])
     plt.show()
     fig.suptitle(f'Age group {name}')
     
     good_idxxs = list(np.where(pvs < 0.01)[0])
     
     ages_clusters[name] = len(good_idxxs)
-    fig.savefig(os.path.join('figures', f'spindle_range_ages{name}.pdf'))
+    fig.savefig(os.path.join('figures', f'spindle_range_ages_{name}.pdf'))
 
 
 
 # examine the difference of sleep spindle area over age groups
 # using mixed linear model with subjects as random effects
-AUC_df_long, AUC_df = auc_over_freqrange(PSD_df, freqs, freqrange=(12,15), relative=False)
+AUC_df_long, AUC_df = auc_over_freqrange(PSD_df, freqs, freqrange=(1,45), relative=False)
 AUC_df_long = AUC_df_long.rename(columns={'Age group': 'Group'})
 AUC_df_long['AUC'] = np.log10(30+AUC_df_long['AUC'])
 model = mixedlm('AUC ~ Sleep', data=AUC_df_long,
@@ -837,7 +861,7 @@ band_index=6
 #AUC_df2 = AUC_df[AUC_df['Band']==f'band {band_index}']
 #band_freqs = f_bands[band_index]
 AUC_df2 = AUC_df
-AUC_df2['AUC'] = AUC_df2['AUC N2']
+AUC_df2['AUC'] = AUC_df2['AUC N1']
 
 g = sns.FacetGrid(AUC_df2, row='Age group', hue='Age group', aspect=15, height=0.75, palette=colors)
 # add the densities kdeplots for age groups
@@ -893,7 +917,7 @@ plt.show()
 
 # ok now stats for real for real
 
-age_group1 = AUC_df.loc[AUC_df['Age group']=='0.0 – 0.5']['AUC']
+age_group1 = AUC_df.loc[AUC_df['Age group']=='0.1 – 0.5']['AUC']
 age_group2 = AUC_df.loc[AUC_df['Age group']=='0.5 – 0.8']['AUC']
 age_group3 = AUC_df.loc[AUC_df['Age group']=='0.8 – 1.3']['AUC']
 age_group4 = AUC_df.loc[AUC_df['Age group']=='1.3 – 1.9']['AUC']
@@ -901,14 +925,14 @@ age_group5 = AUC_df.loc[AUC_df['Age group']=='1.9 – 2.8']['AUC']
 age_group6 = AUC_df.loc[AUC_df['Age group']=='2.8 – 4.4']['AUC']
 age_group7 = AUC_df.loc[AUC_df['Age group']=='4.4 – 6.2']['AUC']
 age_group8 = AUC_df.loc[AUC_df['Age group']=='6.2 – 8.1']['AUC']
-age_group9 = AUC_df.loc[AUC_df['Age group']=='8.1 – 11.3']['AUC']
-age_group10 = AUC_df.loc[AUC_df['Age group']=='11.3 – 18.6']['AUC']
+age_group9 = AUC_df.loc[AUC_df['Age group']=='8.1 – 11.4']['AUC']
+age_group10 = AUC_df.loc[AUC_df['Age group']=='11.4 – 18.6']['AUC']
 
 
 stats.f_oneway(age_group1,age_group2,age_group3,age_group4,age_group5,
                age_group6,age_group7,age_group8,age_group9,age_group10)
-age_group_labs=['0.0 – 0.5','0.5 – 0.8','0.8 – 1.3','1.3 – 1.9','1.9 – 2.8',
-                '2.8 – 4.4','4.4 – 6.2','6.2 – 8.1','8.1 – 11.3','11.3 – 18.6']
+age_group_labs=['0.1 – 0.5','0.5 – 0.8','0.8 – 1.3','1.3 – 1.9','1.9 – 2.8',
+                '2.8 – 4.4','4.4 – 6.2','6.2 – 8.1','8.1 – 11.4','11.4 – 18.6']
 # test pairwise correlations?
 age_pairs=[]
 for ag1 in range(9):

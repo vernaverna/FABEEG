@@ -71,12 +71,6 @@ bads = {}
 eog_channel = 'PIETSO' #Change?
 
 
-def read_template_subject(subject='ELE12404'):
-    
-    raw = mne.io.read_raw_fif(fname.filt(subject=subject), preload=True)
-    
-    return raw
-
 
 ###############################################################################
 # Templates for filenames
@@ -254,6 +248,7 @@ def change_metadata(raw):
     raw.set_eeg_reference('average')
     
     return raw, cap_status
+
 
 
 

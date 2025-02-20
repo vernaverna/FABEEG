@@ -43,7 +43,7 @@ elif host == 'nbe-065' and user == 'hkoivikk':
     figures_dir = os.path.join('/m/nbe/scratch/rubberboot/test/figures',user)
     n_jobs = 4
     matplotlib_backend = 'Qt5Agg'
-elif host == 'sirius' and user == 'heikkiv' :
+elif host == 'altair' and user == 'heikkiv' :
     # Verna's workstation in BioMag
     raw_data_dir = '/net/theta/fishpool/projects/FABEEG/childEEG_data/bids/'
     processed_data_dir = '/net/theta/fishpool/projects/FABEEG/childEEG_data/bids/derivatives/'
