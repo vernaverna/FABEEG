@@ -50,7 +50,6 @@ get_viz_data <- function(fname){
   return(data_list)
 }
 
-#the validation function 
 #' Function for validating the model
 #' 
 #' @param within_sample Logical. If FALSE, does out-of-sample validation (unseen data points for all individuals)
@@ -68,8 +67,7 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
   #distance matrix# 
   D <- matrix(NA, ncol(Xt), ncol(Xt), dimnames=list(colnames(Xt), c(paste0('other', colnames(Xt)) )) )  
   
-  # permute lat_map to have same row_names as Xt - safety measure
-  # TODO: check this??? do i mess it up. 
+  # just to be sure, permute lat_map to have same row_names as Xt
   if(!is.null(lat_map2)){
     reorder_val_idx <- match(colnames(Xt), rownames(lat_map2))
     lat_map2 <- lat_map2[reorder_val_idx,]    
@@ -173,7 +171,7 @@ validation <- function(within_sample=FALSE, dis='L1', pK=c(1:K), Xt=X, lat_map, 
 
 ########
 
-double_subs <- read.csv("longitudinal_subset.csv")
+double_subs <- read.csv("longitudinal_subset.csv") #few subjects with additional recording later in time.
 
 viz_data1 <- get_viz_data(fname = "results/full/all_2N1_BRRR_30.RData")
 viz_data2 <- get_viz_data(fname= "results/full/all_2N2_BRRR_30.RData")
@@ -181,6 +179,17 @@ viz_data3 <- get_viz_data(fname= "results/full/all_N1N2_BRRR_30.RData")
 
 ages <- viz_data1$ages
 
+#' Function for computing distances in latent space and full feature space
+#'
+#' @param viz_data first set of data
+#' @param viz_data2 second set of data 
+#' @param within_sample if T, use 
+#' @param K latent-space dimension
+#' @param half if first, use the chronologically closer segments in distance comparison
+#'
+#' @export list of distances (correlations) in latent space (full feature space)
+
+                           
 get_distances <- function(viz_data, viz_data2, within_sample = T, K=30, half='first'){
   X <- viz_data$X
   Y <- viz_data$Y
@@ -215,7 +224,12 @@ get_distances <- function(viz_data, viz_data2, within_sample = T, K=30, half='fi
   return(list(D, D0))
 }
 
-
+#' Function for computing the differentiability score
+#' (for mathematical definition, see Eq. 3 in Methods)
+#' 
+#' @param distmac_vec list of distance matrices
+#' @export list of diff. scores in latent space and in full feature matrix (correlation-based)
+                           
 compute_differentiability <- function(distmat_vec){
   #compute and add the mean distance to other subjects
   D = distmat_vec[[1]]
@@ -242,7 +256,7 @@ N2_dists <- get_distances(viz_data2, viz_data2=viz_data1, within_sample = T)
 mixed_dists1 <- get_distances(viz_data3, viz_data2, within_sample = T)
 mixed_dists2 <- get_distances(viz_data3, viz_data2=viz_data1, within_sample = F, half='second')
 
-# Creating a dataframe for plotting....
+# Creating a dataframe for plotting the results
 reorder_val_idx <- match(rownames(N1_dists[[1]]), ages$File)
 ages <- ages[reorder_val_idx,] 
 
@@ -291,7 +305,7 @@ lat_space <- viz_data1$lat_space
 lat_map <- viz_data1$lat_map
 # ========================================================
 
-# FIGURE 6
+# FIGURE 7
 # make a stacked histogram with subject info
 age_df <- ages %>% mutate(age_group = cut(Age, breaks=14))
 age_df <- na.omit(age_df)
@@ -321,10 +335,8 @@ ggsave(file='demographics.pdf', plot=pg, width=10, height=7)
 
 # =================================================================================
 
-# FIGURE 5
+# FIGURE 5 and 10
 # tSNE projection of the subspace colored by age and sex.
-
-## UPDATE: NOPE - not happening.
 
 library("Rtsne")
 D <- normalize_input(lat_space)
@@ -388,7 +400,7 @@ for(comp in c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12')){
 }
 
 # =================================================================================
-# FIGURE N ---- Intra-subject distances in lat.space // FULL DATA ...
+# FIGURE 4C ---- Intra-subject distances in lat.space // FULL DATA ...
 #               ... according to age, factored by sex.
 #  possibilities: lm-plot, violinplot
 library("reshape2")
@@ -430,7 +442,7 @@ for(i in 1:nrow(long_dist_df)){
 }
 long_dist_df$Test <- as.factor(test)
 
-# AHHHH I think I'm gonna still use only W or B
+# use only W or B at a time
 long_dist_df <- long_dist_df %>% filter(Type == "W")
 
 # analysis of variance
@@ -463,7 +475,7 @@ q <- ggplot(long_dist_df, aes(x=Data, y=Distance))+
             axis.line = element_line(colour = "black"))
 q
 
-
+#NOTE: within-subject distance is referred as self-distance in the article
 ggsave(file="figures/WS_distance_latspace_fingerprint_all_BRRR_anova.pdf", plot=q, width=9, height=9)
 
 ###############################################################################
@@ -496,7 +508,7 @@ for(s in 1:nrow(double_subs)){
   
 
 ################################################################################
-
+# FIGURE 6 (RIGHT PANEL)
 dist_df['differentiability'] = dist_df['WS-dist N2']
 
 # compare if significant difference between F vs M using t-test
@@ -540,7 +552,9 @@ stat_df2 <- dist_df[c('differentiability', 'age', 'sex')] %>%
   summarise(mean(differentiability), sd(differentiability), mad(differentiability))
 print(stat_df2)
 
-
+#######################################################################
+# FIGURE 6 (REGRESSION FITS)
+                           
 # then creating lm plot for checking the age-dep of WS-distances or differentiability measures
 lm_eqn <- function(df){
   #m <- lm(age ~ `WS-distance`, df); #standard regression model
@@ -584,7 +598,7 @@ p2
 ggsave(file="figures/Differentiability_age_sex_regplot_all_N1N2_K30.pdf", plot=p2, width=11, height=5)
 
 ################################################################################
-#                Plot distance heatmaps for BRRRR model (fig  3)               #
+#                Plot distance heatmaps for BRRRR model                        #
 ################################################################################
 library("reshape2")
 
@@ -615,7 +629,7 @@ ggsave(file="figures/small4_distmat_o7_2N2_corr.pdf", plot=p3, width=11, height=
 
 
 ################################################################################
-#           Mantell test for latent map matrices                               #
+#                Mantell test for latent map matrices                          #
 ################################################################################
 library("vegan")
 mat1 <- viz_data1$lat_space #N1 sleep
@@ -644,7 +658,8 @@ print(mantel_test)
 
 
 ################################################################################
-#   Convergence checks for coefficient matrices and ptve traces                # 
+#   Convergence checks for coefficient matrices and ptve traces                #
+#                            (FIGRUE 9)                                        # 
 ################################################################################
 
 library("rstan")
