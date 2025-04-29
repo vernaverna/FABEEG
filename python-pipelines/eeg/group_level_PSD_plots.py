@@ -27,12 +27,6 @@ bin_labels = ['1','2','3','4','5','6','7','8','9','10']
 bins, bin_labs = pd.qcut(age_df['Age'], q=10, retbins=True, labels=bin_labels)
 
 age_df['Age group'] = bins
-# determine to which bin/age group subject belongs to
-#age_groups = np.digitize(x, bins)
-#fig = plt.figure()
-#plt.hist(x, bins=bins)
-#fig.show()
-#age_df['Age group'] = age_groups
 
 figures = defaultdict(list)
 
@@ -121,31 +115,10 @@ for i in range(1, len(group_spectra_n1)+1):
     plt.title('PSD of channel ' + chs[8] )
     
     figs.append(fig)
-    # for j in range(len(group_evoked_avg.ch_names)):
-    #     fig = plt.figure(figsize=(10, 7))
-    #     #psds, freqs = psd_multitaper(group_evoked_avg, fmin=1, fmax=40, n_jobs=1)
-    #     #psds = 10. * np.log10(psds)
-    #     psd_avg = np.log10(group_evoked_avg.data)
-    #     #psds_mean = psd_avg.mean(0) #mean over all channels 
-    #     psds_std = psd_avg.std(0)
-    
-    #     plt.plot(freqs, psd_avg, color=colors[i],
-    #              label='PSD - Channel average')
-    
-    #     ci_low, ci_up = bootstrap_confidence_interval(psd_avg, random_state=0)
-    #     plt.fill_between(freqs, ci_low, ci_up,
-    #                      color=colors[i], alpha=.5)
-    
-
-    
-    #     agebin = 'Ch: ' + group_evoked_avg.ch_names[j] + 'Age: ' + str(bins[i-1]) + '-' + str(bins[i]) + ' years'
-    
-    #     captions.append(agebin)
-    #     figs.append(fig)
 
 
 
-#%% OTher stuff
+#%% OTher stuff - ROI plots
 
 # Define regions of interest (ROIs)
 # TODO: Confirm these!!! 
@@ -190,8 +163,9 @@ for roi in picks_list[1]:
 
 roi_figs = sum(roi_figs, []) #hacky way to get a 1D list of figures
 
+####################################################################
+#FIGURE 1A: Global averages 
 
-#Global average but otherwise the same?
 glob_figs=[]
 log_n1_spect = {1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9:[], 10: []}
 log_n2_spect = {1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9:[], 10: []}
@@ -233,7 +207,6 @@ for i in range(1, len(group_spectra_n1)+1):
         evokeds_n2.append(evkd_group2.data.mean(0))
 
 
-#TODO: combine these to a single data frame
 # https://seaborn.pydata.org/generated/seaborn.relplot.html
 evk_df1 = pd.DataFrame(evokeds_n1).T
 evk_df1.columns = captions
@@ -249,10 +222,10 @@ evk_df = pd.concat(frames, keys=['N1', 'N2'])
 evk_df.reset_index(inplace=True)
 evk_df = evk_df.rename(columns={'level_0': 'Sleep', 'level_1': 'Frequency'})
 
+# make the figures separately for both sleep stage labels
 g = sns.relplot(data=evk_df1, kind="line", palette=colors[0:10])
 g.fig.suptitle("N1 Global average")
 glob_figs.append(g)
-
 
 f = sns.relplot(data=evk_df2, kind="line", palette=colors[0:10])
 f.fig.suptitle("N2 Global average")
@@ -284,8 +257,7 @@ fig = mne.viz.plot_compare_evokeds(log_n1_spect, combine='mean',
    title='N1 sleep spectra of age groups')
 
 
-#TODO: make a channel-wise slider!
-
+####################################################################
 
 with open_report('Average_spectra.h5') as report:
     report.add_slider_to_section(figs, captions=captions, title='Averaged N2 PSDs estimates',
