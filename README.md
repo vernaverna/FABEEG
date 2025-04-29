@@ -12,4 +12,5 @@ Running things in python-pipelines:
 Running things with BRRR:
 
 - you probably need to rearrange the data with file_arranging.R
-- runscripts for BRRR: EEG_fingerprint.R and 
+- runscripts for BRRR: EEG_fingerprint.R and brrr.R
+- for replicating results in the article: run_stats.R, article_plots.R
