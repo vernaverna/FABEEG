@@ -192,6 +192,7 @@ for(psd_seq in conds3){
 
 
 #############################################################
+# FIGURE 4A and 4B
 # Plot comparisons across correlation -based and BRRR model 
 
 library("reshape2")
