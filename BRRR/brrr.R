@@ -41,7 +41,7 @@ averagePsi <- function(res) {
 }
 
 
-compute.factorwise.variance <- function(data, Psi, Gamma) { #TODO: needs checking
+compute.factorwise.variance <- function(data, Psi, Gamma) {
   
   
   #how about eigenvalue decomposition ???
