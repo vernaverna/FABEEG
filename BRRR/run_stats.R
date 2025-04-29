@@ -12,8 +12,13 @@ library("corrplot")
 library("viridis")
 library("rstatix")
 
-# get the CV results and perform k-fold cross-validated paired t-test
-# 
+#' Function for computing t-test of two models over 10-fold cross-validation folds
+#'
+#' @param population either 'all' or 'o7' (> 7 year olds)
+#' @param psd_seq the psd seqs used in the model (model name)
+#'
+#' @export list of t-statistics and their associated p-values
+
 compute_10fold_t_test <- function(population, psd_seq){
   
   fname <- paste0('results/10foldCV/unseen_data/NEW_K30_', population, '_', psd_seq, '.RData')
@@ -60,7 +65,12 @@ compute_10fold_t_test <- function(population, psd_seq){
   return(list(t, p_val))
 }
 
-
+#' Function for performing out-of-sample -like validation.
+#'
+#' @param population either 'all' or 'o7' (> 7 year olds)
+#' @param psd_seq the psd seqs used in the model (model name)
+#'
+#' @export prints model accuracies and ptves, when applicable
 
 do_OOS_validation <- function(population, psd_seq){
   
@@ -127,7 +137,7 @@ do_OOS_validation <- function(population, psd_seq){
 
 
 #############################################################
-
+# Check statistics for one subgroup-model combination
 
 population <- "o7"
 psd_seq <- "N1AN1BN2C"
@@ -141,6 +151,7 @@ stat_results <- data.frame(
 )
 
 #############################################################
+# Loop over all models and compare performance over CV-folds
 
 pos <- c(rep("all", 10)) #or o7
 #psd_seqs <- c("N1AN1BN2C", "N1AN1BN2AN2C", "N1AN2BN2C", "N1AN2BN2AN1B",
@@ -181,10 +192,12 @@ for(psd_seq in conds3){
 
 
 #############################################################
+# Plot comparisons across correlation -based and BRRR model 
+
 library("reshape2")
 library("viridis")
 
-modality <- 'oos' #'subj' 'data', 'oos'
+modality <- 'data' #'subj' 'data', 'oos' are different validation procedures. article uses 'data' and 'subj' only.
 
 # Plot run results as bar charts
 
