@@ -1,7 +1,8 @@
 This repository containts analysis scripts used for children's sleep-EEG fingerprinting.
-The manuscript related to this work is avilable at \url{}
-
 For preprocessing, refer to python-pipelines -folder and for further data analysis and inference, see BRRR -folder. 
+
+The manuscript related to this work is avilable at [url]
+
 
 The code is structured as follows:
 ```
@@ -45,17 +46,16 @@ The code is structured as follows:
     └── requirements.txt
 ```
 
-Running things in python-pipelines:
+**python-pipelines**
 
-- if data is not in the bids format, run create_bids.py
-- type doit in the terminal; this runs tasks 01-04 for all subjects automatically
-- spactra_analysis.py is mainly for plotting 
+- scripts with suffixes *01.py--*04.py are related to preprocessing
+- `plot_singlesubj_spectras.py` is mainly for plotting; `psds_stability_figures.py` contains statistical analysis and within-sleep stage stability estimates 
 
-Running things with BRRR:
+**BRRR**
 
-- you probably need to rearrange the data with file_arranging.R
-- runscripts for BRRR: EEG_fingerprint.R and brrr.R
-- for replicating results in the article: run_stats.R, article_plots.R
+- `EEG_fingerprint.R` and `brrr.R` are used for running the BRRR analysis with the data
+- functions related to probabilistic inference are sored under the `codes` -folder
+- for replicating statistical results and plots, see `run_stats.R` and `article_plots.R`
 
 
 The code was developed with python v3.10 and mne v1.5 and R v.4.0
