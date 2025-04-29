@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Spyder Editor
+This script is used for plotting the PSDs of a single subject
+for quality-control purposes
 
-This is a temporary script file.
+@heikkiv
 """
 
 import mne
