@@ -184,26 +184,30 @@ for(psd_seq in conds3){
 library("reshape2")
 library("viridis")
 
-modality <- 'subj' #'subj'
+modality <- 'oos' #'subj' 'data', 'oos'
 
 # Plot run results as bar charts
+
 fname <- sprintf('/dataToR/unseen_%s_res_table.csv', modality)
+if(modality=='oos'){
+  fname <-  sprintf('/dataToR/%s_res_table.csv', modality)
+}
 res0 <- read.csv(paste0(getwd(),fname))
 #
-names(res0)[3] <- 'BRRR'
-names(res0)[5] <- 'Corr'
+names(res0)[4] <- 'BRRR'
+names(res0)[6] <- 'Corr'
 
 # choose which sleep stage model to use
-res0 <- res0[res0$Type=='Across',]
+res0 <- res0[res0$Type=='Mixed',]
 
 ptve_vec <- res0$PTVE
 res0$PTVE <- NULL
 
-res <- melt(res0, id.vars=c("Group", "Input", "Type"), #Test
+res <- melt(res0, id.vars=c("Group", "Input", "Type", "Test"), #Test
             variable.name = 'Model', value.name ='SR')
 #res$Test <- as.factor(res$Test)
 res$Input <- as.factor(res$Input)
-res$PTVE <- c(ptve_vec, rep(NA, 6))
+res$PTVE <- c(ptve_vec, rep(NA, 10))
 #barplot(height=res$SR, names=res$Input)
 
 #res <- res[res$Test=='N1',]
@@ -246,7 +250,7 @@ if(modality=='subj'){
   ggsave(file="figures/across_unseen_subj_model_comparison_ptve.pdf", plot=p, width=8, height=5)
   
   
-} else if(modality=='data'){
+} else if(modality=='data' | modality=='oos'){
   p2 <- ggplot() +
     geom_col_pattern(data=res, aes(pattern=ifelse(Model == "Corr", "stripe", "none"), x=Input, y=SR, fill=Input),
                      colour                   = 'black', 
@@ -278,7 +282,12 @@ if(modality=='subj'){
           panel.grid.minor.y = element_line(colour = "grey80"),
           axis.line = element_line(colour = "black"))
   p2
-  ggsave(file="figures/within_unseen_data_model_comparison_ptve.pdf", plot=p2, width=8, height=8)
+  if(modality=='data'){
+    ggsave(file="figures/within_unseen_data_model_comparison_ptve.pdf", plot=p2, width=8, height=8)
+    
+  } else {
+    ggsave(file="figures/mixed_oos_model_comparison_ptve.pdf", plot=p2, width=8, height=6) 
+  }
 }
 
 
