@@ -734,9 +734,9 @@ import scipy.stats as stats
 import pingouin as pg
 from statsmodels.formula.api import mixedlm
 
-#stability stats
-
-# group PSD_df also
+##################################################
+#         FIGURE 2 & stability stats             #
+##################################################
 
 # Group the data according to age groups
 bin_labels = ['1','2','3','4','5','6','7','8','9','10']
@@ -791,8 +791,9 @@ fig.savefig(os.path.join('figures', f'within-{stage}-stability_all.pdf'))
 
 
 ##################################################################################################
-#
-# permutation test over sleep spindle range
+# Statistics: 
+#   permutation test over sleep spindle range
+
 ages_clusters = {}
 figs = []
 
@@ -835,7 +836,6 @@ plt.show()
 
 #Other option: difference between measurements (N2-N1), does that differ between groups?
 
-
 #Another option: check the difference in groups separately 
 aucs_grouped = AUC_df.groupby('Age group')
 
@@ -846,7 +846,8 @@ for name, group_df in aucs_grouped:
 
 
 ###########################################
-# AUC stats
+#        FIGURE 1C and AUC stats          #
+###########################################
 aucs_grouped = AUC_df.groupby(['Age group']) #for relative bandpower
 group_stats = aucs_grouped.describe()
 group_stats = group_stats.iloc[[0,1,2,3,4,6,7,8,9,5],:] 
