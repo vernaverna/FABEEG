@@ -4,7 +4,6 @@
 ######################################
 setwd("/projects/FABEEG/BRRR/")
 library("viridis")
-#TODO: add miniheads? (nope) + same individual, different data??
 
 data <- "EEG_ind" # datatype
 fname='o7_N1N2_BRRR_K30'
