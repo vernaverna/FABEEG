@@ -134,11 +134,6 @@ if long_psd:
 else:
     write_hdf5(fname.psds(subject=args.subject), psds, overwrite=True)  # save psd
 
-#ELE12390
-#FLE131126
-#ELE12390
-#FLE131126
-
 
 # # Save resultus to report
 # with open_report(fname.report(subject=args.subject)) as report:
