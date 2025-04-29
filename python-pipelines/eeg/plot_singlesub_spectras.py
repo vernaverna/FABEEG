@@ -14,7 +14,31 @@ from config_eeg import fname, n_fft, age_df
 from mne import open_report
 
 
-def change_metadata(raw): #Use this in all preprocessing steps?
+def change_metadata(raw): 
+    """
+    Modify metadata, set correct channel types, and pick common channels 
+    from the subject's raw EEG data.
+
+    This function harmonizes raw EEG data by renaming channels, determining 
+    the appropriate reference channel (Pz or Cz), and retaining only the 
+    channels listed in a shared channels file. It also identifies whether 
+    a larger cap was used based on the presence of specific channel names.
+
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        The raw EEG data in FIF format.
+
+    Returns
+    -------
+    raw : mne.io.Raw
+        The processed raw EEG data with modified metadata and selected 
+        channels.
+    cap_status : str
+        Indicates whether the larger cap was used. Possible values:
+        - 'FT': Larger cap was used.
+        - '-': No larger cap was used.
+    """
 
     #For testdata only, remove . in channel-names
     raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names, FIXME
@@ -91,20 +115,12 @@ raw2.filter(1,40)
 raw2 = raw2.notch_filter(50, picks=['eeg', 'eog'])
 
 
-# Set bipolar reference
+# Set reference
 raw2.rename_channels(lambda x: x.upper())  # capitalize the ch names
 raw2.set_eeg_reference('average')
 info = mne.pick_info(raw2.info, mne.pick_types(raw2.info, eeg=True))
 
 raw2.plot(duration=30.0)
-# raw2_ref = mne.set_bipolar_reference(raw2, anode=['FP1', 'F7', 'T3', 'T5',
-#                                                    'FP2', 'F8', 'T4', 'T6',
-#                                                    'FP1', 'F3', 'C3', 'P3',
-#                                                    'FP2', 'F4', 'C4', 'P4', 'FZ', 'PZ'], 
-#                                       cathode=['F7', 'T3', 'T5', 'O1', 
-#                                                'F8', 'T4', 'T6', 'O2',
-#                                                'F3', 'C3', 'P3', 'O1',
-#                                                'F4', 'C4', 'P4', 'O2', 'CZ', 'PZ'])
 
 plt.savefig("raw_example.svg")
 
