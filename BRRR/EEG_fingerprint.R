@@ -465,8 +465,6 @@ do_CV <- function(data, n_folds=5, K=20, iter=500, dis='L1', validation_scheme='
     
     
 ################################################################################
-  
-
 
 ### TRAINING / RUNS ###
 
@@ -489,7 +487,7 @@ conds = list(c("N1A","N1B","N2C"),               # 1, 2    | 5
              c("N1A","N2B","N2A","N2D"),         # 1, 3, 4 | 6
              c("N2A","N2B","N2C","N1B"))         # 3, 4, 5 | 2
 
-# try with these combination as well
+# try with these combinations as well
 conds2 = list(c("N1A","N1B","N2A"),              # 1, 2    | 3
              c("N1A","N1B","N2A","N2B"),         # 1, 2, 3 | 4
              c("N1A","N2A","N2C"),               # 1, 3    | 5
@@ -658,7 +656,7 @@ lat_map2 <- Y2
 D <- validation(within_sample = F, dis='corr', pK=c(1:247), lat_map=lat_map, lat_map2=lat_map2, Xt=X)
 
 ###############################################################################
-
+#  FIGURE 8 (Appendix)
 
 ### Loop over different number of components
 Ks <- seq(from=2,to=248, by=4)
@@ -713,7 +711,7 @@ for(n in Ns){
   #} 
 }
 
-# Plotting
+# Plotting - repeat for K and N separately!
 
 N_s <- N_s/2
 data_list <- list(N_s, ptves, accs_1, accs_2, accs_3)
