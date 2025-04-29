@@ -38,11 +38,6 @@ for s in all_subjects:
 
 #Ages of subjects
 age_df = pd.read_csv('ages.csv')
-#age_df['Cap'] = np.nan
-#age_df = age_df[['File', 'Sex', 'Age']]
-#age_files = [x.replace('-', '') for x in list(age_df['File'])]
-#age_df['File'].replace(dict( zip(list(age_df['File']), age_files) ), inplace=True)
-#age_df.to_csv('ages.csv', index=False)
 
 # Subjects removed from the EEG analysis because of some problem
 bad_subjects = ['derivatives']
@@ -65,7 +60,6 @@ def bandpower(psd, f, fmin, fmax):
 
 # Bad EEG channels for each subject.
 # Made-up list: this is work in progress
-# TODO: save bad channels in files, BIDS compliant or MNE python compliant?
 bads = {}
 
 eog_channel = 'PIETSO' #Change?
