@@ -93,6 +93,22 @@ def get_PSD_df():
 #%% PLOTTING FUNCTIONS AND STATS   
 
 def read_template_subject(subject='ELE12404'):
+    """
+    Reads and loads the raw EEG data and PSD (Power Spectral Density) information for a given subject.
+    Used as an example instance for plotting.
+
+    Parameters
+    ----------
+    subject : str, optional
+        The identifier for the subject whose data is to be loaded. Defaults to 'ELE12404'.
+
+    Returns
+    -------
+    raw : mne.io.Raw
+        The raw EEG data for the specified subject, preloaded for analysis.
+    freqs : array-like
+        The frequency values associated with the PSD data.
+    """
     
     raw = mne.io.read_raw_fif(fname.filt(subject=subject), preload=True)
     psds = read_hdf5(fname.psds(subject=subject))
@@ -283,6 +299,23 @@ def sd_mean_inter_age_groups(PSD_df, freqs, sleep='PSD N1a', do_bandpower=False)
     
 
 def plot_glob_age_groups(cohort_n_mean, freqs, sleep):
+    """
+    Plots the global mean power spectral density (PSD) for different age groups.
+
+    Parameters
+    ----------
+    cohort_n_mean : list of tuples
+        Each tuple contains the name of the age group, the mean PSD data, and the standard deviation for the age group.
+    freqs : array-like
+        The frequency values corresponding to the PSD data.
+    sleep : str
+        Sleep stage for which PSD is being plotted (e.g., NREM stages).
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        A matplotlib figure object showing the global mean PSD for all age groups.
+    """
     
     cm = plt.get_cmap('viridis')
     colors = [cm(x) for x in np.linspace(0, 1, len(cohort_n_mean))] 
@@ -304,19 +337,25 @@ def plot_glob_age_groups(cohort_n_mean, freqs, sleep):
 
 def plot_individual_psd_pasta(subj, PSD_df, freqs, chs, segment='PSD N2a'):
     """
-    
+    Plots the individual power spectral density (PSD) for a specific subject across all EEG channels.
 
     Parameters
     ----------
-    subj : TYPE
-        DESCRIPTION.
-    PSD_df : TYPE
-        DESCRIPTION.
+    subj : str
+        The identifier for the subject whose PSD is being plotted.
+    PSD_df : pandas DataFrame
+        The PSD data frame containing PSD values for various subjects and segments.
+    freqs : array-like
+        Frequency values corresponding to the PSD data.
+    chs : list of str
+        List of channel names for the EEG data (e.g., ['Fp1', 'Fp2', 'C3', 'C4']).
+    segment : str, optional
+        The segment of the PSD data to plot. Defaults to 'PSD N2a'.
 
     Returns
     -------
-    fig : a matplotlib figure
-
+    fig : matplotlib.figure.Figure
+        A matplotlib figure object displaying the PSD for the specified subject and segment.
     """
     
     
@@ -342,7 +381,26 @@ def plot_individual_psd_pasta(subj, PSD_df, freqs, chs, segment='PSD N2a'):
     return fig
 
 def auc_over_freqrange(PSD_df, freqs, freqrange=(12,15), relative=True):
-    
+    """
+    Calculates the Area Under the Curve (AUC) for the power spectral density (PSD) 
+    over a specified frequency range for different age groups.
+
+    Parameters
+    ----------
+    PSD_df : pandas DataFrame
+        The PSD data frame containing PSD values for various sleep stages and subjects.
+    freqs : array-like
+        The frequency values corresponding to the PSD data.
+    freqrange : tuple of float, optional
+        The frequency range of interest (in Hz) for AUC calculation. Defaults to (12, 15).
+    relative : bool, optional
+        If True, computes relative AUC normalized to the total power in the specified frequency range. Defaults to True.
+
+    Returns
+    -------
+    AUC_df_long: pd DataFrame with AUC values, in a long format
+    AUC_df: pd DataFrame with AUC values, in a wide format
+    """
     
     # average sata from PSD segmetns within one sleep stage
     N1_average = np.array(PSD_df[['PSD N1a', 'PSD N1b']]).mean(axis=1)
@@ -409,6 +467,29 @@ def auc_over_freqrange(PSD_df, freqs, freqrange=(12,15), relative=True):
     
 
 def within_sleep_stability(psd_df, freqs, stage='N1', spatial = False, color='green'):
+    """
+    Analyzes stability within a sleep stage by processing power spectral density (PSD) data.
+
+    Parameters
+    ----------
+    psd_df : pandas DataFrame
+        Data frame containing PSD values for multiple subjects and sleep segments.
+    freqs : array-like
+        The frequency values corresponding to the PSD data.
+    stage : str, optional
+        The sleep stage to analyze ('N1' or 'N2'). Defaults to 'N1'.
+    spatial : bool, optional
+        If True, considers spatial adjacency of EEG electrodes for stability analysis. Defaults to False.
+    color : str, optional
+        The color used for visualizations. Defaults to 'green'.
+
+    Returns
+    -------
+    clusters: list of spatiotemporal clusters
+    cluster_pv: the p-values associated with clusters
+    fig: matplotlib.figure.Figure with significant clusters shaded
+    F_obs: list of F-statistics associated with cluters
+    """
    
     if spatial:
         raw = read_template_subject()
@@ -531,6 +612,31 @@ def within_sleep_stability(psd_df, freqs, stage='N1', spatial = False, color='gr
 
 
 def sleep_spindle_difference(psd_df, freqs, freqrange=(12,15), spatial=False, color='blue'):
+    """
+    Analyzes the sleep spindle power difference between N1 and N2 sleep stages 
+    over a specified frequency range.
+
+    Parameters
+    ----------
+    psd_df : pandas DataFrame
+        Data frame containing PSD values for multiple subjects and sleep segments.
+    freqs : array-like
+        The frequency values corresponding to the PSD data.
+    freqrange : tuple of float, optional
+        The frequency range of interest (in Hz) to analyze sleep spindles. Defaults to (12, 15).
+    spatial : bool, optional
+        If True, includes spatial analysis of EEG channels. Defaults to False.
+    color : str, optional
+        The color used for visualizations. Defaults to 'blue'.
+
+    Returns
+    -------
+    clusters: list of spatiotemporal clusters
+    cluster_pv: the p-values associated with clusters
+    fig: matplotlib.figure.Figure with significant clusters shaded
+    F_obs: list of F-statistics associated with cluters
+
+    """
     
     if spatial:
         raw = read_template_subject()
