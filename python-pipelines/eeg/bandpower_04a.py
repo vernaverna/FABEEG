@@ -18,10 +18,29 @@ from config_eeg import get_all_fnames, fname, bads, age_df
 f_bands = [(1,3), (3,5.2), (5.2,7.6), (7.6,10.2), (10.2, 13), (13,16),
            (16,19.2), (19.2,22.6), (22.6,26.2), (26.2,30), (30,34), (34,38.2), (38.2,42.6)]
 
-#TODO: change these!
 
 # Helper function to calculate bandpower for each sensor
 def bandpower(psd, f, fmin, fmax): 
+"""
+    Calculate the bandpower for each sensor in the specified frequency range.
+
+    Parameters
+    ----------
+    psd : ndarray
+        Power spectral density (PSD) array of shape (n_channels, n_frequencies).
+        Each row corresponds to a channel, and each column corresponds to a frequency.
+    f : ndarray
+        Array of frequency bins corresponding to the PSD.
+    fmin : float
+        Lower bound of the frequency range of interest.
+    fmax : float
+        Upper bound of the frequency range of interest.
+
+    Returns
+    -------
+    ndarray
+        Bandpower values for each channel as a 1D array of shape (n_channels,).
+"""
     min_index = max(0, np.argmax(f > fmin) - 1)
     max_index = np.argmax(f > fmax) -1
     
@@ -68,11 +87,6 @@ try:
      
         
     f.close() #close file
- 
-    # Calculate the average relative band power (RBP):
-    # RBP = 100*ABP/sum(ABP)
-    # i.e. sum of spectral power over all bands is 100 for each channel and subject
-    # TODO: make sure that this is the desired approach?
 
     for data_obj in list(dataset.keys()): #calculate bandpower for all PSDs 
         data_bandpower = []
