@@ -58,4 +58,4 @@ The code is structured as follows:
 - for replicating statistical results and plots, see `run_stats.R` and `article_plots.R`
 
 
-The code was developed with python v3.10 and mne v1.5 and R v.4.0
+The code was developed with python v3.10 and mne v1.5 and R v.4.4
