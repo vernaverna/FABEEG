@@ -28,19 +28,18 @@ The code is structured as follows:
     ├── config_common.py
     ├── eeg
     │   ├── Makefile
-    │   ├── PSD_04b.py
     │   ├── annotate_bad_channels.py
-    │   ├── bandpower_04a.py
+    │   ├── bandpower_04.py
     │   ├── config_eeg.py
     │   ├── create_bids.py
-    │   ├── dodo.py
+    │   ├── export_emg_values.py
     │   ├── download_data.py
     │   ├── freqfilt_01.py
-    │   ├── group_level_PSD_plots.py
+    │   ├── group_lvl_PSD_figs.py
     │   ├── ica_02.py
     │   ├── plot_singlesubj_spectras.py
     │   ├── psds_03.py
-    │   ├── psds_stability_figures.py
+    │   ├── psd_stats_and_figs.py
     │   ├── runAll.sh
     ├── fnames.py
     └── requirements.txt
@@ -49,7 +48,7 @@ The code is structured as follows:
 **python-pipelines**
 
 - scripts with suffixes *01.py--*04.py are related to preprocessing
-- `plot_singlesubj_spectras.py` is mainly for plotting; `psds_stability_figures.py` contains statistical analysis and within-sleep stage stability estimates 
+- `plot_singlesubj_spectras.py` is for plotting individual psds; `psds_stability_figures.py` contains geoup-level statistical analysis and within-sleep stage stability estimates 
 
 **BRRR**
 
@@ -58,4 +57,4 @@ The code is structured as follows:
 - for replicating statistical results and plots, see `run_stats.R` and `article_plots.R`
 
 
-The code was developed with python v3.10 and mne v1.5 and R v.4.4
+The code was developed with python v3.10 and mne v1.5 and R v4.4
