@@ -32,8 +32,10 @@ long_psd = False
 
 # Initialize PSDS
 psds = dict()
-raw = read_raw_fif(fname.filt(subject=args.subject), preload=True)
-raw.pick_types(eeg=True)
+emg_psds = dict()
+raw = read_raw_fif(fname.clean(subject=args.subject), preload=True)
+raw_emg = raw.copy().pick_types(emg=True)
+raw = raw.pick_types(eeg=True)
 
 # Add a PSD plot to the report.
 info = pick_info(raw.info, pick_types(raw.info, eeg=True))
@@ -65,37 +67,35 @@ info1 = mne.create_info(info['ch_names'], ch_types=["eeg"]*19, sfreq=f_freq)
 info1.set_montage(raw.get_montage())
 
 
-# TODO: think this through. would sliding window make more sense?
-# maybe some 
-
-# Create events of 30 s 
-events_n1 = mne.make_fixed_length_events(raw, id=1, start=0, stop=300.0, duration=30, overlap=0) 
-events_n2 = mne.make_fixed_length_events(raw, id=2, start=300.0, stop=900.0, duration=30, overlap=0)
+# Create events of 60 s 
+events_n1 = mne.make_fixed_length_events(raw, id=1, start=0, stop=300.0, duration=60, overlap=0) 
+events_n2 = mne.make_fixed_length_events(raw, id=2, start=300.0, stop=900.0, duration=60, overlap=0)
 events = np.append(events_n1, events_n2, axis=0) #this is clumsy, but did not come up with anything else
 event_dict = {'sleep N1':1, 'sleep N2':2}
 
 
 # Create epochs from events
-epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=0.0, tmax=30, baseline=(0,3)) 
+epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=0.0, tmax=60, baseline=(0,3)) 
+emg_epochs =  mne.Epochs(raw_emg, events, event_id=event_dict, tmin=0.0, tmax=60, baseline=(0,3)) 
 
-#TODO: want global N1 & N2, as well as 1-min/30s slices? globs for plotting. 
 
 if long_psd:
-    time_indices = {'PSD N1' : range(1,10), #match data set size
-                    'PSD N2' : range(1,10)}
+    time_indices = {'PSD N1' : range(1,5), #match data set size
+                    'PSD N2' : range(3,7)}
 
 else:
-    time_indices = {'PSD N1a' : range(1,5),
-                    'PSD N1b' : range(5,9),
-                    'PSD N2a' : range(1,5),
-                    'PSD N2b' : range(5,9),
-                    'PSD N2c' : range(9,14),
-                    'PSD N2d' : range(14,19)}
+    time_indices = {'PSD N1a' : 1, #60s between epochs
+                    'PSD N1b' : 3,
+                    'PSD N2a' : 1,
+                    'PSD N2b' : 3,
+                    'PSD N2c' : 5,
+                    'PSD N2d' : 7}
 
 del raw
 
 # Create evoked responses, but as spectra
 evokeds = dict()
+emg_evokeds = dict()
 for key in time_indices.keys():
     
     if 'N1' in key:
@@ -108,6 +108,16 @@ for key in time_indices.keys():
         evokeds[key] = mne.EvokedArray(spectra.mean(axis=0), info=info1, comment=comment)
         psds[key] = 10*np.log10(spectra.mean(axis=0)) #get decibels
         
+        
+        # also analyze the emg traces
+        EMG_data = emg_epochs['sleep N1'][time_indices[key]].get_data() 
+        EMG_rms = np.sqrt((EMG_data**2).mean(axis=0))
+        emg_evokeds[key] = mne.EvokedArray(EMG_rms, info=raw_emg.info, comment=key)
+        
+        EMG_spectra, _ = psd_array_welch(EMG_data.mean(axis=1), sfreq=sfreq, fmin=1, fmax=fmax, n_fft=n_fft)
+        emg_psds[key] = 10*np.log10(EMG_spectra.mean(axis=0)) #get decibels
+        
+       
     else:
         try:
             spectra, freqs = psd_array_welch(epochs['sleep N2'][time_indices[key]].get_data(), 
@@ -119,26 +129,29 @@ for key in time_indices.keys():
             evokeds[key] = mne.EvokedArray(spectra.mean(axis=0), info=info1, comment=comment)
             psds[key] = 10*np.log10(spectra.mean(axis=0)) #get decibels
         
+            #emg trace
+            EMG_data = emg_epochs['sleep N2'][time_indices[key]].get_data() 
+            EMG_rms = np.sqrt((EMG_data**2).mean(axis=0))
+            emg_evokeds[key] = mne.EvokedArray(EMG_rms, info=raw_emg.info, comment=key)
+
+            
+            EMG_spectra, _ = psd_array_welch(EMG_data.mean(axis=1), sfreq=sfreq, fmin=1, fmax=fmax, n_fft=n_fft)
+            emg_psds[key] = 10*np.log10(EMG_spectra.mean(axis=0)) #get decibels
+            
         except IndexError as e:
             print('Not enough data for last segment!')
             continue
     
 
+mne.write_evokeds(fname.emg_evoked(subject=args.subject), list(emg_evokeds.values()), overwrite=True)
     
 # Add some metadata to the file we are writing
 psds['info'] = info1
 psds['freqs'] = freqs
+emg_psds['freqs'] = freqs
 
 if long_psd:
     print("TODO: make a nested dictionary -> dataframe -> pickle")
 else:
     write_hdf5(fname.psds(subject=args.subject), psds, overwrite=True)  # save psd
-
-
-# # Save resultus to report
-# with open_report(fname.report(subject=args.subject)) as report:
-#     report.add_figs_to_section(fig, 'PSDs', section='PSDs', replace=True, 
-#                                comments='Age: {}'.format( float(subj_info['Age'])) )
-#     report.add_slider_to_section(figs2, captions=captions, title='PSDs per channel', section='PSDs', replace=True)
-#     report.save(fname.report_html(subject=args.subject),
-#                 overwrite=True, open_browser=False)
+    write_hdf5(fname.emg_psds(subject=args.subject), emg_psds, overwrite=True)  # save psd

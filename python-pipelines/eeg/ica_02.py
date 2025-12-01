@@ -74,4 +74,4 @@ for filt_fname, ica_fname, clean_fname in all_fnames:
             )
     
             report.save(fname.report_html(subject=args.subject),
-                        overwrite=True, open_browser=True)
+                        overwrite=True, open_browser=False)

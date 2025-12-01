@@ -6,6 +6,7 @@ pipeline.
 # Some relevant files are in the parent folder.
 import sys
 sys.path.append('../../python-pipelines')
+#sys.path.remove('/net/tera2/home/heikkiv/MTBI_Work/mtbi-eeg/src')
 
 from fnames import FileNames
 import os
@@ -37,7 +38,12 @@ for s in all_subjects:
         all_subjects.remove(s)
 
 #Ages of subjects
-age_df = pd.read_csv('ages.csv')
+age_df = pd.read_csv('eeg/ages.csv')
+#age_df['Cap'] = np.nan
+#age_df = age_df[['File', 'Sex', 'Age']]
+#age_files = [x.replace('-', '') for x in list(age_df['File'])]
+#age_df['File'].replace(dict( zip(list(age_df['File']), age_files) ), inplace=True)
+#age_df.to_csv('ages.csv', index=False)
 
 # Subjects removed from the EEG analysis because of some problem
 bad_subjects = ['derivatives']
@@ -60,6 +66,7 @@ def bandpower(psd, f, fmin, fmax):
 
 # Bad EEG channels for each subject.
 # Made-up list: this is work in progress
+# TODO: save bad channels in files, BIDS compliant or MNE python compliant?
 bads = {}
 
 eog_channel = 'PIETSO' #Change?
@@ -90,11 +97,13 @@ fname.add('clean', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_clean_e
 fname.add('bads', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_channels.csv')
 fname.add('annotations', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_annotations.csv')
 fname.add('ica', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_ica.h5')
+fname.add('emg_evoked', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_emg_ave.fif')
 
 # PSD files
 fname.add('psds', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_psds.h5')
+fname.add('emg_psds', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_emg_psds.h5')
 fname.add('psds_fif', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_psds.fif')
-fname.add('evoked', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_evoked.fif')
+fname.add('evoked', '{processed_data_dir}/sub-{subject}/eeg/sub-{subject}_avefif')
 
 
 # Filenames for MNE reports
@@ -209,6 +218,7 @@ def change_metadata(raw):
     
     #Drop channels that are not in the shared_channels.txt .file
     allowed_chs = []
+    
     with open('shared_channels.txt') as f:
          allowed_chs = f.read().splitlines()
         
@@ -219,7 +229,8 @@ def change_metadata(raw):
     
     for ch_name in raw.info['ch_names']:
         if ch_name not in allowed_chs:
-            raw.drop_channels(ch_name)
+            if 'EMG' not in ch_name:
+                raw.drop_channels(ch_name)
 
     # Drop photic
     raw.drop_channels("PHOTIC")
@@ -227,8 +238,7 @@ def change_metadata(raw):
     #raw.drop_channels("EKG")
     
     # Reset sensor types 
-    mapping = dict( [(ch_name, 'ecg') if ch_name=='EKG' else (ch_name, 'eog') if ch_name=='PIETSO' 
-                     else (ch_name, 'eeg') for ch_name in raw.info['ch_names']] )
+    mapping = dict( [(ch_name, 'ecg') if ch_name=='EKG' else (ch_name, 'eog') if ch_name=='PIETSO' else (ch_name, 'emg') if 'EMG' in ch_name else (ch_name, 'eeg') for ch_name in raw.info['ch_names']] )
     raw.set_channel_types(mapping)
     
     # Sensor locations not provided with data - use standard layout
@@ -242,12 +252,6 @@ def change_metadata(raw):
     raw.set_eeg_reference('average')
     
     return raw, cap_status
-
-
-
-
-
-
 
 
 
