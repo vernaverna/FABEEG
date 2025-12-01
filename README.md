@@ -1,7 +1,7 @@
 This repository containts analysis scripts used for children's sleep-EEG fingerprinting.
 For preprocessing, refer to python-pipelines -folder and for further data analysis and inference, see BRRR -folder. 
 
-The manuscript related to this work is avilable at [url]
+The manuscript related to this work is avilable at [https://doi.org/10.1101/2025.05.02.651817]
 
 
 The code is structured as follows:
